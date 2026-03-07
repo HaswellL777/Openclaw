@@ -1,0 +1,7 @@
+{
+  "decision": "allow",
+  "reason": "read-only local git inspection",
+  "updated_input": {},
+  "risk_level": "low",
+  "policy_hits": ["safe_local_git"]
+}

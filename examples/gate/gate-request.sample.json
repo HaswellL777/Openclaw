@@ -1,0 +1,9 @@
+{
+  "tool_name": "Bash",
+  "tool_input": {
+    "command": "git status"
+  },
+  "cwd": "/workspace/repo",
+  "task_id": "task-sample-001",
+  "request_id": "req-sample-001"
+}

@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "HostOpsResult",
+  "type": "object",
+  "required": ["ok", "action", "request_id", "task_id", "status"],
+  "properties": {
+    "ok": { "type": "boolean" },
+    "action": { "type": "string" },
+    "request_id": { "type": "string" },
+    "task_id": { "type": "string" },
+    "status": { "type": "string", "enum": ["ok", "error", "denied"] },
+    "message": { "type": "string" },
+    "artifacts": { "type": "object" },
+    "rollback_hint": { "type": "string" }
+  },
+  "additionalProperties": true
+}

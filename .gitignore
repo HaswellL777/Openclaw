@@ -1,0 +1,5 @@
+logs/
+docs/.meta/
+.claude/settings.local.json
+*.pyc
+__pycache__/

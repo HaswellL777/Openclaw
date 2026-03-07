@@ -1,0 +1,7 @@
+{
+  "name": "host-ops-tool",
+  "private": true,
+  "version": "0.0.0-phase0",
+  "description": "Development-only skeleton for OpenClaw host ops plugin",
+  "type": "module"
+}

@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "HostOpsRequest",
+  "type": "object",
+  "required": ["action", "request_id", "task_id", "requested_by", "inputs"],
+  "properties": {
+    "action": {
+      "type": "string",
+      "enum": [
+        "gateway_health",
+        "gateway_restart",
+        "validate_openclaw_json_candidate",
+        "deploy_openclaw_json_candidate",
+        "snapshot_pre",
+        "snapshot_post",
+        "vault_sync",
+        "rollback_prepare"
+      ]
+    },
+    "request_id": { "type": "string", "minLength": 1 },
+    "task_id": { "type": "string", "minLength": 1 },
+    "requested_by": { "type": "string", "minLength": 1 },
+    "inputs": { "type": "object" }
+  },
+  "additionalProperties": false
+}
