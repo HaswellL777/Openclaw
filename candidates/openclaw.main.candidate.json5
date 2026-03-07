@@ -1,0 +1,285 @@
+{
+  gateway: {
+    mode: "local",
+    port: 17777,
+    bind: "loopback",
+    auth: {
+      mode: "token",
+      token: "${OPENCLAW_GATEWAY_TOKEN}",
+      allowTailscale: false,
+    },
+  },
+  models: {
+    mode: "merge",
+    providers: {
+      "custom-api-deepseek-com": {
+        baseUrl: "https://api.deepseek.com/v1",
+        apiKey: "${DEEPSEEK_API_KEY}",
+        api: "openai-completions",
+        models: [
+          {
+            id: "deepseek-chat",
+            name: "deepseek-chat (Custom Provider)",
+            reasoning: false,
+            input: ["text"],
+            cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+            contextWindow: 128000,
+            maxTokens: 8192,
+          },
+          {
+            id: "deepseek-reasoner",
+            name: "deepseek-reasoner (Custom Provider)",
+            reasoning: true,
+            input: ["text"],
+            cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+            contextWindow: 128000,
+            maxTokens: 8192,
+          },
+        ],
+      },
+
+      "motchat-claude-4-6": {
+        baseUrl: "https://new.motchat.com/v1",
+        apiKey: "${MOTCHAT_API_KEY}",
+        api: "openai-completions",
+        models: [
+          {
+            id: "claude-opus-4-6",
+            name: "Claude Opus 4.6",
+            reasoning: true,
+            input: ["text"],
+            cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+            contextWindow: 200000,
+            maxTokens: 32000,
+          },
+          {
+            id: "claude-opus-4-6-1m",
+            name: "Claude Opus 4.6 (1M)",
+            reasoning: true,
+            input: ["text"],
+            cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+            contextWindow: 1000000,
+            maxTokens: 32000,
+          },
+          {
+            id: "claude-opus-4-6-thinking",
+            name: "Claude Opus 4.6 Thinking",
+            reasoning: true,
+            input: ["text"],
+            cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+            contextWindow: 200000,
+            maxTokens: 32000,
+          },
+          {
+            id: "claude-sonnet-4-6",
+            name: "Claude Sonnet 4.6",
+            reasoning: false,
+            input: ["text"],
+            cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+            contextWindow: 200000,
+            maxTokens: 16000,
+          },
+          {
+            id: "claude-sonnet-4-6-thinking",
+            name: "Claude Sonnet 4.6 Thinking",
+            reasoning: true,
+            input: ["text"],
+            cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+            contextWindow: 200000,
+            maxTokens: 16000,
+          },
+        ],
+      },
+
+      "motchat-gpt-max": {
+        baseUrl: "https://new.motchat.com/v1",
+        apiKey: "${MOTCHAT_API_KEY}",
+        api: "openai-completions",
+        models: [
+          {
+            id: "gpt-5.2-codex",
+            name: "GPT-5.2 Codex",
+            reasoning: true,
+            input: ["text"],
+            cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+            contextWindow: 400000,
+            maxTokens: 128000,
+          },
+          {
+            id: "gpt-5.2-codex-high",
+            name: "GPT-5.2 Codex High",
+            reasoning: true,
+            input: ["text"],
+            cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+            contextWindow: 400000,
+            maxTokens: 128000,
+          },
+          {
+            id: "gpt-5.2-codex-xhigh",
+            name: "GPT-5.2 Codex XHigh",
+            reasoning: true,
+            input: ["text"],
+            cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+            contextWindow: 400000,
+            maxTokens: 128000,
+          },
+          {
+            id: "gpt-5.2-high",
+            name: "GPT-5.2 High",
+            reasoning: true,
+            input: ["text"],
+            cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+            contextWindow: 400000,
+            maxTokens: 128000,
+          },
+          {
+            id: "gpt-5.2-xhigh",
+            name: "GPT-5.2 XHigh",
+            reasoning: true,
+            input: ["text"],
+            cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+            contextWindow: 400000,
+            maxTokens: 128000,
+          },
+          {
+            id: "gpt-5.3-codex",
+            name: "GPT-5.3 Codex",
+            reasoning: true,
+            input: ["text"],
+            cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+            contextWindow: 400000,
+            maxTokens: 128000,
+          },
+          {
+            id: "gpt-5.4",
+            name: "GPT-5.4",
+            reasoning: true,
+            input: ["text"],
+            cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+            contextWindow: 1050000,
+            maxTokens: 128000,
+          },
+        ],
+      },
+    },
+  },
+  agents: {
+    defaults: {
+      model: {
+        primary: "motchat-claude-4-6/claude-opus-4-6",
+      },
+      models: {
+        "custom-api-deepseek-com/deepseek-chat": { alias: "deepchat" },
+        "custom-api-deepseek-com/deepseek-reasoner": { alias: "deepresoner" },
+
+        "motchat-claude-4-6/claude-opus-4-6": { alias: "opus" },
+        "motchat-claude-4-6/claude-opus-4-6-1m": { alias: "opus1m" },
+        "motchat-claude-4-6/claude-opus-4-6-thinking": { alias: "opusthink" },
+        "motchat-claude-4-6/claude-sonnet-4-6": { alias: "sonnet" },
+        "motchat-claude-4-6/claude-sonnet-4-6-thinking": { alias: "sonnetthink" },
+
+        "motchat-gpt-max/gpt-5.2-codex": { alias: "g52codex" },
+        "motchat-gpt-max/gpt-5.2-codex-high": { alias: "g52codexhigh" },
+        "motchat-gpt-max/gpt-5.2-codex-xhigh": { alias: "g52codexxhigh" },
+        "motchat-gpt-max/gpt-5.2-high": { alias: "g52high" },
+        "motchat-gpt-max/gpt-5.2-xhigh": { alias: "g52xhigh" },
+        "motchat-gpt-max/gpt-5.3-codex": { alias: "g53codex" },
+        "motchat-gpt-max/gpt-5.4": { alias: "g54" },
+      },
+      workspace: "/var/lib/openclaw/.openclaw/workspace",
+      compaction: { mode: "safeguard" },
+      maxConcurrent: 4,
+      subagents: {
+        maxConcurrent: 8,
+        // ── Phase 1: main agent control ──
+        maxSpawnDepth: 2,
+        maxChildrenPerAgent: 3,
+        runTimeoutSeconds: 3600,
+        archiveAfterMinutes: 120,
+      },
+    },
+    // ── Phase 1: main agent definition ──
+    list: [
+      {
+        id: "main",
+        default: true,
+        workspace: "/var/lib/openclaw/.openclaw/workspace-main",
+        subagents: {
+          allowAgents: ["task-runner"],
+        },
+        tools: {
+          allow: [
+            "read",
+            "write",
+            "edit",
+            "sessions_list",
+            "sessions_history",
+            "sessions_send",
+            "sessions_spawn",
+            "session_status",
+            // "host_ops",  // Phase 2: broker integration
+          ],
+          deny: [
+            "exec",
+            "process",
+            "apply_patch",
+            "elevated",
+          ],
+          elevated: { enabled: false },
+        },
+      },
+    ],
+  },
+  tools: { profile: "messaging" },
+  messages: { ackReactionScope: "group-mentions" },
+  commands: {
+    native: "auto",
+    nativeSkills: "auto",
+    restart: true,
+    ownerDisplay: "raw",
+  },
+  session: { dmScope: "per-channel-peer" },
+  channels: {
+    feishu: {
+      enabled: true,
+      appId: "cli_a92f314332f8dcd9",
+      appSecret: "${FEISHU_APP_SECRET}",
+      connectionMode: "websocket",
+      domain: "feishu",
+      groupPolicy: "open",
+      dmPolicy: "open",
+      allowFrom: ["*"],
+    },
+  },
+  plugins: {
+    allow: ["feishu", "tool-audit-plugin"],
+    entries: {
+      feishu: { enabled: true },
+    },
+    installs: {
+      feishu: {
+        source: "npm",
+        spec: "@openclaw/feishu",
+        installPath: "/var/lib/openclaw/.openclaw/extensions/feishu/node_modules/@openclaw/feishu",
+        version: "2026.3.2",
+        resolvedName: "@openclaw/feishu",
+        resolvedVersion: "2026.3.2",
+      },
+    },
+  },
+  logging: {
+    level: "info",
+    consoleLevel: "info",
+    file: "/var/log/openclaw/openclaw.log",
+  },
+  hooks: {
+    internal: {
+      enabled: true,
+      entries: {
+        "tool-audit-probe": {
+          enabled: true,
+        },
+      },
+    },
+  },
+}
