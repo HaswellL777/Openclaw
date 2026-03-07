@@ -1,0 +1,3 @@
+# allowed workers
+
+- task-runner
