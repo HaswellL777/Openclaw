@@ -1,0 +1,20 @@
+# Runtime state should not be committed in live deployment
+control/state/*
+!control/state/.gitkeep
+
+# Memory files (optional, if used)
+memory/*.md
+!memory/.gitkeep
+
+# Temporary files
+*.tmp
+*.swp
+*~
+.DS_Store
+
+# Logs
+*.log
+
+# Backups
+*.backup
+*.bak
