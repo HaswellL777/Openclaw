@@ -1,4 +1,4 @@
-# OpenClaw Host 状态记录（2026-03-07 Phase 1A / GPT-5.4 修订版）
+# OpenClaw Host 状态记录（2026-03-09 Phase 1A+1B(dev) / GPT-5.4 修订版）
 
 > 适用范围：Ubuntu 24.04 LTS 宿主机裸机安装 OpenClaw（非 Docker），Btrfs 根（subvolid=5），使用 `/.snapshots` + 离线 Vault（`/mnt/vault`, `noauto`）做增量 `send/receive`；OpenClaw 以 systemd **system-level** 服务运行（`User=openclaw`），并严格遵循目录边界：
 >
@@ -7,7 +7,7 @@
 > - 数据：`/var/lib/openclaw`（btrfs 独立子卷，`openclaw:openclaw`，`700`）
 > - 日志：`/var/log/openclaw`（`openclaw:openclaw`）
 >
-> 当前宿主机状态不再是纯 Phase 0，而是 **Phase 1A（main bootstrap only）已完成落地**：`main` agent 已上线、`workspace-main` 已发布、工具集 fix-forward 已完成、默认主模型已切换为 `motchat-gpt-max/gpt-5.4`；但 **只读 `host_ops` / broker、正式 `task-runner`、Docker 执行面与 `/var/lib/openclaw` 独立控制面备份链仍未落地**。
+> 当前宿主机状态不再是纯 Phase 0，而是 **Phase 1A（main bootstrap only）已完成落地**：`main` agent 已上线、`workspace-main` 已发布、工具集 fix-forward 已完成、默认主模型已切换为 `motchat-gpt-max/gpt-5.4`；**Phase 1B 控制面收口工作已在开发仓库中部分完成**（workspace-main 模板、publish/check 脚本已提交，但尚未在现网执行首次正式发布）；但 **只读 `host_ops` / broker、正式 `task-runner`、Docker 执行面与 `/var/lib/openclaw` 独立控制面备份链仍未落地**。
 
 ## ⛔ 禁止操作清单（优先阅读）
 
@@ -87,7 +87,7 @@ sudo mv /var/lib/openclaw/.openclaw/extensions/<plugin>.bak-* /var/lib/openclaw/
 
 ### 0.1 当前时间与主机
 - 时区：CST (+0800)
-- 日期：2026-03-07（本次修订整合到 Phase 1A 完成后状态）
+- 日期：2026-03-09（本次修订整合到 Phase 1A 完成 + Phase 1B 开发仓候选产物就绪状态）
 - 主机：`nick-MS-7D73`（管理用户：`nick`，服务用户：`openclaw`）
 
 ### 0.2 当前阶段定位
@@ -98,8 +98,13 @@ sudo mv /var/lib/openclaw/.openclaw/extensions/<plugin>.bak-* /var/lib/openclaw/
   - 已完成 gateway 重启、health 验证与 Feishu 黑盒实测；
   - `main` 当前可读取其 workspace 内控制文件，并具备最小 file tools + session tools；
   - 默认主模型已切换为 `motchat-gpt-max/gpt-5.4`。
-- 当前仍不是“Phase 1 完整态”：
-  - **不是 Phase 1B（readonly host_ops）**
+- **Phase 1B（控制面收口）在开发仓库中已部分完成**：
+  - `workspace-main-template/` 目录已建立并提交至 `~/projects/openclaw-dev/`；
+  - `scripts/publish-workspace-main.sh`、`scripts/publish-sop.sh`、`scripts/check-workspace-main.sh` 已实现并提交；
+  - `docs/runtime-allowlist-backup-draft.md` 已起草（草案状态，未进入生产执行）；
+  - 以上均为开发仓库内的候选产物，**尚未在现网执行首次正式发布**。
+- 当前仍不是”Phase 1 完整态”：
+  - **Phase 1B 的现网发布、校验闭环尚未执行**
   - **更不是 Phase 2（正式 broker / wrapper 写入链）**
 
 ### 0.3 `/var/lib/openclaw` 与根快照的边界
@@ -128,6 +133,10 @@ sudo mv /var/lib/openclaw/.openclaw/extensions/<plugin>.bak-* /var/lib/openclaw/
 3. **只读 `host_ops` 仍未部署。**
    - 设计文档里原先把只读 `host_ops` 放在 Phase 1；
    - 但本机实际状态尚未达到该子阶段。
+4. **Phase 1B 发布 / 校验脚本已在开发仓就绪，但尚未在现网执行首次正式发布。**
+   - `scripts/publish-workspace-main.sh`、`scripts/publish-sop.sh`、`scripts/check-workspace-main.sh` 已提交开发仓；
+   - 这些脚本当前默认 dry-run、拒绝写入生产路径（safety guard）；
+   - 首次现网正式发布仍待安排。
 
 ## 1. 磁盘与分区布局（lsblk 摘要）
 ### 1.1 系统盘（System）
@@ -436,11 +445,14 @@ xfconf-query -c xfwm4 -p /general/use_compositing -s false
 > ⚠️ 如果发现 `18789` 端口在监听，说明 `nick` 用户的 user-level gateway 被意外启动，见第 **13.6.8** 节清理步骤。
 
 ### 11.3 当前阶段标签
-- **Phase 1A / main bootstrap only**
+- **Phase 1A / main bootstrap only — 已完成落地**
+- **Phase 1B / 控制面收口 — 开发仓候选产物已就绪，现网首次发布待执行**
 - `main` agent 已正式上线；
 - `workspace-main` 已落地；
 - `main` 的 file tools 已修正；
 - 默认主模型已切到 `motchat-gpt-max/gpt-5.4`；
+- 开发仓已提交 `workspace-main-template/` 目录与 publish/check 脚本；
+- `docs/runtime-allowlist-backup-draft.md` 已起草（草案状态）；
 - `host_ops` broker / `task-runner` / Docker 执行面仍未进入生产落地。
 
 ### 11.4 里程碑快照与入库（已执行）
@@ -939,7 +951,7 @@ findmnt /mnt/vault && echo "WARNING: vault is mounted" || echo "OK: vault is unm
 - 与 broker / wrapper / 备份脚本 / Docker 权限边界相关的 host 侧代码
 
 #### 13.7.2 运行态控制面层（新增设计目标，尚未实施）
-从现在开始，不再把 `/var/lib/openclaw` 整体简单视为“完全不值得备份”的黑盒。  
+从现在开始，不再把 `/var/lib/openclaw` 整体简单视为”完全不值得备份”的黑盒。
 建议后续新增单独备份 / 导出策略，优先覆盖：
 - `/var/lib/openclaw/.openclaw/workspace-main/control/state/`
   - `pending-approvals.json`
@@ -952,6 +964,8 @@ findmnt /mnt/vault && echo "WARNING: vault is mounted" || echo "OK: vault is unm
 - `/var/lib/openclaw/backup/`
   - 尤其 `last_sent` 与可能新增的运行时备份元数据
 - 后续 broker 状态目录、request log 索引与 wrapper 审计索引
+
+> **2026-03-09 补充**：开发仓已起草 `docs/runtime-allowlist-backup-draft.md`，将 `/var/lib/openclaw` 内容分为三类（A: 必须备份的控制面状态、B: 可由 publish 重建的内容、C: 高 churn 排除项），并定义了各类的恢复语义。该草案为设计参考，**尚未转化为可执行的备份脚本，也未在生产中启用**。
 
 #### 13.7.3 运行态噪声层（默认不做强恢复）
 默认不纳入严格里程碑恢复的对象：
@@ -970,8 +984,9 @@ findmnt /mnt/vault && echo "WARNING: vault is mounted" || echo "OK: vault is unm
 
 #### 13.8.1 四类对象必须严格区分
 A. **权威控制仓库（authoritative control repo）**
-- 建议路径：`/srv/openclaw-control/`
-- 当前最关键权威文件：`/srv/openclaw-control/docs/host-sop.md`
+- 原设计建议路径：`/srv/openclaw-control/`
+- **当前实际状态**：权威控制仓库尚未独立运作；当前 SOP 与设计稿的实际编辑入口是开发仓 `~/projects/openclaw-dev/docs/host-sop.md` 与 `docs/design-v3.md`
+- 未来目标：当 `/srv/openclaw-control/` 正式启用后，权威源迁移到该仓库；在此之前，开发仓中的文档即为权威源
 - 角色：宿主机控制规范、SOP、runbook、控制面文档的**单一真相源**
 - 说明：`workspace-main/control/SOP.md` 不得被视为手工主编辑点
 
@@ -980,6 +995,7 @@ B. **开发仓库（development repo）**
 - 角色：
   - 使用 Claude Code CLI 与人工协作开发
   - 维护 broker / plugin / publish script / workspace 模板 / 候选配置 / 测试 / 设计稿
+  - **当前同时承担权威控制文档的编辑入口**（`docs/host-sop.md`、`docs/design-v3.md`）
 - 说明：这是日常 Git commit 的主开发仓；不是 system gateway 运行目录
 
 C. **运行时发布副本（runtime published artifact）**
@@ -994,19 +1010,18 @@ D. **任务级工程仓（per-task repo）**
 
 #### 13.8.2 权威源、开发仓、副本之间怎么流动
 统一工作原则：
-1. 宿主机控制规范（尤其 SOP）只保留一个权威源：`/srv/openclaw-control/docs/host-sop.md`
-2. 开发仓库 `~/projects/openclaw-dev/` 中保留开发侧副本：`docs/host-sop.md`
-3. 运行时副本：`/var/lib/openclaw/.openclaw/workspace-main/control/SOP.md`
-4. 未来 task-runner 任务仓中的 SOP 副本：`tasks/<task-id>/repo/docs/host-sop.md`
-5. 统一原则：
-   - **改权威源**
+1. 宿主机控制规范（尤其 SOP）当前的权威编辑入口是开发仓：`~/projects/openclaw-dev/docs/host-sop.md`（未来 `/srv/openclaw-control/` 正式启用后迁移）
+2. 运行时副本：`/var/lib/openclaw/.openclaw/workspace-main/control/SOP.md`（由 `scripts/publish-sop.sh` 从开发仓 `docs/host-sop.md` 发布）
+3. 未来 task-runner 任务仓中的 SOP 副本：`tasks/<task-id>/repo/docs/host-sop.md`
+4. 统一原则：
+   - **改权威源**（当前即开发仓）
    - **发布到副本**
    - **副本供运行**
    - **不靠 symlink，不靠 runtime 目录手工直改**
 
 #### 13.8.3 日常 Git 使用规则
 1. 日常开发提交发生在：`~/projects/openclaw-dev/`
-2. 权威控制文档提交应发生在：`/srv/openclaw-control/`
+2. 权威控制文档当前也在开发仓编辑和提交（未来迁移到独立控制仓后，此条更新）
 3. `workspace-main` 不是 Git 主仓，不要求在运行时 workspace 直接 `git init` / `git commit`
 4. `tasks/<task-id>/repo/` 是任务级工程仓，可临时 clone / init，但不承担宿主控制真相管理
 5. 配置候选文件必须先进入开发仓版本化，再部署到 `/etc/openclaw/openclaw.json`
@@ -1014,13 +1029,16 @@ D. **任务级工程仓（per-task repo）**
 
 #### 13.8.4 发布工作流
 A. 文档发布：
-- 在权威控制仓编辑 SOP；
-- 同步 / 发布到开发仓 `docs/host-sop.md`；
-- 再发布到 runtime：`workspace-main/control/SOP.md`
+- 在开发仓编辑 SOP（`~/projects/openclaw-dev/docs/host-sop.md`）；
+- 发布到 runtime：`workspace-main/control/SOP.md`（使用 `scripts/publish-sop.sh`，自动附加 SHA256 + 时间戳头）
 
 B. workspace 发布：
-- `workspace-main/` 模板文件在开发仓维护；
+- `workspace-main/` 模板文件在开发仓维护（`workspace-main-template/` 目录）；
 - 受控发布到 `/var/lib/openclaw/.openclaw/workspace-main/`
+- 开发仓已提供发布与校验脚本（均默认 dry-run，拒绝写入生产路径）：
+  - `scripts/publish-workspace-main.sh`：从 `workspace-main-template/` 发布到目标目录，保留 `control/state/`，自动调用 `publish-sop.sh`
+  - `scripts/publish-sop.sh`：从 `docs/host-sop.md` 发布到 `control/SOP.md`，附加 SHA256 与时间戳头，写入 `last-sop-hash.txt`
+  - `scripts/check-workspace-main.sh`：校验 workspace-main 结构完整性（区分模板模式 vs 发布产物模式）
 
 C. 配置发布：
 - 在开发仓生成候选配置；
@@ -1121,7 +1139,7 @@ Claude Code 项目级配置文件统一按以下原则理解：
 
 #### 13.10.2 日常开发循环
 默认循环如下：
-1. 在权威控制仓或开发仓确定要改的目标：
+1. 在开发仓确定要改的目标：
    - SOP
    - design
    - candidate config
@@ -1723,3 +1741,4 @@ Phase 1A 完成后，已执行 post-change 里程碑快照与 Vault 入库：
 | 2026-03-07 19:02~19:05 | 生成 `openclaw.phase1a.g54-default.candidate.json5`，将默认主模型从 `motchat-claude-4-6/claude-opus-4-6` 改为 `motchat-gpt-max/gpt-5.4` |
 | 2026-03-07 19:11 | 创建 `root-post-phase1a-2026-03-07-1911` 并执行 Vault sync，作为本轮 Phase 1A + g54 默认模型切换的收尾里程碑；`last_sent` 更新为 `root-auto-2026-03-07-1911` |
 | 2026-03-07 19:xx | 飞书实测：默认模型显示为 `motchat-gpt-max/gpt-5.4`，`/reset`、简单回复与工具列举均恢复即时可用；当前将 g54 作为默认运营模型保留 |
+| 2026-03-09 | 文档收口：在开发仓 `docs/host-sop.md` 中回写 Phase 1B 开发仓候选产物状态（`workspace-main-template/`、publish/check 脚本、`runtime-allowlist-backup-draft.md`）；更新 §0.2 阶段定位、§0.5 未决问题、§11.3 阶段标签、§13.7.2 备份策略、§13.8.4 发布工作流 |

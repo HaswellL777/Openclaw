@@ -17,7 +17,7 @@ It must never be treated as the authoritative runtime state.
 ## Source of truth
 - Host runtime facts and operational history live in `docs/host-sop.md`
 - Architecture and implementation target live in `docs/design-v3.md`
-- The authoritative SOP path on host is `/srv/openclaw-control/docs/host-sop.md`
+- The authoritative SOP is currently edited in this dev repo: `docs/host-sop.md` (future: `/srv/openclaw-control/docs/host-sop.md` when that repo is independently operational)
 - The authoritative OpenClaw runtime config path is `/etc/openclaw/openclaw.json`
 
 Do not invent host facts in this file.

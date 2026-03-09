@@ -1,9 +1,9 @@
 # OpenClaw 多 Agent + Claude Code 协作体系设计稿 v3.1
 
-> 初版编写日期：2026-03-07  
-> 本次修订日期：2026-03-07（Phase 1A 落地后修订）  
-> 适用宿主机：当前单机 Ubuntu 24.04 LTS / Btrfs / systemd / OpenClaw 2026.3.2 基线  
-> 上游输入：`openclaw-host-sop-2026-03-06.md`、`1.md`、`openclaw-design-v2-2026-03-07.md`、本轮 Phase 1A 实际落地结果  
+> 初版编写日期：2026-03-07
+> 本次修订日期：2026-03-09（Phase 1B 开发仓候选产物落地后修订）
+> 适用宿主机：当前单机 Ubuntu 24.04 LTS / Btrfs / systemd / OpenClaw 2026.3.2 基线
+> 上游输入：`openclaw-host-sop-2026-03-06.md`、`1.md`、`openclaw-design-v2-2026-03-07.md`、本轮 Phase 1A 实际落地结果、Phase 1B 开发仓候选产物
 > 文档定位：**可实施规格稿 + 落地状态稿**，用于后续继续开发、验证、回滚、审计与发布
 
 ---
@@ -24,7 +24,8 @@
 10. **`/var/lib/openclaw` 已是独立 Btrfs 子卷，因此不在 root snapshot 保护范围内；`workspace-main` 必须被视为可重复发布产物，而不是依赖 root snapshot 恢复的长期真相源。**
 11. **本轮实际落地过程中，曾出现 `main` 工具集被顶层 `tools.profile = messaging` 覆盖的问题；该问题已通过移除顶层 `tools.profile` 修复。**
 12. **默认主模型已从 `motchat-claude-4-6/claude-opus-4-6` 切换到 `motchat-gpt-max/gpt-5.4`；当前把 g54 视为更稳妥的主控制面默认值，但不把“Claude 4.6 一定是卡顿根因”写成已证事实。**
-13. **Claude Code 容器内执行链、只读 `host_ops`、正式 broker 与 wrapper 仍属于后续阶段目标；除非特别注明“已验证”，否则不得写成当前事实。**
+13. **Claude Code 容器内执行链、只读 `host_ops`、正式 broker 与 wrapper 仍属于后续阶段目标；除非特别注明”已验证”，否则不得写成当前事实。**
+14. **Phase 1B 控制面收口工作已在开发仓中部分完成（2026-03-09）：`workspace-main-template/` 已建立并提交；`scripts/publish-workspace-main.sh`、`scripts/publish-sop.sh`、`scripts/check-workspace-main.sh` 已实现；`docs/runtime-allowlist-backup-draft.md` 已起草；但以上均为开发仓候选产物，尚未在现网执行首次正式发布。**
 
 ---
 
@@ -70,7 +71,7 @@
 - `/etc/openclaw/openclaw.env`：长期敏感凭证，不给 `nick` 直接读；
 - `/var/lib/openclaw`：OpenClaw 运行态数据，**独立 Btrfs 子卷**；
 - `/var/log/openclaw`：日志目录；
-- `/srv/openclaw-control/`：建议的权威控制仓库根；
+- `/srv/openclaw-control/`：原设计建议的权威控制仓库根（当前尚未独立运作，权威文档实际编辑入口在开发仓）；
 - `~/projects/openclaw-dev/`：开发仓库；
 - `/var/lib/openclaw/.openclaw/workspace-main/`：`main` agent 的 runtime published workspace。
 
@@ -223,7 +224,7 @@ v3.1 继续坚持“控制面 / 执行面分离”，但必须明确区分 **当
 2. root-owned wrapper 链
 3. 正式 `host_ops` plugin
 4. task token / gateway token 下发链
-5. `/var/lib/openclaw` 独立 allowlist 备份链
+5. `/var/lib/openclaw` 独立 allowlist 备份链（已有开发仓草案 `docs/runtime-allowlist-backup-draft.md`，尚未转化为可执行脚本）
 
 #### C. 目标中的任务执行面（尚未落地）
 
@@ -413,7 +414,8 @@ v3.1 继续坚持“控制面 / 执行面分离”，但必须明确区分 **当
 - 它是 runtime published artifact；
 - 它不应被当作长期权威文档源；
 - 其内容应来自权威控制仓库和 / 或开发仓库的 publish 流；
-- root snapshot 不负责恢复它。
+- root snapshot 不负责恢复它；
+- 开发仓中已建立 `workspace-main-template/` 目录作为发布源模板（2026-03-09）。
 
 ### 5.1.5 main 的规则文件写法要求
 
@@ -593,11 +595,25 @@ v3.1 继续把 Claude Code CLI 分成两个角色，但必须明确写出：**�
 │   └── commands/              # 可选
 ├── docs/
 │   ├── host-sop.md
-│   ├── design-v3.1.md
+│   ├── design-v3.md
+│   ├── runtime-allowlist-backup-draft.md   # Phase 1B 草案
 │   └── acceptance-tests.md
+├── workspace-main-template/   # Phase 1B：workspace-main 发布源模板
+│   ├── AGENTS.md
+│   ├── SOUL.md / IDENTITY.md / USER.md / TOOLS.md / HEARTBEAT.md / README.md
+│   ├── control/
+│   │   ├── SOP.md (placeholder, 由 publish-sop.sh 替换)
+│   │   ├── routing-policy.md / approval-policy.md / allowed-workers.md / host-ops-api.md
+│   │   ├── state/ (pending-approvals.json, last-health.md, last-sop-hash.txt, last-task-index.json)
+│   │   └── runbooks/ (openclaw-config-change.md, gateway-restart.md, rollback.md)
+│   ├── skills/ (host-sop, routing, approvals, broker 各含 SKILL.md)
+│   └── memory/
 ├── broker/
 ├── plugins/
 ├── scripts/
+│   ├── publish-workspace-main.sh   # Phase 1B：workspace 发布脚本
+│   ├── publish-sop.sh              # Phase 1B：SOP 发布脚本
+│   └── check-workspace-main.sh     # Phase 1B：结构校验脚本
 ├── examples/
 └── tests/
 ```
@@ -902,13 +918,13 @@ broker 是 v3.1 的唯一宿主机副作用执行面。它不是通用 shell，�
 
 ### 5.7.1 只保留一个权威源
 
-权威源建议：
+当前权威源：
 
 ```text
-/srv/openclaw-control/docs/host-sop.md
+~/projects/openclaw-dev/docs/host-sop.md
 ```
 
-或你确定的单一控制仓库路径。
+未来若 `/srv/openclaw-control/` 独立运作，权威源迁移到该仓库。在此之前，开发仓即为权威编辑入口。
 
 ### 5.7.2 双层发布而非 symlink
 
@@ -933,6 +949,8 @@ OpenClaw 官方说明，sandbox seed copy 只接受常规 in-workspace 文件；
 3. 写入版本号 / 时间戳
 4. 若 hash 未变可跳过
 5. 记录发布日志
+
+> **2026-03-09 状态**：`scripts/publish-sop.sh` 已在开发仓实现并提交。实际行为符合上述 5 条要求：从 `docs/host-sop.md` 复制到 `TARGET_DIR/control/SOP.md`，附加 SHA256 + 时间戳头，写入 `control/state/last-sop-hash.txt`，hash 相同时跳过。默认 dry-run，拒绝写入生产路径。
 
 ### 5.7.4 为什么开发仓库也要有副本
 
@@ -1509,11 +1527,11 @@ Phase 0 结束后，开发体系已能安全地产生候选配置、脚本和文
 
 ---
 
-## Phase 1B：控制面收口与文档 / 发布模型固化（下一阶段）
+## Phase 1B：控制面收口与文档 / 发布模型固化（进行中）
 
 ### 目标
 
-把 Phase 1A 的实操经验固化成正式控制规范，消除“计划态文档”和“现网事实”之间的漂移。
+把 Phase 1A 的实操经验固化成正式控制规范，消除”计划态文档”和”现网事实”之间的漂移。
 
 ### 工作内容
 
@@ -1527,6 +1545,22 @@ Phase 0 结束后，开发体系已能安全地产生候选配置、脚本和文
 4. 固化 publish 流与 candidate config 流
 5. 补齐 `workspace-main` 发布 / 校验脚本
 6. 决定 `/var/lib/openclaw` 哪些内容纳入独立备份 allowlist
+
+### 当前状态（2026-03-09）
+
+**已完成（开发仓内）：**
+- `workspace-main-template/` 目录已建立并提交（25 个文件）
+- `scripts/publish-workspace-main.sh` 已实现（默认 dry-run，保留 `control/state/`，自动调用 `publish-sop.sh`）
+- `scripts/publish-sop.sh` 已实现（SHA256 + 时间戳头，hash 相同则跳过）
+- `scripts/check-workspace-main.sh` 已实现（模板模式 vs 发布产物模式校验）
+- `docs/runtime-allowlist-backup-draft.md` 已起草（三类分类 + 恢复语义）
+- SOP 与 design-v3 回写 Phase 1B 状态（本次修订）
+
+**尚未完成：**
+- 在现网执行首次 `publish-workspace-main.sh --apply` 正式发布
+- 移除 publish 脚本的生产路径 safety guard（需要 `--allow-live-target` flag）
+- 控制面备份脚本（将 backup draft 转化为可执行脚本）
+- `last-sop-hash.txt` 自动更新机制在运行态中的集成
 
 ### 验收标准
 
@@ -1683,18 +1717,21 @@ Phase 0 结束后，开发体系已能安全地产生候选配置、脚本和文
 
 ## 8.2 Phase 1B TODO
 
-- [ ] 更新 `docs/host-sop.md`
-- [ ] 更新 `docs/design-v3.1.md`
-- [ ] 在文档中明确 Phase 1A 已落地事实
-- [ ] 明确 `/var/lib/openclaw` 为独立 Btrfs 子卷且不在 root snapshot 内
-- [ ] 明确 `workspace-main` 是 published artifact
-- [ ] 明确权威控制仓库 / 开发仓 / runtime workspace / task repo 四层模型
-- [ ] 固化 `candidate -> deploy -> health -> snapshot -> vault -> capture-current` 流程
-- [ ] 补齐 `workspace-main` 的 publish / check 脚本
-- [ ] 记录 Phase 1A 快照名与 Vault 入库结果
-- [ ] 记录 `tools.profile` 覆盖问题与 fix-forward 结果
-- [ ] 记录默认主模型切换到 `g54`
-- [ ] 设计 `/var/lib/openclaw` 独立备份 allowlist 草案
+- [x] 更新 `docs/host-sop.md`
+- [x] 更新 `docs/design-v3.md`（原 `design-v3.1.md`）
+- [x] 在文档中明确 Phase 1A 已落地事实
+- [x] 明确 `/var/lib/openclaw` 为独立 Btrfs 子卷且不在 root snapshot 内
+- [x] 明确 `workspace-main` 是 published artifact
+- [x] 明确权威控制仓库 / 开发仓 / runtime workspace / task repo 四层模型
+- [x] 固化 `candidate -> deploy -> health -> snapshot -> vault -> capture-current` 流程
+- [x] 补齐 `workspace-main` 的 publish / check 脚本
+- [x] 记录 Phase 1A 快照名与 Vault 入库结果
+- [x] 记录 `tools.profile` 覆盖问题与 fix-forward 结果
+- [x] 记录默认主模型切换到 `g54`
+- [x] 设计 `/var/lib/openclaw` 独立备份 allowlist 草案
+- [ ] 在现网执行首次 `publish-workspace-main.sh --apply` 正式发布
+- [ ] 实现控制面备份脚本（将 `runtime-allowlist-backup-draft.md` 转化为可执行脚本）
+- [ ] 移除 publish 脚本生产路径 safety guard 或增加 `--allow-live-target` flag
 
 ---
 
