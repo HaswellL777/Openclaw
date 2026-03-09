@@ -1,8 +1,13 @@
-# OpenClaw Host 状态记录（2026-03-06 更新）
+# OpenClaw Host 状态记录（2026-03-07 Phase 1A / GPT-5.4 修订版）
 
-> 目标：为后续裸机安装 OpenClaw 做好"可回滚快照 + 离线 Vault 金库 + 增量备份 + 权限隔离"的宿主机基线。
-
----
+> 适用范围：Ubuntu 24.04 LTS 宿主机裸机安装 OpenClaw（非 Docker），Btrfs 根（subvolid=5），使用 `/.snapshots` + 离线 Vault（`/mnt/vault`, `noauto`）做增量 `send/receive`；OpenClaw 以 systemd **system-level** 服务运行（`User=openclaw`），并严格遵循目录边界：
+>
+> - 代码：`/opt/openclaw`（`root:root`，`755`，仅 root 可写）
+> - 配置：`/etc/openclaw`（`root:openclaw`，`750`；敏感 env 为 `0640 root:openclaw`）
+> - 数据：`/var/lib/openclaw`（btrfs 独立子卷，`openclaw:openclaw`，`700`）
+> - 日志：`/var/log/openclaw`（`openclaw:openclaw`）
+>
+> 当前宿主机状态不再是纯 Phase 0，而是 **Phase 1A（main bootstrap only）已完成落地**：`main` agent 已上线、`workspace-main` 已发布、工具集 fix-forward 已完成、默认主模型已切换为 `motchat-gpt-max/gpt-5.4`；但 **只读 `host_ops` / broker、正式 `task-runner`、Docker 执行面与 `/var/lib/openclaw` 独立控制面备份链仍未落地**。
 
 ## ⛔ 禁止操作清单（优先阅读）
 
@@ -67,12 +72,62 @@ sudo mv /var/lib/openclaw/.openclaw/extensions/<plugin>.bak-* /var/lib/openclaw/
 
 原因：所有敏感凭证（DeepSeek API Key、飞书 appSecret 等）必须存放于 `/etc/openclaw/openclaw.env`，配置文件中一律使用 `${变量名}` 环境变量引用。明文硬编码存在凭证泄露风险，且违反最小权限原则。**本机已于 2026-03-04 21:24 完成整改。**
 
+
+### ❌ 禁止：在仍保留全局 `tools.profile` 的情况下，为 `main` 叠加 per-agent `tools.allow`
+
+原因：本机已于 2026-03-07 实际验证，顶层 `tools.profile: "messaging"` 与 per-agent `tools.allow` 并存时，前者会实际压制后者，导致 `main` 最终只拿到 profile 对应的受限工具集，表现为缺少 `read` / `write` / `edit`。
+
+### ❌ 禁止：把 `workspace-main` 描述成“root snapshot 可直接恢复”的持久状态目录
+
+原因：`/var/lib/openclaw` 是独立 btrfs 子卷，根快照不包含该路径；`/var/lib/openclaw/.openclaw/workspace-main` 应视为发布产物，而不是 root snapshot 直接恢复物。
+
 ---
 
-## 0. 当前时间与主机
+## 0. 当前时间、主机与当前阶段
+
+### 0.1 当前时间与主机
 - 时区：CST (+0800)
-- 日期：2026-03-06（上次更新：2026-03-06 22:33）
-- 主机：nick-MS-7D73（管理用户：nick，服务用户：openclaw）
+- 日期：2026-03-07（本次修订整合到 Phase 1A 完成后状态）
+- 主机：`nick-MS-7D73`（管理用户：`nick`，服务用户：`openclaw`）
+
+### 0.2 当前阶段定位
+- 当前宿主机已不再停留在纯 Phase 0。
+- **Phase 1A（main bootstrap only）已完成落地**：
+  - `main` agent 已加入运行态配置；
+  - `workspace-main` 已发布到 `/var/lib/openclaw/.openclaw/workspace-main`；
+  - 已完成 gateway 重启、health 验证与 Feishu 黑盒实测；
+  - `main` 当前可读取其 workspace 内控制文件，并具备最小 file tools + session tools；
+  - 默认主模型已切换为 `motchat-gpt-max/gpt-5.4`。
+- 当前仍不是“Phase 1 完整态”：
+  - **不是 Phase 1B（readonly host_ops）**
+  - **更不是 Phase 2（正式 broker / wrapper 写入链）**
+
+### 0.3 `/var/lib/openclaw` 与根快照的边界
+- `/var/lib/openclaw` 是独立 btrfs 子卷；
+- 根 `/` 的只读快照 **不包含** `/var/lib/openclaw`；
+- 任何“回滚根系统”的表述，**都不得再写成会同时恢复 OpenClaw 运行态**；
+- 因此 `workspace-main`、extensions、session state、cron state、未来 task-runner 任务目录，默认都不属于 root snapshot 的直接恢复对象。
+
+### 0.4 `workspace-main` 的语义
+- `/var/lib/openclaw/.openclaw/workspace-main` 应视为：
+  - **由开发仓库发布出来的可重建 artifact**
+  - **运行态发布副本**
+  - **不是根快照恢复对象**
+  - **不是长期手工漂移的真相源目录**
+- 其中真正需要长期保留的，不是整个 `workspace-main` 的全部静态模板文件，而是其中少数控制面状态与运行元数据。
+
+### 0.5 当前最重要的未决问题
+1. **飞书卡住 / 超慢回复问题尚未根治。**
+   - 现象早在本轮修改前一天就出现过；
+   - 日志中可见 `embedded run timeout ... timeoutMs=600000`；
+   - 切换默认模型到 `g54` 后目前恢复良好；
+   - 但尚不能断言根因一定是 Claude 4.6。
+2. **`session-memory` 日志路径显示为 `~/.openclaw/workspace-main/memory/...`。**
+   - 这说明日志展示层存在 `~` 形式路径；
+   - 后续仍需核实其实际解析路径是否仍指向 `/var/lib/openclaw/.openclaw/...`，并确认不会引回 `nick` 用户空间。
+3. **只读 `host_ops` 仍未部署。**
+   - 设计文档里原先把只读 `host_ops` 放在 Phase 1；
+   - 但本机实际状态尚未达到该子阶段。
 
 ## 1. 磁盘与分区布局（lsblk 摘要）
 ### 1.1 系统盘（System）
@@ -119,6 +174,12 @@ sudo mv /var/lib/openclaw/.openclaw/extensions/<plugin>.bak-* /var/lib/openclaw/
   - `/.snapshots/root-auto-2026-03-06-2051`（由自动备份脚本生成）
   - `/.snapshots/root-post-gpt54-2026-03-06-2233`（GPT 5.x 模型切换完成后里程碑）
   - `/.snapshots/root-auto-2026-03-06-2233`（由自动备份脚本生成）
+  - `/.snapshots/root-pre-main-agent-2026-03-07-1804`（Phase 1A `main` bootstrap 前里程碑）
+  - `/.snapshots/root-auto-2026-03-07-1804`（由自动备份脚本生成）
+  - `/.snapshots/root-pre-toolfix-2026-03-07-1830`（移除全局 `tools.profile` 修复前里程碑）
+  - `/.snapshots/root-auto-2026-03-07-1830`（由自动备份脚本生成）
+  - `/.snapshots/root-post-phase1a-2026-03-07-1911`（Phase 1A 完成后的收尾里程碑）
+  - `/.snapshots/root-auto-2026-03-07-1911`（由自动备份脚本生成）
 
 ### 2.2 OpenClaw 数据目录子卷隔离
 - `/var/lib/openclaw` 已迁移为独立 btrfs 子卷：
@@ -150,6 +211,9 @@ sudo mv /var/lib/openclaw/.openclaw/extensions/<plugin>.bak-* /var/lib/openclaw/
   - system/root-auto-2026-03-06-2031（X2Go 远程桌面验证可用后入库）
   - system/root-auto-2026-03-06-2051（GPT 5.x 模型切换前入库）
   - system/root-auto-2026-03-06-2233（GPT 5.x 模型切换后入库）
+  - system/root-auto-2026-03-07-1804（Phase 1A `main` bootstrap 前入库）
+  - system/root-auto-2026-03-07-1830（工具集 fix-forward 前入库）
+  - system/root-auto-2026-03-07-1911（Phase 1A 收尾入库）
 
 ## 4. 离线挂载策略（/etc/fstab）
 已追加一条（仅一条）：
@@ -173,7 +237,7 @@ sudo mv /var/lib/openclaw/.openclaw/extensions/<plugin>.bak-* /var/lib/openclaw/
 
 ### 5.2 状态文件
 - `/var/lib/openclaw/backup/last_sent`
-  - 当前值：`root-auto-2026-03-06-2233`
+  - 当前值：`root-auto-2026-03-07-1911`
 
 ## 6. systemd 定时器（Vault 备份）
 - Service:
@@ -354,90 +418,132 @@ xfconf-query -c xfwm4 -p /general/use_compositing -s false
 
 ---
 
-# OpenClaw 裸机部署与运维 SOP（追加于 2026-03-04）
-
-> 适用范围：Ubuntu 24.04 LTS 宿主机裸机安装 OpenClaw（非 Docker），Btrfs 根（subvolid=5），使用 /.snapshots + 离线 Vault（/mnt/vault, noauto）做增量 send/receive；OpenClaw 以 systemd **system-level** 服务运行（User=openclaw），并严格遵循目录边界：
->
-> - 代码：/opt/openclaw（root:root，755，仅 root 可写）
-> - 配置：/etc/openclaw（root:openclaw，750；敏感 env 为 0640 root:openclaw）
-> - 数据：/var/lib/openclaw（btrfs 子卷，openclaw:openclaw，700）
-> - 日志：/var/log/openclaw（openclaw:openclaw）
-
-## 11. 部署结果（已完成）
+## 11. 部署结果（当前权威状态）
 
 ### 11.1 运行时版本（验收时）
-- Node.js：v22.22.0（NodeSource apt）
-- npm：10.9.4
-- git：2.43.0
-- OpenClaw：2026.3.2（85377a2）
-- systemd 服务：openclaw-gateway.service（system-level，User=openclaw）
+- Node.js：`v22.22.0`（NodeSource apt）
+- npm：`10.9.4`
+- git：`2.43.0`
+- OpenClaw：`2026.3.2`（`85377a2`）
+- systemd 服务：`openclaw-gateway.service`（system-level，`User=openclaw`）
 
 ### 11.2 监听端口（默认仅 localhost）
-- Gateway WebSocket：127.0.0.1:17777（同时监听 ::1:17777）
-- Browser control（HTTP）：127.0.0.1:17779（auth=token）
-- 内部端口：127.0.0.1:17780
-- Dashboard（本机访问）：http://127.0.0.1:17777/
+- Gateway WebSocket：`127.0.0.1:17777`（同时监听 `::1:17777`）
+- Browser control（HTTP）：`127.0.0.1:17779`（auth=token）
+- 内部端口：`127.0.0.1:17780`
+- Dashboard（本机访问）：`http://127.0.0.1:17777/`
 
-> ⚠️ 如果发现 18789 端口在监听，说明 nick 用户的 user-level gateway 被意外启动，见第 13.6.6 节清理步骤。
+> ⚠️ 如果发现 `18789` 端口在监听，说明 `nick` 用户的 user-level gateway 被意外启动，见第 **13.6.8** 节清理步骤。
 
-### 11.3 里程碑快照与入库（已执行）
+### 11.3 当前阶段标签
+- **Phase 1A / main bootstrap only**
+- `main` agent 已正式上线；
+- `workspace-main` 已落地；
+- `main` 的 file tools 已修正；
+- 默认主模型已切到 `motchat-gpt-max/gpt-5.4`；
+- `host_ops` broker / `task-runner` / Docker 执行面仍未进入生产落地。
+
+### 11.4 里程碑快照与入库（已执行）
 - 最近关键本地只读里程碑快照：
   - `/.snapshots/root-post-openclaw-working-2026-03-04-1624`
   - `/.snapshots/root-post-x2go-working-2026-03-06-2030`
   - `/.snapshots/root-post-gpt54-2026-03-06-2233`
+  - `/.snapshots/root-post-phase1a-2026-03-07-1911`
 - 最近自动备份快照（由 `vault-backup-root-btrfs` 生成）：
   - `/.snapshots/root-auto-2026-03-06-2031`
   - `/.snapshots/root-auto-2026-03-06-2051`
   - `/.snapshots/root-auto-2026-03-06-2233`
+  - `/.snapshots/root-auto-2026-03-07-1804`
+  - `/.snapshots/root-auto-2026-03-07-1830`
+  - `/.snapshots/root-auto-2026-03-07-1911`
 - Vault 已接收（`/mnt/vault/recv/system`）的最新条目：
   - `system/root-auto-2026-03-06-2031`
   - `system/root-auto-2026-03-06-2051`
   - `system/root-auto-2026-03-06-2233`
-- `last_sent`：`/var/lib/openclaw/backup/last_sent = root-auto-2026-03-06-2233`
+  - `system/root-auto-2026-03-07-1804`
+  - `system/root-auto-2026-03-07-1830`
+  - `system/root-auto-2026-03-07-1911`
+- `last_sent`：`/var/lib/openclaw/backup/last_sent = root-auto-2026-03-07-1911`
 - Vault 备份后状态：Vault 不常驻挂载（`findmnt /mnt/vault -> unmounted`）
 
-### 11.4 审计记录（已生成）
-- /var/lib/openclaw/backup/openclaw-host-audit-2026-03-04-1625.txt
+### 11.5 审计记录（已生成）
+- `/var/lib/openclaw/backup/openclaw-host-audit-2026-03-04-1625.txt`
 
-### 11.5 飞书插件（已验证可用）
-- 插件：@openclaw/feishu v2026.3.2
+### 11.6 飞书插件（已验证可用）
+- 插件：`@openclaw/feishu v2026.3.2`
 - 安装路径：`/var/lib/openclaw/.openclaw/extensions/feishu/node_modules/@openclaw/feishu`
-  - ⚠️ installPath 必须指向 `node_modules/@openclaw/feishu` 这一层，不能指向 npm prefix 目录。
+  - ⚠️ `installPath` 必须指向 `node_modules/@openclaw/feishu` 这一层，不能指向 npm prefix 目录。
 - 连接模式：websocket
-- Bot open_id：ou_85701f4531d56c7de0fc1fb845fcebfe
-- 启动日志确认已注册：feishu_doc、feishu_app_scopes、feishu_chat、feishu_wiki、feishu_drive、feishu_bitable
-
----
+- Bot `open_id`：`ou_85701f4531d56c7de0fc1fb845fcebfe`
+- 启动日志确认已注册：`feishu_doc`、`feishu_app_scopes`、`feishu_chat`、`feishu_wiki`、`feishu_drive`、`feishu_bitable`
 
 ## 12. 关键配置与 systemd 单元（权威落地版本）
 
-### 12.1 配置文件说明（/etc/openclaw/openclaw.json）
+### 12.1 配置文件说明（`/etc/openclaw/openclaw.json`）
 
-> ⚠️ **所有配置（gateway、models、agents、channels、plugins）必须集中写在此文件。**
-> `/var/lib/openclaw/.openclaw/` 下即使存在 openclaw.json 也不会被读取——那是运行时状态目录，不是配置合并源。本机已实际踩过此坑。
+> ⚠️ **所有配置（gateway、models、agents、channels、plugins）必须集中写在此文件。**  
+> `/var/lib/openclaw/.openclaw/` 下即使存在 `openclaw.json` 也不会被读取——那是运行时状态目录，不是配置合并源，本机已实际踩过此坑。
 
 当前配置文件包含以下部分（使用 JSON5 格式）：
-- `gateway`：端口 17777，bind=loopback，token 通过 `${OPENCLAW_GATEWAY_TOKEN}` 从环境变量注入
-- `models`：三组 provider
-  - DeepSeek 自定义 provider（contextWindow: 128000）
-  - MotChat 中转 Claude 4.6（provider: `motchat-claude-4-6`，baseUrl: `https://new.motchat.com/v1`，5 个模型：opus-4-6 / opus-4-6-1m / opus-4-6-thinking / sonnet-4-6 / sonnet-4-6-thinking）
-  - MotChat 中转 GPT 5.x（provider: `motchat-gpt-max`，baseUrl: `https://new.motchat.com/v1`，7 个模型：gpt-5.2-codex / gpt-5.2-codex-high / gpt-5.2-codex-xhigh / gpt-5.2-high / gpt-5.2-xhigh / gpt-5.3-codex / gpt-5.4）
+- `gateway`
+  - 端口 `17777`
+  - `bind=loopback`
+  - token 通过 `${OPENCLAW_GATEWAY_TOKEN}` 从环境变量注入
+- `models`
+  - DeepSeek 自定义 provider（`contextWindow: 128000`）
+  - MotChat 中转 Claude 4.6（provider：`motchat-claude-4-6`，`baseUrl: https://new.motchat.com/v1`，5 个模型：`opus-4-6 / opus-4-6-1m / opus-4-6-thinking / sonnet-4-6 / sonnet-4-6-thinking`）
+  - MotChat 中转 GPT 5.x（provider：`motchat-gpt-max`，`baseUrl: https://new.motchat.com/v1`，7 个模型：`gpt-5.2-codex / gpt-5.2-codex-high / gpt-5.2-codex-xhigh / gpt-5.2-high / gpt-5.2-xhigh / gpt-5.3-codex / gpt-5.4`）
     - `gpt-5.2-*` 与 `gpt-5.3-codex`：`contextWindow=400000`，`maxTokens=128000`
     - `gpt-5.4`：`contextWindow=1050000`，`maxTokens=128000`
-- `agents`：默认模型为 `motchat-claude-4-6/claude-opus-4-6`，workspace 指向 /var/lib/openclaw/.openclaw/workspace
-  - 已配置 alias 别名：opus / opus1m / opusthink / sonnet / sonnetthink / g52codex / g52codexhigh / g52codexxhigh / g52high / g52xhigh / g53codex / g54 / deepchat / deepresoner
-- `channels`：飞书（websocket 模式，appSecret 通过 `${FEISHU_APP_SECRET}` 从环境变量注入）
-- `plugins`：feishu + tool-audit-plugin（诊断用），installPath 指向 node_modules/@openclaw/feishu
-- `hooks`：内部 hooks 已启用，tool-audit-probe 已注册（诊断用）
-- `logging`：file=/var/log/openclaw/openclaw.log
+- `agents`
+  - 当前默认主模型为 `motchat-gpt-max/gpt-5.4`
+  - 保留 `motchat-claude-4-6/*` 与 `motchat-gpt-max/*` 模型矩阵，可通过 alias 或显式 model 路径切换
+  - 当前 alias：`opus / opus1m / opusthink / sonnet / sonnetthink / g52codex / g52codexhigh / g52codexxhigh / g52high / g52xhigh / g53codex / g54 / deepchat / deepresoner`
+  - Phase 1A 已新增 `agents.list[main]`，其 `workspace` 指向 `/var/lib/openclaw/.openclaw/workspace-main`
+  - `main.subagents.allowAgents = ["task-runner"]`
+  - `agents.defaults.subagents` 当前包含：
+    - `maxSpawnDepth = 2`
+    - `maxChildrenPerAgent = 3`
+    - `runTimeoutSeconds = 3600`
+    - `archiveAfterMinutes = 120`
+- `channels`
+  - 飞书（websocket 模式）
+  - `appSecret` 通过 `${FEISHU_APP_SECRET}` 从环境变量注入
+- `plugins`
+  - `feishu`
+  - `tool-audit-plugin`（诊断用）
+- `hooks`
+  - 内部 hooks 已启用
+  - `tool-audit-probe` 已注册（诊断用）
+- `logging`
+  - `file=/var/log/openclaw/openclaw.log`
+
+当前配置层面的关键修订：
+- **顶层 `tools: { profile: "messaging" }` 已移除。**
+  - 原因：本机已实测验证，该 profile 与 per-agent `tools.allow` 并存时，会压制 `main` 的显式 allowlist，导致 `read/write/edit` 缺失。
+- `main` 当前最小工具集为：
+  - `read`
+  - `write`
+  - `edit`
+  - `sessions_list`
+  - `sessions_history`
+  - `sessions_send`
+  - `session_status`
+  - `sessions_spawn`
+- `main` 当前显式 deny：
+  - `exec`
+  - `process`
+  - `apply_patch`
+  - `elevated`
+- `main.tools.elevated.enabled = false`
 
 > ⚠️ **凭证注入规则（2026-03-04 整改后）：**
-> - DeepSeek apiKey 在 json 中写 `${DEEPSEEK_API_KEY}`，实际值在 openclaw.env 中
-> - 飞书 appSecret 在 json 中写 `${FEISHU_APP_SECRET}`，实际值在 openclaw.env 中
-> - MotChat 中转 apiKey 在 json 中写 `${MOTCHAT_API_KEY}`，实际值在 openclaw.env 中（2026-03-05 新增）
+> - DeepSeek `apiKey` 在 json 中写 `${DEEPSEEK_API_KEY}`，实际值在 `openclaw.env` 中
+> - 飞书 `appSecret` 在 json 中写 `${FEISHU_APP_SECRET}`，实际值在 `openclaw.env` 中
+> - MotChat 中转 `apiKey` 在 json 中写 `${MOTCHAT_API_KEY}`，实际值在 `openclaw.env` 中
 > - **禁止在 json 中明文写任何 API Key 或 Secret**
 
-### 12.1.1 当前 MotChat GPT 5.x 模型矩阵（2026-03-06 22:33 权威落地版本）
+### 12.1.1 当前 MotChat GPT 5.x 模型矩阵（2026-03-07 权威落地版本）
 
 | Provider 路径 | Alias | 说明 | contextWindow | maxTokens |
 |---|---|---|---:|---:|
@@ -452,17 +558,27 @@ xfconf-query -c xfwm4 -p /general/use_compositing -s false
 说明：
 - 为降低变更爆炸半径，provider 键名 **仍保留** `motchat-gpt-max`，但其 `models` 数组已完全替换，不再保留任何 GPT-5.1 Codex Max 条目。
 - 旧 alias `max / maxhigh / maxlow / maxmed / maxxhigh` 已全部移除，避免语义漂移与后续误用。
-- 默认主模型 **未改动**，仍为 `motchat-claude-4-6/claude-opus-4-6`；GPT 5.x 模型通过 alias 显式选用。
+- 截至 2026-03-07 Phase 1A 落地完成后，默认主模型已从 `motchat-claude-4-6/claude-opus-4-6` 切换为 `motchat-gpt-max/gpt-5.4`。
+- 变更原因不是“统一偏好 GPT”，而是本机在飞书主控制面实际观测到 Claude Opus 4.6 会出现长时间卡住 / 超时后才回复的现象；该问题在本轮修改前一天已出现过，因此当前只把“切到 g54 并恢复稳定响应”记录为**经验性处置结果**，不把“Claude 4.6 一定是根因”写成已证事实。
+- `motchat-claude-4-6/*` 与 `motchat-gpt-max/*` 仍保留在模型矩阵中，可通过显式 model 路径或 alias 切换；默认值仅代表当前最稳妥运行选择。
 
-### 12.2 环境文件（/etc/openclaw/openclaw.env）
-- 权限：0640 root:openclaw，nick 用户不可直接读取
+### 12.1.2 Phase 1A `main` agent 当前 live config 要点
+- `main.workspace = /var/lib/openclaw/.openclaw/workspace-main`
+- `main.subagents.allowAgents = ["task-runner"]`
+- `main.tools.allow = ["read","write","edit","sessions_list","sessions_history","sessions_send","sessions_spawn","session_status"]`
+- `main.tools.deny = ["exec","process","apply_patch","elevated"]`
+- `main.tools.elevated.enabled = false`
+- 当前 `main` 可以作为 Feishu 主会话入口正常对话、读取 workspace 内文件、列出工具、回答自身角色与 worker allowlist、拒绝直接宿主机 shell 请求，但 **仍不具备受控 host-side action 能力**。
+
+### 12.2 环境文件（`/etc/openclaw/openclaw.env`）
+- 权限：`0640 root:openclaw`，`nick` 用户不可直接读取
 - 当前包含：
   - `OPENCLAW_GATEWAY_TOKEN=`（随机强 token）
   - `DEEPSEEK_API_KEY=`（DeepSeek API Key）
   - `FEISHU_APP_SECRET=`（飞书应用 appSecret，2026-03-04 21:24 迁入）
   - `MOTCHAT_API_KEY=`（MotChat 中转站 API Key，2026-03-05 11:41 新增，用于 Claude 4.6 + GPT 5.x 系列）
 
-### 12.3 systemd 主 unit（/etc/systemd/system/openclaw-gateway.service）
+### 12.3 systemd 主 unit（`/etc/systemd/system/openclaw-gateway.service`）
 
 ```ini
 [Unit]
@@ -507,7 +623,12 @@ AmbientCapabilities=
 WantedBy=multi-user.target
 ```
 
-### 12.4 Drop-in：允许 AF_NETLINK（修复 error 97）
+补充说明：
+- 该 unit 当前仍只确保基础运行目录与默认 `workspace` 存在。
+- `workspace-main` 目前由 **受控发布流程** 在 host-side 创建并 rsync 发布，不依赖该 unit 的 `ExecStartPre` 自动生成。
+- 因为 `/var/lib/openclaw` 是独立子卷，任何首次创建 `workspace-main` 的动作都属于 **host-side write**，必须纳入变更前快照纪律。
+
+### 12.4 Drop-in：允许 AF_NETLINK（修复 `error 97`）
 路径：`/etc/systemd/system/openclaw-gateway.service.d/10-address-families.conf`
 
 ```ini
@@ -526,22 +647,20 @@ UMask=0077
 ```
 
 > 注：OpenClaw CLI 的 `doctor/status --deep` 会持续提示：
-> - "Service: systemd (disabled)"
-> - "~/.openclaw/openclaw.json missing"
-> - "systemctl --user unavailable"
+> - `Service: systemd (disabled)`
+> - `~/.openclaw/openclaw.json missing`
+> - `systemctl --user unavailable`
 >
-> 这是预期行为，**不要使用 `openclaw doctor --repair` 去"修复"**，否则会引入 user-level daemon，破坏当前目录边界策略。
+> 这是预期行为，**不要使用 `openclaw doctor --repair` 去“修复”**，否则会引入 user-level daemon，破坏当前目录边界策略。
 
----
-
-## 13. 运维 SOP（日常/变更/备份/回滚/排障）
+## 13. 运维 SOP（日常 / 变更 / 备份 / 回滚 / 排障 / 发布）
 
 ### 13.1 日常操作（systemd）
 ```bash
 # 状态
 sudo systemctl status --no-pager openclaw-gateway.service
 
-# 启动/停止/重启
+# 启动 / 停止 / 重启
 sudo systemctl start openclaw-gateway.service
 sudo systemctl stop openclaw-gateway.service
 sudo systemctl restart openclaw-gateway.service
@@ -552,9 +671,9 @@ sudo journalctl -u openclaw-gateway.service -f --no-pager
 ```
 
 ### 13.2 健康检查
-> 注意：/etc/openclaw/openclaw.env 为 0640 root:openclaw，普通用户（nick）默认无权读取。
-> 若在交互 shell 中启用了 `set -e`，health 失败会导致 shell 退出（表象像 SSH 断线）。推荐使用下面带重试的模板。
-> 刚执行 `systemctl restart openclaw-gateway.service` 后，**立即**做单次 health 可能命中启动窗口期，返回 `gateway closed (1006 abnormal closure)`；这不等同于配置已损坏。应按下述模板重试，并同时查看 `journalctl -u openclaw-gateway.service`。
+> 注意：`/etc/openclaw/openclaw.env` 为 `0640 root:openclaw`，普通用户（`nick`）默认无权读取。  
+> 若在交互 shell 中启用了 `set -e`，health 失败会导致 shell 退出（表象像 SSH 断线）。推荐使用下面带重试的模板。  
+> 刚执行 `systemctl restart openclaw-gateway.service` 后，**立即**做单次 health 可能命中启动窗口期，返回 `gateway closed (1006 abnormal closure)`；这不等同于配置已损坏。应按下述模板重试，并同时查看 `journalctl -u openclaw-gateway.service`。  
 > 注：`openclaw gateway health` 输出中的 `Config: /var/lib/openclaw/.openclaw/openclaw.json` 可能只是 CLI 的默认路径提示；本机 systemd 部署的权威配置仍以 `/etc/openclaw/openclaw.json` 为准。若怀疑 state 目录残留旧文件，应执行 `sudo diff -u /var/lib/openclaw/.openclaw/openclaw.json /etc/openclaw/openclaw.json || true` 交叉核对。
 
 ```bash
@@ -594,40 +713,65 @@ set -e
 sudo ss -tlnp | grep openclaw
 ```
 
-#### 13.3.1 Windows/远端浏览器访问（SSH 隧道）
+#### 13.3.1 Windows / 远端浏览器访问（SSH 隧道）
 在 Windows PowerShell：
 ```powershell
 ssh -f -N -L 17777:127.0.0.1:17777 -L 17779:127.0.0.1:17779 nick@<HOST_IP>
 ```
+
 然后在浏览器访问：
-- http://127.0.0.1:17777/   （Dashboard，输入 OPENCLAW_GATEWAY_TOKEN 连接）
-- http://127.0.0.1:17779/   （Browser control，token auth）
+- `http://127.0.0.1:17777/`（Dashboard，输入 `OPENCLAW_GATEWAY_TOKEN` 连接）
+- `http://127.0.0.1:17779/`（Browser control，token auth）
 
 ### 13.4 修改配置
-直接编辑 `/etc/openclaw/openclaw.json`，然后重启服务：
-```bash
-sudo nano /etc/openclaw/openclaw.json
-sudo systemctl restart openclaw-gateway.service
-```
+当前**默认做法**不再是“直接手改 `/etc/openclaw/openclaw.json`”，而是：
 
-> ⚠️ 修改配置时若涉及凭证，应将凭证写入 `/etc/openclaw/openclaw.env`，json 中使用 `${变量名}` 引用，禁止明文写入 json。
->
-> ⚠️ 若本次修改涉及 `models.providers` 或 `agents.defaults.models`：
+1. 在开发仓库生成候选文件；
+2. 抓 live baseline；
+3. 做 pre-change snapshot；
+4. 部署候选到 `/etc/openclaw/openclaw.json`；
+5. 重启 gateway；
+6. 执行带重试 health；
+7. 做 post snapshot；
+8. Vault 入库；
+9. 把 post-state 再抓回开发仓。
+
+紧急修复时可以临时直接编辑 `/etc/openclaw/openclaw.json`，但**事后必须立即回补**：
+- 候选文件；
+- delta / validation 文档；
+- 变更记录；
+- post-state 抓取。
+
+> ⚠️ 修改配置时若涉及凭证，应将凭证写入 `/etc/openclaw/openclaw.env`，json 中使用 `${变量名}` 引用，禁止明文写入 json。  
+> ⚠️ 若本次修改涉及 `models.providers` 或 `agents.defaults.model / agents.list / tools`：
 > - 修改后至少执行一次带重试的 `gateway health`
-> - 至少对新增 provider/model 做一次**真实调用验证**，不要仅以网关启动成功代替上游模型可用性验证
+> - 至少对新增 provider / model 做一次**真实调用验证**，不要仅以网关启动成功代替上游模型可用性验证
 > - 若使用第三方中转站，面板展示名不一定等于真实 API model id；health 通过但真实调用失败时，应优先怀疑 model id 映射问题
 
-### 13.5 变更流程（升级 OpenClaw / 修改配置）
-**原则：任何变更都必须可回滚**（变更前/后快照 + 入库）。
+### 13.5 变更流程（升级 OpenClaw / 修改配置 / 发布 runtime artifact）
+**原则：任何 host-affecting 变更都必须可回滚。**
 
-#### 13.5.1 变更前（强制）
+#### 13.5.1 总原则
+- **pre-change snapshot 必须发生在第一笔 host-side write 之前。**
+- 这里的“第一笔 host-side write”不仅包括编辑 `/etc/openclaw/openclaw.json`，也包括：
+  - 创建 `/var/lib/openclaw/.openclaw/workspace-main`
+  - 发布 runtime workspace
+  - 部署 plugin / wrapper / broker
+  - 修改 systemd unit / timer / host-side 脚本
+- 由于 `/var/lib/openclaw` 是独立子卷，root snapshot **不会**保护其内部内容；因此发布到该子卷的任何内容，都必须被视为单独的 host-side 变更动作。
+
+#### 13.5.2 变更前（强制）
 ```bash
 set -euo pipefail
+
+# 可选：先抓 live baseline 到开发仓
+# 例如：cp /etc/openclaw/openclaw.json ~/projects/openclaw-dev/candidates/openclaw.live.json
+
 sudo btrfs subvolume snapshot -r / "/.snapshots/root-pre-change-$(date +%F-%H%M)"
 sudo /usr/local/sbin/vault-backup-root-btrfs
 ```
 
-#### 13.5.2 升级 OpenClaw（/opt/openclaw）
+#### 13.5.3 升级 OpenClaw（`/opt/openclaw`）
 > 推荐：避免 `openclaw@latest`；使用明确版本号并记录。
 ```bash
 set -euo pipefail
@@ -637,7 +781,30 @@ sudo npm install --omit=dev openclaw@<PINNED_VERSION>
 sudo systemctl start openclaw-gateway.service
 ```
 
-#### 13.5.3 变更后（强制：验收 + 快照 + 入库）
+#### 13.5.4 配置 / workspace 发布（推荐流程）
+A. 配置发布：
+- 在开发仓生成 candidate；
+- 与 live baseline 做 diff；
+- pre snapshot；
+- 部署到 `/etc/openclaw/openclaw.json`；
+- gateway restart；
+- health；
+- post snapshot；
+- Vault 入库；
+- post-state 抓回开发仓。
+
+B. workspace 发布：
+- `workspace-main/` 模板在开发仓维护；
+- 以受控方式发布到 `/var/lib/openclaw/.openclaw/workspace-main/`；
+- 发布后 runtime workspace 只做运行，不作为权威源长期手工维护。
+
+C. 文档发布：
+- 权威 SOP 源先更新；
+- 再同步到开发仓；
+- 最后发布到 `workspace-main/control/SOP.md`；
+- 不靠 runtime 目录反向回写权威源。
+
+#### 13.5.5 变更后（强制：验收 + 快照 + 入库）
 ```bash
 # 健康检查（建议用 13.2 的模板）
 sudo -u openclaw -H bash -c '
@@ -653,47 +820,47 @@ sudo /usr/local/sbin/vault-backup-root-btrfs
 
 ### 13.6 故障排查（常见问题与处理）
 
-#### 13.6.1 OpenClaw 启动崩溃：uv_interface_addresses ... error 97
-症状：journal 中出现 `uv_interface_addresses returned Unknown system error 97`
-原因：systemd 沙箱 `RestrictAddressFamilies` 未允许 AF_NETLINK
-处理：确认 drop-in 10-address-families.conf 存在并包含 AF_NETLINK，然后重启服务：
+#### 13.6.1 OpenClaw 启动崩溃：`uv_interface_addresses ... error 97`
+症状：journal 中出现 `uv_interface_addresses returned Unknown system error 97`  
+原因：systemd 沙箱 `RestrictAddressFamilies` 未允许 `AF_NETLINK`  
+处理：确认 drop-in `10-address-families.conf` 存在并包含 `AF_NETLINK`，然后重启服务：
 ```bash
 sudo systemctl cat openclaw-gateway.service
 sudo systemctl daemon-reload
 sudo systemctl restart openclaw-gateway.service
 ```
 
-#### 13.6.2 health 报 1006 abnormal closure（但端口在 listen）
-原因：重启后的启动窗口，WS 端口已监听但内部尚未 ready（约需 12 秒）
+#### 13.6.2 health 报 `1006 abnormal closure`（但端口在 listen）
+原因：重启后的启动窗口，WS 端口已监听但内部尚未 ready（约需 12 秒）  
 处理：使用 13.2 的重试模板；或等待后重试。
 
-#### 13.6.3 读取 /etc/openclaw/openclaw.env "权限不够"
-原因：文件为 0640 root:openclaw，nick 默认不可读
-处理：用 `sudo -u openclaw ... source /etc/openclaw/openclaw.env` 运行；不要把 token 打印到终端/历史。
+#### 13.6.3 读取 `/etc/openclaw/openclaw.env` “权限不够”
+原因：文件为 `0640 root:openclaw`，`nick` 默认不可读。  
+处理：用 `sudo -u openclaw ... source /etc/openclaw/openclaw.env` 运行；不要把 token 打印到终端 / 历史。
 
-#### 13.6.4 npm install 报 spawn git ENOENT
-原因：系统缺 git，但依赖链需要 git 拉取
+#### 13.6.4 `npm install` 报 `spawn git ENOENT`
+原因：系统缺 git，但依赖链需要 git 拉取。  
 处理：`sudo apt install -y git`
 
-#### 13.6.5 "复制命令带 UI 引用"导致 set 报错
-现象：终端出现 `set: pipe:contentReference...: 无效的选项名`
-原因：从聊天界面复制时带入引用标记
+#### 13.6.5 “复制命令带 UI 引用”导致 `set` 报错
+现象：终端出现 `set: pipe:contentReference...: 无效的选项名`  
+原因：从聊天界面复制时带入引用标记。  
 处理：只复制代码块内内容；或先粘贴到纯文本编辑器清洗后再执行。
 
 #### 13.6.6 飞书不加载 / 启动日志无 feishu
-原因：最常见原因是配置写在了 `/var/lib/openclaw/.openclaw/openclaw.json` 而非 `/etc/openclaw/openclaw.json`
+原因：最常见原因是配置写在了 `/var/lib/openclaw/.openclaw/openclaw.json` 而非 `/etc/openclaw/openclaw.json`。  
 处理：
 ```bash
 sudo grep -i feishu /etc/openclaw/openclaw.json  # 确认配置在正确位置
 sudo systemctl restart openclaw-gateway.service
 ```
 
-#### 13.6.7 low context window 警告
-症状：日志出现 `low context window: ... ctx=16000 (warn<32000)`
-处理：将 `/etc/openclaw/openclaw.json` 中对应模型的 `contextWindow` 改为 65536 或更大，重启服务。
+#### 13.6.7 `low context window` 警告
+症状：日志出现 `low context window: ... ctx=16000 (warn<32000)`  
+处理：将 `/etc/openclaw/openclaw.json` 中对应模型的 `contextWindow` 改为 `65536` 或更大，重启服务。
 
-#### 13.6.8 发现 18789 端口在监听（双 gateway 问题）
-原因：nick 用户的 user-level gateway 被意外启动（通常由 onboard 引起）
+#### 13.6.8 发现 `18789` 端口在监听（双 gateway 问题）
+原因：`nick` 用户的 user-level gateway 被意外启动（通常由 onboard 引起）。  
 处理：
 ```bash
 systemctl --user stop openclaw-gateway.service
@@ -704,17 +871,17 @@ systemctl --user daemon-reload
 sudo ss -tlnp | grep openclaw
 ```
 
-#### 13.6.9 登录提示 ~/.openclaw/completions/openclaw.bash 不存在
-原因：onboard 写入了 .bashrc 引用
+#### 13.6.9 登录提示 `~/.openclaw/completions/openclaw.bash` 不存在
+原因：onboard 写入了 `.bashrc` 引用。  
 处理：
 ```bash
 sed -i '/openclaw.*completions/d' ~/.bashrc
 source ~/.bashrc
 ```
 
-#### 13.6.10 Gateway 崩溃：plugin manifest not found
-症状：journal 中出现 `plugin manifest not found: .../openclaw.plugin.json`
-原因：`/var/lib/openclaw/.openclaw/extensions/` 下存在缺少 `openclaw.plugin.json` 的目录。OpenClaw 自动扫描此目录，发现无效 plugin 会拒绝启动。
+#### 13.6.10 Gateway 崩溃：`plugin manifest not found`
+症状：journal 中出现 `plugin manifest not found: .../openclaw.plugin.json`  
+原因：`/var/lib/openclaw/.openclaw/extensions/` 下存在缺少 `openclaw.plugin.json` 的目录；OpenClaw 自动扫描此目录，发现无效 plugin 会拒绝启动。  
 处理：
 ```bash
 # 删除有问题的 plugin 目录
@@ -722,20 +889,37 @@ sudo rm -rf /var/lib/openclaw/.openclaw/extensions/<问题目录>
 sudo systemctl restart openclaw-gateway.service
 ```
 
-#### 13.6.11 Gateway 崩溃：Unrecognized key in plugins.entries
-症状：journal 中出现 `Unrecognized key: "installPath"` 或其他未知 key
-原因：`plugins.entries.<id>` 使用 Zod strict schema，只接受已知字段（`enabled`、`config`）。
+#### 13.6.11 Gateway 崩溃：`Unrecognized key in plugins.entries`
+症状：journal 中出现 `Unrecognized key: "installPath"` 或其他未知 key。  
+原因：`plugins.entries.<id>` 使用 Zod strict schema，只接受已知字段（`enabled`、`config`）。  
 处理：
 ```bash
 # 从配置中移除非法字段，只保留 enabled 和 config
 sudo nano /etc/openclaw/openclaw.json
-# 将 "plugin-id": { enabled: true, installPath: "..." } 
+# 将 "plugin-id": { enabled: true, installPath: "..." }
 # 改为 "plugin-id": { enabled: true }
 sudo systemctl restart openclaw-gateway.service
 ```
 
-### 13.7 备份策略（根系统）
-- 自动备份：OnCalendar=*-*-* 03:40:00
+#### 13.6.12 `main` 只有 session 工具、不能读 SOP
+优先排查：
+1. `/etc/openclaw/openclaw.json` 中是否仍存在全局 `tools: { profile: "messaging" }`
+2. `agents.list[main].tools.allow` 是否已正确包含 `read / write / edit`
+3. gateway 重启后是否真正加载了更新后的配置
+4. 用飞书直接让 bot 列工具名进行黑盒验证
+
+#### 13.6.13 飞书消息长时间无回复，但最终很久后才补发
+优先排查：
+1. `journalctl -u openclaw-gateway.service -f --no-pager`
+2. 是否出现 `embedded run timeout ... timeoutMs=600000`
+3. 是否出现 `typing TTL reached (2m)` 但未及时完成回复
+4. 当前默认模型是否仍为 Claude 4.6 路径
+5. 先切到 `g54` 做 A/B 验证，再决定是否继续深挖模型路径根因
+
+### 13.7 备份策略（root 系统层 + 运行态控制面层）
+
+#### 13.7.1 根系统层（现有）
+- 自动备份：`OnCalendar=*-*-* 03:40:00`
 - 手动触发：
 ```bash
 sudo /usr/local/sbin/vault-backup-root-btrfs
@@ -745,12 +929,275 @@ sudo /usr/local/sbin/vault-backup-root-btrfs
 findmnt /mnt/vault && echo "WARNING: vault is mounted" || echo "OK: vault is unmounted"
 ```
 
-### 13.8 回滚与恢复（高级操作，务必谨慎）
+根系统层当前持续保护：
+- `/.snapshots/*`
+- Vault 中 `recv/system/*`
+- `/etc/openclaw/*`
+- `/opt/openclaw`
+- systemd unit / drop-in
+- `/usr/local/sbin/vault-backup-root-btrfs`
+- 与 broker / wrapper / 备份脚本 / Docker 权限边界相关的 host 侧代码
 
-> 重要：当前根挂载为 subvolid=5（顶层），并非 @ 布局。
-> /var/lib/openclaw 是独立子卷，回滚根系统不会回滚运行态数据（这是设计目标之一）。
+#### 13.7.2 运行态控制面层（新增设计目标，尚未实施）
+从现在开始，不再把 `/var/lib/openclaw` 整体简单视为“完全不值得备份”的黑盒。  
+建议后续新增单独备份 / 导出策略，优先覆盖：
+- `/var/lib/openclaw/.openclaw/workspace-main/control/state/`
+  - `pending-approvals.json`
+  - `last-health.md`
+  - `last-sop-hash.txt`
+  - `last-task-index.json`
+- `/var/lib/openclaw/.openclaw/extensions/`
+  - 尤其是已部署、未在系统包管理器中声明、且带本地修改的 plugin
+- `/var/lib/openclaw/.openclaw/cron/`（若启用）
+- `/var/lib/openclaw/backup/`
+  - 尤其 `last_sent` 与可能新增的运行时备份元数据
+- 后续 broker 状态目录、request log 索引与 wrapper 审计索引
 
-#### 13.8.1 从本地 /.snapshots 回滚（建议在 LiveUSB/救援环境操作）
+#### 13.7.3 运行态噪声层（默认不做强恢复）
+默认不纳入严格里程碑恢复的对象：
+- 临时 session memory
+- 临时 canvas
+- 可完全由 repo 重新发布的 `workspace-main` 静态模板文件
+- 大体积临时任务输出
+- 高频变动但恢复价值较低的调试日志全文
+
+> 结论：
+> - **根快照链继续保留；**
+> - **但不应再把 `/var/lib/openclaw` 整体视为“完全不值得备份”的黑盒。**
+> - 下一步应设计“`/var/lib/openclaw` 选择性控制面备份”方案，而不是把所有运行态一股脑重新纳入 root snapshot。
+
+### 13.8 控制仓库、开发仓、运行时副本与任务仓的 Git / 发布模型
+
+#### 13.8.1 四类对象必须严格区分
+A. **权威控制仓库（authoritative control repo）**
+- 建议路径：`/srv/openclaw-control/`
+- 当前最关键权威文件：`/srv/openclaw-control/docs/host-sop.md`
+- 角色：宿主机控制规范、SOP、runbook、控制面文档的**单一真相源**
+- 说明：`workspace-main/control/SOP.md` 不得被视为手工主编辑点
+
+B. **开发仓库（development repo）**
+- 当前路径：`~/projects/openclaw-dev/`
+- 角色：
+  - 使用 Claude Code CLI 与人工协作开发
+  - 维护 broker / plugin / publish script / workspace 模板 / 候选配置 / 测试 / 设计稿
+- 说明：这是日常 Git commit 的主开发仓；不是 system gateway 运行目录
+
+C. **运行时发布副本（runtime published artifact）**
+- 当前主路径：`/var/lib/openclaw/.openclaw/workspace-main/`
+- 角色：供现网 `main` agent 读取和写入的控制面 workspace
+- 说明：这是**发布产物**，不是权威源；应由 publish 流或受控 rsync 生成，不应长期手工直接维护
+
+D. **任务级工程仓（per-task repo）**
+- 设计路径：`/var/lib/openclaw/.openclaw/workspace-task-runner/tasks/<task-id>/repo/`
+- 角色：未来 `task-runner` / 容器内 Claude Code 执行单次工程任务的项目根
+- 说明：这是任务工作仓，可按任务创建、归档、清理；不是长期宿主控制仓
+
+#### 13.8.2 权威源、开发仓、副本之间怎么流动
+统一工作原则：
+1. 宿主机控制规范（尤其 SOP）只保留一个权威源：`/srv/openclaw-control/docs/host-sop.md`
+2. 开发仓库 `~/projects/openclaw-dev/` 中保留开发侧副本：`docs/host-sop.md`
+3. 运行时副本：`/var/lib/openclaw/.openclaw/workspace-main/control/SOP.md`
+4. 未来 task-runner 任务仓中的 SOP 副本：`tasks/<task-id>/repo/docs/host-sop.md`
+5. 统一原则：
+   - **改权威源**
+   - **发布到副本**
+   - **副本供运行**
+   - **不靠 symlink，不靠 runtime 目录手工直改**
+
+#### 13.8.3 日常 Git 使用规则
+1. 日常开发提交发生在：`~/projects/openclaw-dev/`
+2. 权威控制文档提交应发生在：`/srv/openclaw-control/`
+3. `workspace-main` 不是 Git 主仓，不要求在运行时 workspace 直接 `git init` / `git commit`
+4. `tasks/<task-id>/repo/` 是任务级工程仓，可临时 clone / init，但不承担宿主控制真相管理
+5. 配置候选文件必须先进入开发仓版本化，再部署到 `/etc/openclaw/openclaw.json`
+6. live config baseline 应在每轮重要配置变更前后抓取入开发仓
+
+#### 13.8.4 发布工作流
+A. 文档发布：
+- 在权威控制仓编辑 SOP；
+- 同步 / 发布到开发仓 `docs/host-sop.md`；
+- 再发布到 runtime：`workspace-main/control/SOP.md`
+
+B. workspace 发布：
+- `workspace-main/` 模板文件在开发仓维护；
+- 受控发布到 `/var/lib/openclaw/.openclaw/workspace-main/`
+
+C. 配置发布：
+- 在开发仓生成候选配置；
+- 用 live baseline 做 diff；
+- pre snapshot；
+- 部署到 `/etc/openclaw/openclaw.json`；
+- restart gateway；
+- health；
+- post snapshot；
+- Vault 入库；
+- post-state 抓回开发仓归档
+
+### 13.9 Claude Code CLI 现状、配置与使用边界（截至 2026-03-07）
+
+#### 13.9.1 当前安装状态
+Claude Code CLI 当前已由 `nick` 用户安装在用户域：
+- 安装位置：`~/.local/bin/claude`
+- 已安装版本：`2.1.58`
+
+本机实际安装过程中：
+- 直接使用 `socks5h://127.0.0.1:7890` 作为 `ALL_PROXY / HTTP_PROXY / HTTPS_PROXY` 时，bootstrap 取版本失败，报：
+  - `UnsupportedProxyProtocol`
+- 改为：
+  - `HTTP_PROXY=http://127.0.0.1:7890`
+  - `HTTPS_PROXY=http://127.0.0.1:7890`
+- 并取消 `ALL_PROXY`
+- 之后安装成功
+
+因此本机经验规则：
+- Claude Code 安装与 bootstrap 阶段，优先使用 `http://127.0.0.1:7890` 形式的 HTTP(S) 代理；
+- 不把 `socks5h` 代理写为默认安装路径上的标准做法。
+
+#### 13.9.2 本机当前接入方式
+本机当前并非使用 Claude 官方登录态直连，而是通过 MotChat 中转站接入 Claude Code。  
+建议会话环境变量：
+- `PATH="$HOME/.local/bin:$PATH"`
+- `HTTP_PROXY='http://127.0.0.1:7890'`
+- `HTTPS_PROXY='http://127.0.0.1:7890'`
+- `ANTHROPIC_BASE_URL='https://new.motchat.com'`
+- `ANTHROPIC_AUTH_TOKEN='<token>'`
+- `CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS=1`
+
+说明：
+- `ANTHROPIC_AUTH_TOKEN` 用于自定义 Authorization 头；
+- `ANTHROPIC_BASE_URL` 用于把请求指向中转 / gateway；
+- 当网关采用 Anthropic Messages 兼容路径但对实验性 betas 不完全兼容时，可需要：
+  - `CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS=1`
+
+#### 13.9.3 Claude Code 在本体系中的双角色
+A. **`nick` 用户的开发工具**
+- 运行位置：`nick` 用户 shell / SSH / 图形终端
+- 工作目录：`~/projects/openclaw-dev/`
+- 用途：开发 broker / plugin / publish script / 候选配置 / workspace 模板 / 测试
+- 硬边界：
+  - 绝不替代 system gateway
+  - 绝不以 `openclaw` 用户登录
+  - 绝不把它当成宿主后台常驻控制面
+
+B. **未来 `task-runner` 容器内工程执行器**
+- 运行位置：OpenClaw sandbox / Docker 任务容器内
+- 工作目录：`tasks/<task-id>/repo/`
+- 用途：工程任务、代码改动、测试、文档整理、patch 输出
+- 硬边界：
+  - 不是宿主控制面
+  - 不直接接触宿主机 secrets
+  - 不直接修改 `/etc/openclaw`、`/opt/openclaw`、systemd、Vault
+
+#### 13.9.4 Claude Code 项目文件与层级
+Claude Code 项目级配置文件统一按以下原则理解：
+- `CLAUDE.md`
+  - 项目级规则文件
+- `.claude/settings.json`
+  - 项目共享设置，应入库
+- `.claude/settings.local.json`
+  - 本地私有设置，不共享
+- `.claude/agents/`
+  - 项目 subagents 官方位置
+
+本机 SOP 规定：
+- `~/projects/openclaw-dev/CLAUDE.md` 与 `.claude/settings.json` 用于开发仓开发流程；
+- 未来 `tasks/<task-id>/repo/CLAUDE.md` 与 `.claude/agents/` 用于容器内 Claude Code 工程执行流程；
+- `workspace-main` 本身不是 Claude Code 项目根，不要求按开发仓方式长期维护 `.claude/`。
+
+### 13.10 今后继续使用 Claude Code 进行开发的标准工作流
+
+#### 13.10.1 开发前准备
+每次进入开发前，先确认：
+1. 当前所在目录是：`~/projects/openclaw-dev/`
+2. 没有任何 `nick` 用户级第二 gateway：
+   - `~/.openclaw` 不存在
+   - `~/.config/systemd/user/openclaw-gateway.service` 不存在
+3. 当前 system gateway 正常：
+   - `openclaw-gateway.service` 为 `active`
+4. 若需要联网访问 Claude Code 中转：
+   - `HTTP_PROXY / HTTPS_PROXY` 正确
+   - `ANTHROPIC_BASE_URL / ANTHROPIC_AUTH_TOKEN` 正确
+5. Claude Code 只在开发仓运行，不在宿主运行路径直接写配置
+
+#### 13.10.2 日常开发循环
+默认循环如下：
+1. 在权威控制仓或开发仓确定要改的目标：
+   - SOP
+   - design
+   - candidate config
+   - workspace 模板
+   - script
+   - plugin / broker 代码
+2. 在 `~/projects/openclaw-dev/` 中用 Claude Code 进行：
+   - 方案草拟
+   - 文件改写
+   - diff 检查
+   - 脚本生成
+   - repo-local 测试
+3. 先把候选文件入 Git：
+   - `git add`
+   - `git commit`
+4. 若变更涉及现网 host-side write：
+   - 先抓 live baseline；
+   - 先做 pre snapshot；
+   - 再部署候选文件；
+   - restart gateway；
+   - health check；
+   - post snapshot；
+   - Vault 入库；
+   - 再抓当前配置回仓
+5. 若变更只限开发仓，不触碰宿主机运行路径：
+   - 不做 host snapshot；
+   - 仅走 repo commit + 测试
+
+#### 13.10.3 何时可以让 Claude Code 直接改文件
+Claude Code 可以直接改：
+- `~/projects/openclaw-dev/**`
+- 未来任务容器内 `tasks/<task-id>/repo/**`
+- 未来任务容器内 `outputs/**`
+
+Claude Code 不得直接改：
+- `/etc/openclaw/**`
+- `/opt/openclaw/**`
+- `/var/lib/openclaw/.openclaw/extensions/**`
+- systemd unit / timer
+- `/mnt/vault/**`
+- 任意 root-only 关键路径
+
+#### 13.10.4 何时必须转成“候选文件 + 审批 / 发布”
+以下事项一律先在仓库中生成候选文件，不得直接热改：
+- `/etc/openclaw/openclaw.json`
+- 未来 broker / wrapper 正式部署文件
+- 未来 plugin 正式部署目录
+- 任何会影响 system gateway、快照链、Vault 链的变更
+
+#### 13.10.5 Claude Code 输出应如何沉淀
+开发仓阶段应沉淀：
+- 候选配置文件
+- delta 文档
+- validation checklist
+- 排错分析文档
+- 测试脚本
+- 发布脚本
+- 变更说明
+- Git commit 记录
+
+未来 task-runner 阶段应沉淀：
+- `outputs/plan.md`
+- `outputs/summary.md`
+- `outputs/diff.patch`
+- `outputs/test.log`
+- `outputs/lint.log`
+- `outputs/summary.json`
+- 若涉及宿主机：
+  - `outputs/host-change-request.json`
+
+### 13.11 回滚与恢复（高级操作，务必谨慎）
+
+> 重要：当前根挂载为 `subvolid=5`（顶层），并非 `@` 布局。  
+> `/var/lib/openclaw` 是独立子卷，回滚根系统不会回滚运行态数据（这是设计目标之一）。
+
+#### 13.11.1 从本地 `/.snapshots` 回滚（建议在 LiveUSB / 救援环境操作）
 ```bash
 # 1. 挂载系统盘顶层
 sudo mount -o subvolid=5 /dev/nvme0n1p2 /mnt
@@ -764,19 +1211,17 @@ sudo btrfs subvolume set-default <ID> /mnt
 # 5. reboot
 ```
 
-#### 13.8.2 从 Vault 恢复快照到系统盘（在救援环境操作）
+#### 13.11.2 从 Vault 恢复快照到系统盘（在救援环境操作）
 ```bash
 sudo mount -o subvolid=5 /dev/nvme0n1p2 /mnt/sys
 sudo mount /dev/nvme1n1p1 /mnt/vault
 sudo btrfs send "/mnt/vault/recv/system/<SNAPNAME>" | sudo btrfs receive "/mnt/sys/.snapshots"
-# 然后按 13.8.1 设置默认子卷并 reboot
+# 然后按 13.11.1 设置默认子卷并 reboot
 ```
-
----
 
 ## 14. Hooks 与 Plugin 扩展体系（2026-03-05 验证）
 
-### 15.1 Hook 类型与可用性（OpenClaw 2026.3.2）
+### 14.1 Hook 类型与可用性（OpenClaw 2026.3.2）
 
 OpenClaw 有两套 hook 体系，经本机实测可用性如下：
 
@@ -792,7 +1237,7 @@ OpenClaw 有两套 hook 体系，经本机实测可用性如下：
 
 **结论**：如需在工具执行前拦截审计（如接入 vLLM 安全门控），应使用 **Plugin SDK 的 `before_tool_call`**，而非内部 Hook 的 `agent:tool:start`。
 
-### 15.2 当前已部署的 Hook 与 Plugin
+### 14.2 当前已部署的 Hook 与 Plugin
 
 #### 内部 Hook：tool-audit-probe（诊断用）
 - 路径：`/var/lib/openclaw/.openclaw/hooks/tool-audit-probe/`
@@ -809,7 +1254,7 @@ OpenClaw 有两套 hook 体系，经本机实测可用性如下：
 - 配置：`/etc/openclaw/openclaw.json` → `plugins.allow` 含 `"tool-audit-plugin"` + `plugins.entries."tool-audit-plugin".enabled: true`
 - **当前行为**：仅记录日志，**不拦截任何操作**，所有工具调用正常执行
 
-### 15.3 本地 Plugin 开发 SOP
+### 14.3 本地 Plugin 开发 SOP
 
 > ⚠️ **extensions 目录是自动扫描的**。任何放入 `/var/lib/openclaw/.openclaw/extensions/` 的子目录都会被 gateway 尝试加载。缺少 `openclaw.plugin.json` 会导致 gateway 崩溃。
 
@@ -867,7 +1312,7 @@ plugins: {
 4. Plugin 运行在 gateway 进程内，崩溃会影响 gateway，务必做好异常处理
 5. **测试新 plugin 前必须打快照**（SOP 13.5.1）
 
-### 15.4 vLLM 安全审计 Plugin 架构（2026-03-05 已实装）
+### 14.4 vLLM 安全审计 Plugin 架构（2026-03-05 已实装）
 
 已于 2026-03-05 16:00 完成 `tool-audit-plugin` 改造并验证。
 
@@ -983,7 +1428,248 @@ vLLM 启动后首次推理需要编译 CUDA graph，约耗时 5-30 秒，可能�
 
 ---
 
-## 15. 变更记录
+## 15. Phase 1A 落地记录（`main bootstrap only`，2026-03-07）
+
+### 15.1 本阶段定位
+本阶段为 **Phase 1A / main bootstrap only**，目标是让 `main` agent 在现网 OpenClaw 中正式上线，成为默认主控制代理，但**不**把 `host_ops` broker 正式接入生产执行链。
+
+本阶段达成的是：
+- 新增 `main` agent；
+- 发布并落地 `workspace-main`；
+- 让 `main` 具备读取 / 写入 / 编辑其 workspace 内控制文件的能力；
+- 保持 `main` 无宿主机任意 shell、无 elevated、无 direct host mutation；
+- `main` 仅允许 spawn 已批准 worker：`task-runner`；
+- 默认主模型切换为 `motchat-gpt-max/gpt-5.4`；
+- 不部署 `host_ops` plugin 正式生产版，不开放经 broker 的宿主机写操作链。
+
+本阶段**未**达成的是：
+- `host_ops` broker 正式落地；
+- root-owned wrapper 链上线；
+- `task-runner` 正式上线；
+- Docker sandbox 执行面联调；
+- `/var/lib/openclaw` 独立纳入单独备份链。
+
+### 15.2 变更前边界与快照事实
+本机根文件系统 `/` 为 btrfs，`/.snapshots` 已独立为 btrfs 子卷；同时 `/var/lib/openclaw` 也已迁移为**独立 btrfs 子卷**。因此：
+- 对根 `/` 做只读快照时，**不会递归包含** `/var/lib/openclaw`；
+- 根系统快照可保护 `/etc/openclaw/openclaw.json`、systemd unit、`/opt/openclaw` 等根系统内容；
+- 但**不能**保护 `/var/lib/openclaw/.openclaw/workspace-main`、extensions、cron state、session state 等运行态数据；
+- 因此 `workspace-main` 必须被视为**可重复发布产物**，而不是依赖 root snapshot 恢复的持久真相源；
+- 任何首次创建 `/var/lib/openclaw/.openclaw/workspace-main` 的动作，都属于 host-side write，必须发生在 pre-change snapshot 之后。
+
+本阶段实际执行的第一组里程碑快照：
+- `/.snapshots/root-pre-main-agent-2026-03-07-1804`
+- `/.snapshots/root-auto-2026-03-07-1804`
+- Vault 接收端新增：`system/root-auto-2026-03-07-1804`
+
+这组快照覆盖：
+- `main` 配置接入前的根系统状态；
+- `/etc/openclaw/openclaw.json` 变更前状态；
+- 但**不覆盖** `/var/lib/openclaw` 子卷内部内容。
+
+### 15.3 Phase 1A 的实际落地结果
+本阶段实际完成了以下动作：
+
+1. 从 live config 抽取基线副本到开发仓库：
+   - `candidates/openclaw.live.json`
+   - `candidates/openclaw.phase1a.current.json5`
+   - `candidates/openclaw.phase1a.g54-current.json5`
+
+2. 在开发仓库内生成并提交候选配置与验证文档：
+   - `candidates/openclaw.main.candidate.json5`
+   - `candidates/openclaw.main.delta.md`
+   - `candidates/openclaw.main.validation.md`
+   - `candidates/openclaw.phase1a.fixforward.candidate.json5`
+   - `candidates/openclaw.phase1a.fixforward.delta.md`
+   - `candidates/openclaw.phase1a.tool-gap.md`
+   - `candidates/openclaw.phase1a.g54-default.candidate.json5`
+
+3. 新建 runtime workspace：
+   - `/var/lib/openclaw/.openclaw/workspace-main`
+   - 初始通过 `install -d` 建立目录，再通过 `rsync` 从开发仓 `workspace-main/` 发布内容
+
+4. 发布进入 runtime workspace 的文件包括（至少已验证）：
+   - `AGENTS.md`
+   - `TOOLS.md`
+   - `IDENTITY.md`
+   - `SOUL.md`
+   - `USER.md`
+   - `HEARTBEAT.md`
+   - `control/SOP.md`
+   - `control/routing-policy.md`
+   - `control/approval-policy.md`
+   - `control/allowed-workers.md`
+   - `control/host-ops-api.md`
+   - `control/runbooks/*`
+   - `control/state/*`
+   - `skills/*`
+
+5. 实际写入 `/etc/openclaw/openclaw.json` 的 Phase 1A 候选配置包括：
+   - 新增 `agents.list[main]`
+   - `main.workspace = /var/lib/openclaw/.openclaw/workspace-main`
+   - `main.subagents.allowAgents = ["task-runner"]`
+   - `main.tools.allow = ["read","write","edit","sessions_list","sessions_history","sessions_send","sessions_spawn","session_status"]`
+   - `main.tools.deny = ["exec","process","apply_patch","elevated"]`
+   - `main.tools.elevated.enabled = false`
+   - `agents.defaults.subagents` 增加：
+     - `maxSpawnDepth = 2`
+     - `maxChildrenPerAgent = 3`
+     - `runTimeoutSeconds = 3600`
+     - `archiveAfterMinutes = 120`
+
+6. system gateway 重启与健康检查通过：
+   - `openclaw-gateway.service` 重启成功；
+   - health check 在启动窗口后恢复正常；
+   - 日志显示 `agents.list` 与 `agents.defaults.subagents.*` 动态读取已生效。
+
+7. `workspace-main` 权限在首次 rsync 后一度为 `775`，后已修正为：
+   - owner / group：`openclaw:openclaw`
+   - mode：`700`
+
+### 15.4 工具集异常与 fix-forward 记录
+Phase 1A 首次落地后，`main` 虽已上线，但实际在飞书中表现为：
+- 能对话；
+- 能拒绝直接宿主机 shell；
+- 但无法读取 `control/SOP.md`；
+- 自报可用工具仅见 session 类工具，缺失 `read` / `write` / `edit`。
+
+经本轮排查，最可能根因是：
+- 顶层配置仍保留 `tools: { profile: "messaging" }`
+- 该全局 profile 实际覆盖或替代了 `agents.list[].tools.allow`
+- 导致 `main` 实际只拿到 messaging 风格工具集，而没有拿到显式配置的 file tools
+
+因此执行了单行 fix-forward：
+- 从现网配置中移除顶层：
+  - `tools: { profile: "messaging" }`
+
+该变更前再次执行：
+- `/.snapshots/root-pre-toolfix-2026-03-07-1830`
+- `/.snapshots/root-auto-2026-03-07-1830`
+- Vault 接收端新增：`system/root-auto-2026-03-07-1830`
+
+fix-forward 后结果：
+- `main` 可正常列出：
+  - `read`
+  - `write`
+  - `edit`
+  - `sessions_list`
+  - `sessions_history`
+  - `sessions_send`
+  - `session_status`
+  - `sessions_spawn`
+- `main` 在飞书中已能正确回答工具清单；
+- `main` 仍保持无 `exec`、无 `elevated`、无 direct host shell。
+
+### 15.5 默认模型切换到 g54 的落地记录
+在 Phase 1A 修复工具集后，又观测到以下现象：
+- `main` 在飞书中有时会长时间无回复；
+- 日志可见：`embedded run timeout ... timeoutMs=600000`
+- 该“长时间卡住后才回复”的问题并非本轮修改后首次出现；用户确认在前一天就已经见过；
+- 本轮中，重启 gateway 后机器人可立即恢复回复；
+- 随后将默认主模型切换为 `motchat-gpt-max/gpt-5.4` 后，飞书侧的 `/reset`、`只回复 OK`、`列出工具名称` 等交互表现稳定。
+
+因此当前 SOP 的结论是：
+- **已证事实**
+  - 将默认主模型切到 `motchat-gpt-max/gpt-5.4` 后，当前主控制面对话恢复稳定；
+  - `/reset` 后飞书明确显示默认模型为 `motchat-gpt-max/gpt-5.4`。
+- **未证事实**
+  - 不能把“Claude Opus 4.6 一定是根因”写成已证结论；
+  - 当前只能记录为“与 Claude 4.6 会话中的卡住现象存在时间相关性，重启 gateway 与切换 g54 后当前恢复正常”。
+
+实际变更内容：
+- `agents.defaults.model.primary`
+  - 由：`motchat-claude-4-6/claude-opus-4-6`
+  - 改为：`motchat-gpt-max/gpt-5.4`
+
+本次改动未单独执行新的 pre snapshot，而是作为 Phase 1A 后续小范围补充变更并入文档记录。
+
+### 15.6 Phase 1A 的 post snapshot 与完成标记
+Phase 1A 完成后，已执行 post-change 里程碑快照与 Vault 入库：
+- `/.snapshots/root-post-phase1a-2026-03-07-1911`
+- `/.snapshots/root-auto-2026-03-07-1911`
+- Vault 接收端新增：`system/root-auto-2026-03-07-1911`
+
+执行后确认：
+- `root-post-phase1a-2026-03-07-1911` 已存在；
+- `/mnt/vault` 当前未保持挂载；
+- 表明 Vault 盘仍遵循“备份窗口挂载、备份后立即卸载”的离线策略。
+
+至此，Phase 1A 当前可视为：
+- `main` 已正式上线；
+- `main` 的 file tools 已修正；
+- 默认主模型已切至 `g54`；
+- 但 `host-ops` broker / `task-runner` / Docker 执行面尚未进入生产落地。
+
+### 15.7 `workspace-main` 当前事实
+
+#### 15.7.1 当前路径与权限
+- 路径：`/var/lib/openclaw/.openclaw/workspace-main`
+- 最终权限：`700`
+- owner / group：`openclaw:openclaw`
+
+> 注：首次 `rsync --chown=openclaw:openclaw` 后目录权限曾显示为 `775`，随后已手工修正回 `700`。
+
+#### 15.7.2 当前已发布内容（至少已看到）
+- `AGENTS.md`
+- `SOUL.md`
+- `IDENTITY.md`
+- `USER.md`
+- `HEARTBEAT.md`
+- `TOOLS.md`
+- `control/SOP.md`
+- `control/allowed-workers.md`
+- `control/approval-policy.md`
+- `control/host-ops-api.md`
+- `control/routing-policy.md`
+- `control/runbooks/gateway-restart.md`
+- `control/runbooks/openclaw-config-change.md`
+- `control/runbooks/rollback.md`
+- `control/state/last-health.md`
+- `control/state/last-sop-hash.txt`
+- `control/state/last-task-index.json`
+- `control/state/pending-approvals.json`
+- `skills/approvals/SKILL.md`
+- `skills/broker/SKILL.md`
+- `skills/host-sop/SKILL.md`
+- `skills/routing/SKILL.md`
+
+#### 15.7.3 重新强调其恢复语义
+- `workspace-main` 是 **发布产物**；
+- 根快照不恢复它；
+- 真正需要恢复的是：
+  - 配置 `/etc/openclaw/openclaw.json`
+  - 根系统程序与 unit
+  - 以及后续单独备份的 `/var/lib/openclaw` 控制面状态
+
+### 15.8 当前运行态 `main` agent 的事实
+
+#### 15.8.1 当前阶段标签
+- **Phase 1A / main bootstrap only**
+
+#### 15.8.2 已确认具备的能力
+- 在飞书中作为主会话入口正常对话；
+- 可以读取 workspace 内文件；
+- 可以回答关于自身角色、workspace、worker allowlist 的问题；
+- 可以列出当前工具；
+- 可以拒绝直接执行 `ls /` 之类宿主机 shell 请求；
+- 可以 `sessions_spawn`。
+
+#### 15.8.3 当前工具清单（飞书实测）
+- `read`
+- `write`
+- `edit`
+- `sessions_list`
+- `sessions_history`
+- `sessions_send`
+- `session_status`
+- `sessions_spawn`
+
+#### 15.8.4 当前尚未具备的能力
+- `host_ops` 只读工具 **尚未上线**；
+- broker / wrapper **尚未上线**；
+- 因此当前 `main` 仍不能直接触发受控 host-side action。
+
+## 16. 变更记录
 
 | 时间 | 内容 |
 |------|------|
@@ -1027,3 +1713,13 @@ vLLM 启动后首次推理需要编译 CUDA graph，约耗时 5-30 秒，可能�
 | 2026-03-06 21:14 | `/etc/openclaw/openclaw.json` 更新完成：删除 `gpt-5.1-codex-max*` 5 个模型与旧 alias `max/maxhigh/maxlow/maxmed/maxxhigh`；新增 `gpt-5.2-codex`、`gpt-5.2-codex-high`、`gpt-5.2-codex-xhigh`、`gpt-5.2-high`、`gpt-5.2-xhigh`、`gpt-5.3-codex`、`gpt-5.4` 及对应 alias `g52codex/g52codexhigh/g52codexxhigh/g52high/g52xhigh/g53codex/g54` |
 | 2026-03-06 21:15 | gateway 重启后首次立即单次 health 曾返回 `gateway closed (1006 abnormal closure)`；按重试模板再次探测后 `Gateway Health: OK`，Feishu 正常，17777 监听正常；日志确认 `config hot reload applied (models.providers.motchat-gpt-max.models)`，新配置生效 |
 | 2026-03-06 22:33 | 里程碑快照 root-post-gpt54-2026-03-06-2233 创建并入库；自动备份快照 root-auto-2026-03-06-2233 已发送至 Vault；`last_sent` 更新为 `root-auto-2026-03-06-2233` |
+| 2026-03-07 18:04 | 创建 `root-pre-main-agent-2026-03-07-1804`，随后执行 Vault sync；作为 Phase 1A `main` bootstrap 前里程碑 |
+| 2026-03-07 18:04~18:05 | 创建并发布 `/var/lib/openclaw/.openclaw/workspace-main`；将 `workspace-main/*` 发布为运行态 artifact；初始目录权限一度为 `775`，后续修正为 `700` |
+| 2026-03-07 18:04~18:05 | 备份 `/etc/openclaw/openclaw.json`，部署 `openclaw.main.candidate.json5`，重启 gateway，带重试 health 验证通过 |
+| 2026-03-07 18:07~18:09 | 飞书黑盒验证发现：`main` 虽已上线，但只能看到 session 工具，不能实际读取 `control/SOP.md`；同时能正确拒绝直接执行宿主机 shell |
+| 2026-03-07 18:18 左右 | 在开发仓库中完成工具缺口根因分析：全局 `tools.profile: "messaging"` 压制 per-agent `tools.allow`；生成 `openclaw.phase1a.tool-gap.md`、`openclaw.phase1a.fixforward.delta.md` 与 `openclaw.phase1a.fixforward.candidate.json5` |
+| 2026-03-07 18:30 | 创建 `root-pre-toolfix-2026-03-07-1830`，随后执行 Vault sync；部署 fix-forward candidate（移除全局 `tools.profile`），重启 gateway，health OK |
+| 2026-03-07 18:31~18:42 | 飞书与日志验证：`main` 已具备 `read/write/edit/sessions_*`；`session-memory` 记录出现 `~/.openclaw/workspace-main/...` 路径展示；同时仍观测到 `embedded run timeout ... timeoutMs=600000` 与长时间无回复现象 |
+| 2026-03-07 19:02~19:05 | 生成 `openclaw.phase1a.g54-default.candidate.json5`，将默认主模型从 `motchat-claude-4-6/claude-opus-4-6` 改为 `motchat-gpt-max/gpt-5.4` |
+| 2026-03-07 19:11 | 创建 `root-post-phase1a-2026-03-07-1911` 并执行 Vault sync，作为本轮 Phase 1A + g54 默认模型切换的收尾里程碑；`last_sent` 更新为 `root-auto-2026-03-07-1911` |
+| 2026-03-07 19:xx | 飞书实测：默认模型显示为 `motchat-gpt-max/gpt-5.4`，`/reset`、简单回复与工具列举均恢复即时可用；当前将 g54 作为默认运营模型保留 |

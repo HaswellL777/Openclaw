@@ -1,25 +1,30 @@
+# OpenClaw 多 Agent + Claude Code 协作体系设计稿 v3.1
 
-# OpenClaw 多 Agent + Claude Code 协作体系设计稿 v3
-
-> 编写日期：2026-03-07  
+> 初版编写日期：2026-03-07  
+> 本次修订日期：2026-03-07（Phase 1A 落地后修订）  
 > 适用宿主机：当前单机 Ubuntu 24.04 LTS / Btrfs / systemd / OpenClaw 2026.3.2 基线  
-> 上游输入：`openclaw-host-sop-2026-03-06.md`、`1.md`、`openclaw-design-v2-2026-03-07.md`  
-> 文档定位：**可实施规格稿**，用于后续直接开发、验证、回滚与审计
+> 上游输入：`openclaw-host-sop-2026-03-06.md`、`1.md`、`openclaw-design-v2-2026-03-07.md`、本轮 Phase 1A 实际落地结果  
+> 文档定位：**可实施规格稿 + 落地状态稿**，用于后续继续开发、验证、回滚、审计与发布
 
 ---
 
 ## 0. 文档结论先行
 
-本 v3 方案保留 v2 的大方向，但做出以下关键修正：
+截至 2026-03-07，本设计稿 v3.1 的状态应表述为：
 
-1. **主控制面仍在宿主机，不容器化。**
-2. **真正执行代码与构建测试的任务域进入 OpenClaw Docker sandbox。**
-3. **Claude Code CLI 被正式纳入体系**：既作为 `nick` 用户的开发工具，也作为任务容器内的工程执行器。
-4. **Claude Code 的硬门控必须落在 `PreToolUse` hook + 本地 gate shim 上**，不能把“HTTP 直连 vLLM 且超时自动阻断”当成既成事实。
-5. **task-runner 不再对整个 agent workspace 拥有宽泛 `rw`**，而是只写“每任务 repo/outputs”。
-6. **任何宿主机副作用都不能由容器内 Claude Code 直接执行**，只能走 host-ops broker → 白名单 wrapper → 快照/健康检查/入 Vault 的批准链。
-7. **OpenClaw 子 agent 深度只到任务域为止**；任务域内部的细分协作，优先使用 Claude Code 的 project subagents，而不是让 OpenClaw 树无限扩张。
-8. **涉及 OpenClaw 与 Docker 的具体接入方式，设计上只依赖官方 sandbox 配置能力，不把未验证的 `DOCKER_HOST=tcp://127.0.0.1:2375` 写成规范前提。**
+1. **当前真实落地阶段是 Phase 1A，而不是完整 Phase 1。**
+2. **主控制面仍在宿主机，不容器化。**
+3. **`main` agent 已在现网落地，当前属于 Phase 1A：main bootstrap only。**
+4. **`workspace-main` 已实际发布到 `/var/lib/openclaw/.openclaw/workspace-main/`，并已成为 `main` 的 runtime workspace。**
+5. **`main` 当前已经具备 `read / write / edit / sessions_*` 基础控制面工具，但仍无 `exec`、无 `elevated`、无 direct host mutation。**
+6. **`main` 的 per-agent allowlist 与全局 `tools.profile` 不可并存；当使用 per-agent allow/deny 时，不再保留全局 `tools.profile`。**
+7. **Claude Code CLI 已正式纳入体系，但当前只完成了角色 A：`nick` 用户开发工具这一侧的实际可用落地。**
+8. **task-runner / Docker sandbox / host-ops broker 仍是后续阶段目标，尚未进入生产执行链。**
+9. **任何宿主机副作用仍必须坚持“快照 → 变更 → 健康检查 → post 快照 → Vault 入库”的纪律。**
+10. **`/var/lib/openclaw` 已是独立 Btrfs 子卷，因此不在 root snapshot 保护范围内；`workspace-main` 必须被视为可重复发布产物，而不是依赖 root snapshot 恢复的长期真相源。**
+11. **本轮实际落地过程中，曾出现 `main` 工具集被顶层 `tools.profile = messaging` 覆盖的问题；该问题已通过移除顶层 `tools.profile` 修复。**
+12. **默认主模型已从 `motchat-claude-4-6/claude-opus-4-6` 切换到 `motchat-gpt-max/gpt-5.4`；当前把 g54 视为更稳妥的主控制面默认值，但不把“Claude 4.6 一定是卡顿根因”写成已证事实。**
+13. **Claude Code 容器内执行链、只读 `host_ops`、正式 broker 与 wrapper 仍属于后续阶段目标；除非特别注明“已验证”，否则不得写成当前事实。**
 
 ---
 
@@ -33,20 +38,20 @@
 - 让 **task-runner** 成为受限、可丢弃、按任务实例化的执行面；
 - 让 **Claude Code CLI** 成为：
   - `nick` 用户的主要开发辅助工具；
-  - 任务容器内的代码编辑/测试/重构执行器；
+  - 任务容器内的代码编辑、测试、重构执行器；
 - 让 **宿主机变更链** 保持：
   - 可审计；
   - 可快照；
   - 可回滚；
   - 可最小授权；
 - 让 **SOP** 成为 OpenClaw 与 Claude Code 的共同事实源；
-- 让整套方案支持后续逐步扩展，而不是一开始把全部高风险能力一次性打开。
+- 让整套方案支持逐步扩展，而不是一开始把全部高风险能力一次性打开。
 
 ### 1.2 非目标
 
 本设计**不追求**：
 
-- 让主 agent 直接拥有宿主机 `exec + elevated`;
+- 让主 agent 直接拥有宿主机 `exec + elevated`；
 - 让 Docker 容器内 Claude Code 直接操作 `/etc/openclaw`、`/opt/openclaw`、systemd、Vault；
 - 让 OpenClaw 在当前阶段直接依赖 ACP Claude Code runtime 解决容器内工程执行；
 - 让 OpenClaw 子 agent 网络状 peer-to-peer 协作成为核心路径；
@@ -56,24 +61,33 @@
 
 ## 2. 不可突破的宿主机基线（来自现有 SOP）
 
-以下约束不是建议，而是 **v3 的硬约束**：
+以下约束不是建议，而是 **v3.1 的硬约束**。
 
 ### 2.1 路径边界
 
 - `/opt/openclaw`：程序代码，仅 root 可写；
-- `/etc/openclaw/openclaw.json`：唯一权威配置源；
-- `/etc/openclaw/openclaw.env`：长期敏感凭证；
-- `/var/lib/openclaw`：OpenClaw 运行态数据，独立 Btrfs 子卷；
-- `/var/log/openclaw`：日志目录。
+- `/etc/openclaw/openclaw.json`：当前 system gateway 的唯一生效配置源；
+- `/etc/openclaw/openclaw.env`：长期敏感凭证，不给 `nick` 直接读；
+- `/var/lib/openclaw`：OpenClaw 运行态数据，**独立 Btrfs 子卷**；
+- `/var/log/openclaw`：日志目录；
+- `/srv/openclaw-control/`：建议的权威控制仓库根；
+- `~/projects/openclaw-dev/`：开发仓库；
+- `/var/lib/openclaw/.openclaw/workspace-main/`：`main` agent 的 runtime published workspace。
+
+特别说明：
+
+- `/var/lib/openclaw` 因为是独立子卷，**不会被根 `/` 的只读快照递归覆盖**；
+- 因此 `workspace-main`、extensions、部分 runtime state 不在 root snapshot 恢复范围内；
+- `workspace-main` 必须被视为 **publish output / reproducible artifact**，而不是根快照可恢复的长期真相源。
 
 ### 2.2 运行身份
 
 - `openclaw`：system user，`nologin`，仅用于后台 gateway；
-- `nick`：管理员与图形远程桌面/SSH 的操作用户。
+- `nick`：管理员与图形远程桌面 / SSH 的操作用户。
 
 ### 2.3 当前 systemd 安全边界
 
-现有 `openclaw-gateway.service` 已经启用了只读系统保护、禁止新增特权、限制可写目录等约束；本设计不得通过“为了方便开发”去破坏这些约束。
+现有 `openclaw-gateway.service` 已启用只读系统保护、禁止新增特权、限制可写目录等约束；本设计不得通过“为了方便开发”破坏这些约束。
 
 ### 2.4 变更纪律
 
@@ -85,17 +99,27 @@
 4. 变更后只读快照  
 5. Vault 入库
 
+### 2.4.1 快照边界补充
+
+任何首次创建或修改 `/var/lib/openclaw/.openclaw/workspace-main` 的动作，都属于 host-side write。
+
+因此：
+
+1. pre-change snapshot 必须发生在第一次 host-side write 之前；
+2. root snapshot 保护的是根系统变更；
+3. `workspace-main` 的恢复主要依赖重新发布，而不是依赖 root snapshot 回滚。
+
 ### 2.5 已验证事实
 
-- OpenClaw `before_tool_call` 在当前版本上已验证可触发，但在本机现状中仍应被视为**软门控/审计入口**，而不是唯一硬阻断点；
+- OpenClaw `before_tool_call` 在当前版本上已验证可触发，但在本机现状中仍应被视为**软门控 / 审计入口**，而不是唯一硬阻断点；
 - 宿主机已部署 vLLM 审计服务，监听 `127.0.0.1:8000`；
 - `nick` 账号历史上误运行 user-level gateway 曾造成双 gateway 事故，因此 **Claude Code CLI 的开发工作只能帮助构建 OpenClaw，不得替代 system-level gateway 运行模型**。
 
 ---
 
-## 3. v3 的外部事实边界（基于官方文档）
+## 3. 外部事实边界（基于已核实文档）
 
-以下是 v3 采用的、已核实的外部事实：
+以下是 v3.1 采用的外部事实边界。
 
 ### 3.1 OpenClaw agent workspace
 
@@ -106,8 +130,8 @@
 
 ### 3.2 OpenClaw sandbox 关键语义
 
-- `workspaceAccess` 有 `none | ro | rw`;
-- `scope` 有 `session | agent | shared`;
+- `workspaceAccess` 有 `none | ro | rw`；
+- `scope` 有 `session | agent | shared`；
 - Docker 默认 `network: "none"`；
 - 若任务需要网络，必须显式切换到桥接网络或自定义桥接网络；
 - `host` 网络被阻止；
@@ -121,7 +145,7 @@
 - 子 agent 默认不带 session tools；
 - depth 1 orchestrator 在 `maxSpawnDepth >= 2` 时才会拿到 `sessions_spawn` 等少量编排工具；
 - 子 agent 注入上下文默认只有 `AGENTS.md + TOOLS.md`，**不会自动注入** `SOUL.md / IDENTITY.md / USER.md / HEARTBEAT.md / BOOTSTRAP.md`；
-- 子 agent 的 auth 以目标 agent 的 auth 为主，但 **主 agent auth 会作为 fallback 合并**；真正完全隔离的每-agent 凭证域当前并不支持。
+- 子 agent 的 auth 以目标 agent 的 auth 为主，但 **主 agent auth 会作为 fallback 合并**；真正完全隔离的 per-agent 凭证域当前并不支持。
 
 ### 3.4 OpenClaw ACP 限制
 
@@ -158,154 +182,188 @@
 - rootless Docker 是用户级 daemon 形态；
 - 这意味着：
   - 不应把 `openclaw` 直接加入 `docker` 组当作“普通低权限用户”理解；
-  - rootless Docker 更适合交互用户域，而不适合你当前 `openclaw` 的 `nologin` system-user 设计。
+  - rootless Docker 更适合交互用户域，而不适合当前 `openclaw` 的 `nologin` system-user 设计。
 
 ---
 
-## 4. v3 最终架构
-
----
+## 4. v3.1 最终架构
 
 ### 4.1 控制面与执行面分离
 
-#### A. 宿主机控制面（持久）
+v3.1 继续坚持“控制面 / 执行面分离”，但必须明确区分 **当前已落地状态** 与 **最终目标态**。
 
-运行位置：宿主机  
-主要组件：
+#### A. 当前已落地的宿主机控制面（2026-03-07）
+
+运行位置：宿主机
+
+当前已实际落地组件：
 
 1. `openclaw-gateway.service`
 2. `main` agent
-3. `host-ops broker`
-4. `vLLM audit service`
-5. `LLM gateway / upstream proxy`
-6. `SOP authority repo + publish scripts`
-7. Btrfs snapshot / Vault backup 链
+3. `workspace-main`
+4. Btrfs root snapshot / Vault backup 链
+5. 现有 LLM provider / upstream proxy 配置
+6. vLLM audit service（已存在，但未与最终 Claude Code gate flow 完整闭环）
+7. 开发仓库 `~/projects/openclaw-dev/` 与候选配置生成流程
 
-职责：
+当前实际职责：
 
-- 接收人与渠道消息；
-- 维护长期上下文与宿主机认知；
-- 根据任务类型路由到 task-runner；
-- 收集 task-runner 输出；
-- 审批宿主机变更请求；
-- 驱动快照/健康检查/回滚链；
-- 维护 SOP 与审计记录。
+- 接收飞书消息；
+- 维护长期控制面上下文；
+- 读取 SOP / routing / approval 等控制文件；
+- 更新 workspace 内控制状态；
+- 以最小工具集执行对话与控制面编排；
+- 在未来 task-runner 上线前，先承担单代理控制入口角色。
 
-#### B. 任务执行面（可丢弃）
+#### B. 当前尚未落地、但仍保留的宿主机控制面目标组件
 
-运行位置：OpenClaw Docker sandbox  
-主要组件：
+以下仍属于后续阶段目标，而不是现网已完成能力：
+
+1. `host-ops broker`
+2. root-owned wrapper 链
+3. 正式 `host_ops` plugin
+4. task token / gateway token 下发链
+5. `/var/lib/openclaw` 独立 allowlist 备份链
+
+#### C. 目标中的任务执行面（尚未落地）
+
+运行位置：OpenClaw Docker sandbox
+
+规划组件：
 
 1. `task-runner` agent
 2. 每任务工作目录 `tasks/<task-id>/`
 3. 容器内 `claude` / `claude code` CLI
 4. 项目级 `.claude/`
 5. `gate-check` hook shim
-6. 必要的编译/测试工具链
+6. 必要的构建 / 测试工具链
 
-职责：
+说明：
 
-- 代码修改；
-- patch 生成；
-- 构建与测试；
-- 文档整理；
-- 结构化输出；
-- 必要时生成 `host-change-request.json`；
-- **不直接修改宿主机关键路径**。
-
----
+- 执行面仍是 v3.1 的主方向；
+- 但截至本次修订，task-runner 尚未上线；
+- 因此本设计稿必须把“已落地控制面”和“待落地执行面”写清楚，避免把未来组件误写成当前事实。
 
 ### 4.2 统一事件流
 
-#### 4.2.1 普通只读/轻任务
+#### 4.2.1 当前实际事件流（Phase 1A）
 
-用户 → main agent →（若无需执行面）直接回答
+用户  
+→ 飞书  
+→ `openclaw-gateway.service`  
+→ `main` agent  
+→ `main` 在 `workspace-main` 内读取 / 写入控制文件  
+→ 直接回答用户
 
-#### 4.2.2 工程任务
+当前阶段说明：
 
-用户 → main agent  
+- `main` 已能处理控制面问答；
+- 已能拒绝直接宿主机 shell；
+- 已能列出自己的当前工具集；
+- 但还不能把任务正式派发到已上线的 `task-runner`，因为 task-runner 尚未进入生产。
+
+#### 4.2.2 Phase 1A 之后的工程任务目标流
+
+用户  
+→ `main`  
 → 生成任务描述 / 选择 runner  
 → `sessions_spawn(agentId="task-runner")`  
-→ OpenClaw 为该任务启动 sandbox session  
+→ OpenClaw 启动 sandbox session  
 → runner 进入 `tasks/<task-id>/repo`  
 → 容器内 Claude Code CLI 执行工程任务  
 → 输出写入 `outputs/`  
-→ runner 完成并 announce 给 main  
-→ main 汇总并回用户
+→ runner 完成并 announce 给 `main`  
+→ `main` 汇总并回复用户
 
-#### 4.2.3 涉及宿主机状态变更的任务
+#### 4.2.3 涉及宿主机状态变更的最终目标流
 
-用户 → main  
+用户  
+→ `main`  
 → task-runner 在容器内完成分析 / patch / 验证方案  
 → 产出 `host-change-request.json`  
-→ main 读取请求并判定是否进入批准链  
-→ 调用 host-ops broker  
+→ `main` 读取请求并判定是否进入批准链  
+→ 调用 `host-ops broker`  
 → broker 调 wrapper  
-→ 变更前快照 → 变更 → 健康检查 → 变更后快照 → Vault 入库  
-→ main 汇总结果并回复
+→ pre snapshot → 变更 → 健康检查 → post snapshot → Vault 入库  
+→ `main` 汇总结果并回复
+
+#### 4.2.4 当前限制说明
+
+截至本次修订：
+
+- 4.2.2 / 4.2.3 仍是目标路径；
+- 当前现网只真正落到了 4.2.1；
+- 因此任何文中出现的 `task-runner`、`host-ops broker`、`wrapper`、容器内 Claude Code 执行流，除非特别注明“已验证”，都应视为后续阶段目标。
 
 ---
 
 ## 5. 组件详细规格
 
----
-
 ## 5.1 main agent（宿主机主控制代理）
 
 ### 5.1.1 角色定位
 
-`main` 是长期存在的宿主机控制代理，不做重执行，不直接做高风险宿主机写操作。它负责：
+`main` 是长期存在的宿主机主控制代理。  
+截至 2026-03-07，它已经实际落地，但当前仍处于 **Phase 1A / main bootstrap only** 状态。
 
-- 读取 SOP；
-- 与人对话；
-- 路由任务；
-- 管理 approvals；
-- 收集 task-runner 结果；
-- 调用 host-ops broker 的少量白名单动作；
-- 维护宿主机运行知识。
+当前职责：
+
+- 读取 `workspace-main/control/` 下的控制文件；
+- 与人通过飞书对话；
+- 回答控制面相关问题；
+- 维护审批状态、健康状态、任务索引等控制面文件；
+- 明确拒绝直接宿主机 shell / elevated / 任意 patch；
+- 为后续 `task-runner` / broker 接入提供稳定入口。
+
+当前不做的事：
+
+- 不直接执行宿主机 shell；
+- 不直接修改 `/etc/openclaw`；
+- 不直接调用未来的 host-ops 写操作链；
+- 不把自己当成工程任务执行器。
 
 ### 5.1.2 工具权限策略
 
-建议：
+当前现网实装结果：
 
 - allow：
   - `read`
-  - `write`（仅 workspace 内部）
-  - `edit`（仅 workspace 内部）
+  - `write`
+  - `edit`
   - `sessions_list`
   - `sessions_history`
   - `sessions_send`
   - `sessions_spawn`
   - `session_status`
+
 - deny：
   - `exec`
   - `process`
   - `apply_patch`
   - `elevated`
-  - 其他不必要工具按最小化原则收紧
 
-**设计原则：**
+补充说明：
 
-- main 可以更新自己的控制面文档与审批状态；
-- main 不能直接在宿主机 shell 里跑命令；
-- main 若要触发宿主机副作用，只能经由 broker。
+- 初次落地后，曾因顶层 `tools.profile = "messaging"` 存在，导致 `main` 实际只拿到 session 类工具；
+- 该问题已通过移除顶层 `tools.profile` 修复；
+- 因此 v3.1 后续规范中，应明确禁止再保留会覆盖 per-agent `tools.allow` 的全局 profile 配置，除非其优先级与行为已被重新验证。
 
 ### 5.1.3 subagent 策略
 
 建议：
 
 - `subagents.allowAgents = ["task-runner"]`
-- 默认不对 main 开放大量跨 agent target
+- 默认不对 `main` 开放大量跨 agent target
 - `maxSpawnDepth = 2`
 
 解释：
 
-- main 只允许把任务交给已知 `task-runner`；
-- 不允许 main 随意把任务投递到未来未经审计的新 agent；
+- `main` 只允许把任务交给已知 `task-runner`；
+- 不允许 `main` 随意把任务投递到未来未经审计的新 agent；
 - OpenClaw 侧深度只保留为：
-  - depth 0：main
-  - depth 1：task-runner
-- 任务内更细分的“coder / tester / reviewer / doc”角色，由 **Claude Code project subagents** 负责，而不是再扩 OpenClaw 深度。
+  - depth 0：`main`
+  - depth 1：`task-runner`
+- 任务内更细分的 `coder / tester / reviewer / doc-writer` 角色，由 **Claude Code project subagents** 负责，而不是再扩 OpenClaw 深度。
 
 ### 5.1.4 workspace 结构
 
@@ -349,6 +407,14 @@
         └── rollback.md
 ```
 
+补充约束：
+
+- `workspace-main` 当前已实际发布到 `/var/lib/openclaw/.openclaw/workspace-main/`；
+- 它是 runtime published artifact；
+- 它不应被当作长期权威文档源；
+- 其内容应来自权威控制仓库和 / 或开发仓库的 publish 流；
+- root snapshot 不负责恢复它。
+
 ### 5.1.5 main 的规则文件写法要求
 
 - **强约束写进 `AGENTS.md`**：
@@ -358,7 +424,7 @@
   - 什么时候 spawn `task-runner`；
   - 什么时候走 broker；
 - **工具约定写进 `TOOLS.md`**：
-  - 何时读 `control/`;
+  - 何时读 `control/`；
   - 何时查 pending approvals；
   - 何时调用 `host_ops`；
 - `SOUL.md` / `IDENTITY.md` 只负责风格与身份，不承载关键安全逻辑。
@@ -400,13 +466,13 @@
 
 - OpenClaw 官方明确指出 workspace 是默认 cwd，不是硬沙箱；
 - runner 若对整块 workspace 拥有 `rw`，会污染长期状态与 agent 记忆；
-- task-runner 需要的不是“长期 workspace 可写”，而是“当前任务 repo/outputs 可写”。
+- task-runner 需要的不是“长期 workspace 可写”，而是“当前任务 repo / outputs 可写”。
 
-因此 v3 的策略是：
+因此 v3.1 的策略是：
 
-- OpenClaw sandbox 对 agent workspace 采用 `none`;
+- OpenClaw sandbox 对 agent workspace 采用 `none`；
 - 所有任务所需文件，显式落入 per-task 目录；
-- 宿主机向 sandbox 提供的内容，只通过任务目录、只通过发布脚本、只通过 bind/mount 进入。
+- 宿主机向 sandbox 提供的内容，只通过任务目录、只通过发布脚本、只通过 bind / mount 进入。
 
 ### 5.2.4 task-runner workspace 与任务目录
 
@@ -475,22 +541,42 @@ runner 只应访问：
 
 ## 5.3 Claude Code CLI：双角色纳入体系
 
-v3 把 Claude Code CLI 分成两个明确角色。
+v3.1 继续把 Claude Code CLI 分成两个角色，但必须明确写出：**当前只完成了角色 A 的实际落地**。
 
-### 5.3.1 角色 A：`nick` 用户的开发工具
+### 5.3.1 角色 A：`nick` 用户的开发工具（已落地）
 
 用途：
 
-- 帮你开发 broker、plugin、publish scripts、OpenClaw 配置与 workspace 文件；
-- 帮你审查设计、生成测试脚本、编写部署脚本；
+- 开发 broker、plugin、publish scripts、OpenClaw 配置与 workspace 文件；
+- 审查设计、生成测试脚本、编写部署脚本；
 - 在 `~/projects/openclaw-dev/` 中进行版本化开发。
+
+当前实际状态：
+
+- Claude Code CLI 已安装于 `nick` 用户域；
+- 路径：`~/.local/bin/claude`
+- 已安装版本：`2.1.58`
+- 本机安装过程中，直接使用 `socks5h://127.0.0.1:7890` 作为 `ALL_PROXY / HTTP_PROXY / HTTPS_PROXY` 会导致 bootstrap 失败；
+- 实际可用方案是：
+  - `HTTP_PROXY=http://127.0.0.1:7890`
+  - `HTTPS_PROXY=http://127.0.0.1:7890`
+  - 不使用 `ALL_PROXY=socks5h://...`
+
+当前接入方式：
+
+- 通过 MotChat 中转站接入，而非官方账号直连；
+- 实际使用环境变量包括：
+  - `ANTHROPIC_BASE_URL=https://new.motchat.com`
+  - `ANTHROPIC_AUTH_TOKEN=<token>`
+  - `CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS=1`
+- 这些仅用于 `nick` 开发侧工作流，不进入 system gateway runtime。
 
 规则：
 
-- 安装与登录只在 `nick` 用户域完成；
-- **绝不**以 `openclaw` 用户登录 Claude Code；
-- **绝不**用 Claude Code 替代 system-level gateway 运行；
-- `~/projects/openclaw-dev/` 是开发仓库，不是运行目录。
+- 安装与认证只在 `nick` 用户域完成；
+- 绝不以 `openclaw` 用户登录 Claude Code；
+- 绝不让 Claude Code 替代 system-level gateway 常驻运行；
+- `~/projects/openclaw-dev/` 是开发仓，不是 system runtime。
 
 建议开发仓库结构：
 
@@ -507,7 +593,7 @@ v3 把 Claude Code CLI 分成两个明确角色。
 │   └── commands/              # 可选
 ├── docs/
 │   ├── host-sop.md
-│   ├── design-v3.md
+│   ├── design-v3.1.md
 │   └── acceptance-tests.md
 ├── broker/
 ├── plugins/
@@ -516,33 +602,33 @@ v3 把 Claude Code CLI 分成两个明确角色。
 └── tests/
 ```
 
-### 5.3.2 角色 B：任务容器内的工程执行器
+### 5.3.2 角色 B：任务容器内的工程执行器（尚未落地）
 
 用途：
 
 - 在 sandbox 容器内处理 repo 级工程任务；
 - 通过项目级 `.claude/` 读取任务规则；
 - 通过 `PreToolUse` hooks 执行本地 gate；
-- 通过 project subagents 细分 coder/tester/reviewer 等角色。
+- 通过 project subagents 细分 coder / tester / reviewer / doc-writer 等角色。
 
-规则：
+当前状态：
 
-- Claude Code 在容器内只针对 `tasks/<task-id>/repo/` 这个项目根运行；
-- 它不是宿主机的控制面；
-- 它不能直达宿主机 secrets；
-- 它不能直接重启服务或修改 `/etc/openclaw`。
+- 该角色仍属于后续 Phase 3+ / 4+；
+- 当前尚未进入生产可用状态；
+- 不应在文档中写成“已上线”。
 
-### 5.3.3 为什么需要双角色
+### 5.3.3 双角色存在的必要性
 
-因为这两个场景的风险模型不同：
+因为两个场景风险模型不同：
 
-- `nick` 开发仓库：是**人主导**、可交互、可手动审阅的开发环境；
-- 任务容器：是 **OpenClaw 代理驱动**、可丢弃、需要强审计与最小权限的自动执行环境。
+- `nick` 开发仓：人主导、可交互、可手审；
+- 任务容器：代理驱动、可丢弃、需强审计、最小权限。
 
-把二者混为一谈，会导致：
+所以：
 
-- 要么开发效率太低；
-- 要么自动执行环境获得了不必要的人类级长期权限。
+- 开发仓里的 Claude Code 解决“构建体系”问题；
+- 未来任务容器里的 Claude Code 解决“执行任务”问题；
+- 二者不得混成同一个权限域。
 
 ---
 
@@ -572,7 +658,7 @@ tasks/<task-id>/repo/
 
 - 当前任务目标；
 - 项目约束；
-- 测试/构建命令；
+- 测试 / 构建命令；
 - 文件输出契约；
 - 何时调用 project subagents；
 - 何时生成 `host-change-request.json`；
@@ -587,7 +673,7 @@ tasks/<task-id>/repo/
 - 允许的 hooks；
 - 必要环境变量白名单；
 - 输出风格与行为约束；
-- 必要的 permissions allow/deny;
+- 必要的 permissions allow / deny；
 - project subagents 启用。
 
 ### 5.4.4 `.claude/settings.local.json`
@@ -619,11 +705,9 @@ tasks/<task-id>/repo/
 
 ## 5.5 硬门控：gate shim + vLLM audit
 
----
+### 5.5.1 v3.1 的核心修正
 
-### 5.5.1 v3 的核心修正
-
-v2 最大的问题之一，是把“Claude Code HTTP hook 直连 vLLM，然后超时即 fail-closed”写成了设计前提。
+v2 的核心问题之一，是把“Claude Code HTTP hook 直连 vLLM，然后超时即 fail-closed”写成设计前提。
 
 这在官方语义上并不成立，因为：
 
@@ -632,7 +716,7 @@ v2 最大的问题之一，是把“Claude Code HTTP hook 直连 vLLM，然后�
   - command hook 的 `exit 2`；
   - 或 HTTP hook 返回 2xx + 合法阻断 JSON。
 
-因此 v3 的硬门控改为：
+因此 v3.1 的硬门控改为：
 
 ```text
 Claude Code PreToolUse (command hook)
@@ -640,7 +724,7 @@ Claude Code PreToolUse (command hook)
     -> 本地 gate shim
       -> vLLM /v1/chat/completions
       -> 解析决策
-    -> 若 deny/解析失败/超时
+    -> 若 deny / 解析失败 / 超时
          exit 2
        否则 exit 0
 ```
@@ -651,7 +735,7 @@ Claude Code PreToolUse (command hook)
 
 职责：
 
-- 从 Claude Code hook stdin 读取 `tool_name`, `tool_input`, `cwd`, task metadata；
+- 从 Claude Code hook stdin 读取 `tool_name`、`tool_input`、`cwd`、task metadata；
 - 标准化为 gate 请求；
 - 调用本地 gate shim；
 - 根据返回值决定：
@@ -700,7 +784,7 @@ Claude Code PreToolUse (command hook)
 
 - **L0 deterministic deny**：
   - 访问宿主机关键路径；
-  - 直接 `sudo`;
+  - 直接 `sudo`；
   - 网络访问非白名单；
   - 读取 secrets 文件；
   - 删除大范围目录；
@@ -723,29 +807,27 @@ Claude Code PreToolUse (command hook)
 因为官方明确：
 
 - `PermissionRequest` 在非交互模式 `-p` 下不触发；
-- 你的任务容器执行路径未来很可能会进入半自动/自动模式；
+- 任务容器执行路径未来很可能会进入半自动 / 自动模式；
 - 所以真正的强门控必须落在 `PreToolUse`。
 
 ### 5.5.6 OpenClaw plugin 审计仍然保留
 
-v3 不是放弃 OpenClaw `before_tool_call`，而是重新定位：
+v3.1 不是放弃 OpenClaw `before_tool_call`，而是重新定位：
 
 - OpenClaw `before_tool_call`：**外层审计 + 记录 + 额外风控**
 - Claude Code `PreToolUse`：**容器内真实执行命令的硬门控**
 
 原因：
 
-OpenClaw 外层工具调用看不到 Claude Code 内部所有真实待执行 payload；Claude Code hook 才能拿到内部真实 Bash/Edit/Write 事件。
+OpenClaw 外层工具调用看不到 Claude Code 内部所有真实待执行 payload；Claude Code hook 才能拿到内部真实 Bash / Edit / Write 事件。
 
 ---
 
 ## 5.6 host-ops broker（宿主机副作用代理）
 
----
-
 ### 5.6.1 角色定位
 
-broker 是 v3 的唯一宿主机副作用执行面。它不是通用 shell，不接受自然语言，也不允许任意命令拼接。
+broker 是 v3.1 的唯一宿主机副作用执行面。它不是通用 shell，不接受自然语言，也不允许任意命令拼接。
 
 它只接受结构化请求，例如：
 
@@ -807,8 +889,8 @@ broker 是 v3 的唯一宿主机副作用执行面。它不是通用 shell，不
 
 ### 5.6.5 broker 与 main 的关系
 
-- main 不直接拥有 `exec`；
-- main 调用 `host_ops(...)` 插件工具；
+- `main` 不直接拥有 `exec`；
+- `main` 调用 `host_ops(...)` 插件工具；
 - 插件工具只把结构化请求交给 broker；
 - broker 再走 wrapper。
 
@@ -817,8 +899,6 @@ broker 是 v3 的唯一宿主机副作用执行面。它不是通用 shell，不
 ---
 
 ## 5.7 SOP 权威源与发布机制
-
----
 
 ### 5.7.1 只保留一个权威源
 
@@ -834,9 +914,9 @@ broker 是 v3 的唯一宿主机副作用执行面。它不是通用 shell，不
 
 原因：
 
-OpenClaw 官方明确说明，sandbox seed copy 只接受常规 in-workspace 文件；解析到 workspace 外部的 symlink/hardlink 会被忽略。
+OpenClaw 官方说明，sandbox seed copy 只接受常规 in-workspace 文件；解析到 workspace 外部的 symlink / hardlink 会被忽略。
 
-因此 v3 采用：
+因此 v3.1 采用：
 
 - 权威源：单一仓库中的 SOP
 - 发布副本：
@@ -850,7 +930,7 @@ OpenClaw 官方明确说明，sandbox seed copy 只接受常规 in-workspace 文
 
 1. 从权威源复制到目标
 2. 写入 SHA256
-3. 写入版本号/时间戳
+3. 写入版本号 / 时间戳
 4. 若 hash 未变可跳过
 5. 记录发布日志
 
@@ -865,8 +945,6 @@ OpenClaw 官方明确说明，sandbox seed copy 只接受常规 in-workspace 文
 ---
 
 ## 5.8 LLM gateway / 上游模型代理
-
----
 
 ### 5.8.1 角色定位
 
@@ -887,17 +965,17 @@ OpenClaw 官方明确说明，sandbox seed copy 只接受常规 in-workspace 文
 
 ### 5.8.3 当前保守策略
 
-在未完成兼容性验证前，v3 只把该网关定义为：
+在未完成兼容性验证前，v3.1 只把该网关定义为：
 
-- **必须存在的组件**
-- **需要 Phase 4 专项验收**
-- **不把当前 MotChat / Nginx 改写路径直接视为已验证完成**
+- **必须存在的组件**；
+- **需要 Phase 4 专项验收**；
+- **不把当前 MotChat / Nginx 改写路径直接视为已验证完成**。
 
 ### 5.8.4 凭证策略
 
 任务容器内不存长期主密钥，而是：
 
-- 由宿主机 gateway/proxy 维护长期上游凭证；
+- 由宿主机 gateway / proxy 维护长期上游凭证；
 - 每任务注入短期 task token；
 - token 只允许该任务访问必要模型与额度；
 - 容器销毁即失效。
@@ -906,11 +984,9 @@ OpenClaw 官方明确说明，sandbox seed copy 只接受常规 in-workspace 文
 
 ## 5.9 Docker 方案
 
----
-
 ### 5.9.1 规范级要求
 
-v3 规范层只要求：
+v3.1 规范层只要求：
 
 - OpenClaw task-runner 使用官方 `sandbox.docker` 配置；
 - 任务容器镜像固定、可复现、可审计；
@@ -928,9 +1004,9 @@ v3 规范层只要求：
 - Docker 默认通过 root-owned Unix socket 暴露；
 - `docker` 组是 root 级权限；
 
-但并没有足够证据证明“你当前这版 OpenClaw + 受限 socket proxy + `DOCKER_HOST`”已经被完整验证能承载其所有 sandbox 生命周期操作。
+但并没有足够证据证明“当前这版 OpenClaw + 受限 socket proxy + `DOCKER_HOST`”已经被完整验证能承载其所有 sandbox 生命周期操作。
 
-因此 v3 不写死实现路径，只写：
+因此 v3.1 不写死实现路径，只写：
 
 - **优先目标**：通过受限且可审计的 Docker 接入方式满足 OpenClaw sandbox；
 - **必须通过专门 capability probe 后才能落地**。
@@ -965,7 +1041,7 @@ openclaw-task-claude:2026-03-v3
 - bash
 - jq
 - ripgrep
-- Python / Node 等你任务需要的最小工具链
+- Python / Node 等任务需要的最小工具链
 - 测试工具
 - 非 root 运行用户
 - 固定工作目录
@@ -984,8 +1060,6 @@ openclaw-task-claude:2026-03-v3
 ---
 
 ## 5.10 认证与 secrets
-
----
 
 ### 5.10.1 长期 secrets 的原则
 
@@ -1028,8 +1102,6 @@ openclaw-task-claude:2026-03-v3
 
 ## 5.11 审计、日志与可回滚性
 
----
-
 ### 5.11.1 统一 request-id / task-id
 
 整个链路都必须带：
@@ -1042,16 +1114,19 @@ openclaw-task-claude:2026-03-v3
 ### 5.11.2 日志分层
 
 #### OpenClaw 层
+
 - `before_tool_call`
 - `after_tool_call`
 - spawn / announce / timeout / failure
 
 #### Claude Code 层
+
 - hook 决策日志
 - transcript 摘要
 - project subagents 结果
 
 #### broker 层
+
 - action 请求
 - wrapper 调用结果
 - 快照名
@@ -1069,9 +1144,7 @@ openclaw-task-claude:2026-03-v3
 
 ---
 
-## 6. 配置建议（规范草案）
-
----
+## 6. 配置建议（规范草案 + 当前现网状态）
 
 ## 6.1 OpenClaw agent 规划
 
@@ -1086,11 +1159,15 @@ openclaw-task-claude:2026-03-v3
 
 ## 6.2 `main` agent 配置草案
 
+### 6.2.1 当前生效版（Phase 1A）
+
 ```json5
 {
   agents: {
     defaults: {
-      skipBootstrap: true,
+      model: {
+        primary: "motchat-gpt-max/gpt-5.4"
+      },
       subagents: {
         maxSpawnDepth: 2,
         maxChildrenPerAgent: 3,
@@ -1114,15 +1191,9 @@ openclaw-task-claude:2026-03-v3
             "sessions_history",
             "sessions_send",
             "sessions_spawn",
-            "session_status",
-            "host_ops"
+            "session_status"
           ],
-          deny: [
-            "exec",
-            "process",
-            "apply_patch",
-            "elevated"
-          ],
+          deny: ["exec", "process", "apply_patch", "elevated"],
           elevated: { enabled: false }
         }
       }
@@ -1130,6 +1201,14 @@ openclaw-task-claude:2026-03-v3
   }
 }
 ```
+
+并明确：
+
+> 顶层不得再保留 `tools: { profile: "messaging" }`；否则会压制上述 per-agent allowlist。
+
+### 6.2.2 未来扩展版（Phase 1B / 2 以后）
+
+只有在 `host_ops` 插件 / 工具真正部署并通过审计后，才考虑把 `host_ops` 加回 allowlist。
 
 ---
 
@@ -1164,7 +1243,7 @@ openclaw-task-claude:2026-03-v3
 }
 ```
 
-> 注：Docker 接入的底层连通实现必须在 Phase 2 通过 capability probe 验证，不在 v3 规格中假定为某个固定 `DOCKER_HOST` 方案。
+> 注：Docker 接入的底层连通实现必须在 Phase 3 通过 capability probe 验证，不在 v3.1 规格中假定为某个固定 `DOCKER_HOST` 方案。
 
 ---
 
@@ -1234,7 +1313,7 @@ openclaw-task-claude:2026-03-v3
 }
 ```
 
-> 注：实际允许列表需要按任务镜像的工具链再微调；这里只给出 v3 的安全方向。
+> 注：实际允许列表需要按任务镜像的工具链再微调；这里只给出 v3.1 的安全方向。
 
 ---
 
@@ -1280,85 +1359,195 @@ openclaw-task-claude:2026-03-v3
   - 回滚脚本
   - 验证步骤
 - 不要让 Claude Code 在 `nick` 用户环境里直接“代执行”会改变生产宿主机状态的高风险命令；
-- 它的职责是**生成与审查**，最终落地走你的人类批准或后续 broker 执行链。
+- 它的职责是**生成与审查**，最终落地走人的批准或后续 broker 执行链。
+
+---
+
+## 6.8 当前现网状态快照（2026-03-07）
+
+### 6.8.1 已生效配置结论
+
+- `main` 已存在并为默认主 agent；
+- `main.workspace = /var/lib/openclaw/.openclaw/workspace-main`；
+- `main.tools.allow` 已生效：
+  - `read`
+  - `write`
+  - `edit`
+  - `sessions_list`
+  - `sessions_history`
+  - `sessions_send`
+  - `session_status`
+  - `sessions_spawn`
+- `main.tools.deny` 已生效：
+  - `exec`
+  - `process`
+  - `apply_patch`
+  - `elevated`
+- 默认主模型当前为 `motchat-gpt-max/gpt-5.4`。
+
+### 6.8.2 已完成快照里程碑
+
+- `root-pre-main-agent-2026-03-07-1804`
+- `root-pre-toolfix-2026-03-07-1830`
+- `root-post-phase1a-2026-03-07-1911`
+
+### 6.8.3 当前仍未上线的能力
+
+- 正式 `host-ops broker`
+- 正式 `host_ops` plugin
+- `task-runner`
+- Docker sandbox 任务执行面
+- 容器内 Claude Code 执行链
+- `/var/lib/openclaw` 独立 allowlist 备份链
+
+### 6.8.4 当前经验性运行建议
+
+- 主控制面默认使用 `g54`；
+- Claude 4.6 保留作显式切换测试，不恢复为默认；
+- 若飞书长时间不回复，优先检查 gateway 日志中的 embedded run timeout / dispatch 状态。
+
+---
+
+## 6.9 运行态备份分层设计
+
+1. **Root system snapshots（继续保留）**
+   - `/etc/openclaw`
+   - `/opt/openclaw`
+   - systemd
+   - snapshot / Vault scripts
+2. **Control-plane runtime backup（新增设计目标）**
+   - `workspace-main/control/state/`
+   - `.openclaw/extensions/`
+   - `.openclaw/cron/`
+   - `/var/lib/openclaw/backup/`
+3. **Ephemeral runtime noise（默认不强恢复）**
+   - memory
+   - canvas
+   - 中间产物
+   - 高频调试日志
+
+并明确：
+
+> 未来的“运行态备份增强”不等于把 `/var/lib/openclaw` 整体重新塞回 root snapshot，而是建立独立、选择性的控制面备份机制。
+
+---
+
+## 6.10 已观测但未定案的问题
+
+1. Claude 4.6 默认路径在飞书会话中观测到长时间无回复；
+2. 日志可见 `embedded run timeout ... timeoutMs=600000`；
+3. 切换到 g54 后现象明显缓解；
+4. `session-memory` 路径日志显示为 `~/.openclaw/...`，需核实真实落点；
+5. 这些问题都应进入独立 follow-up，而不应被误写成“Phase 1A 已全部解决”。
 
 ---
 
 ## 7. 分阶段实施路径
 
----
-
-## Phase 0：开发工具链与控制仓库（前置阶段）
+## Phase 0：开发工具链与控制仓库（已完成）
 
 ### 目标
+
 把 Claude Code CLI 正式纳入开发流程，但不碰生产执行面。
 
-### 工作内容
+### 已完成内容
 
-1. 以 `nick` 用户安装 Claude Code CLI
-2. 创建开发仓库 `~/projects/openclaw-dev/`
-3. 建立：
-   - `docs/host-sop.md`
-   - `docs/design-v3.md`
+1. `nick` 用户侧 Claude Code CLI 已安装并可用
+2. 开发仓库 `~/projects/openclaw-dev/` 已建立
+3. 已建立：
+   - `CLAUDE.md`
    - `.claude/settings.json`
    - `.claude/agents/*`
-   - `CLAUDE.md`
-4. 创建权威控制仓库，例如 `/srv/openclaw-control/`
-5. 建立 SOP 发布脚本
-6. 起草：
-   - main workspace 文件
-   - task-runner workspace 文件
-   - broker 代码框架
-   - plugin 框架
-   - gate shim 框架
+   - `docs/*`
+   - `broker/` skeleton
+   - `plugins/` skeleton
+   - `tests/` / `scripts/`
+4. 权威控制源与发布思路已建立
+5. repo-local 测试链已存在
+6. 未引入第二个 user-level gateway
 
-### 验收标准
+### 阶段结论
 
-- Claude Code 仅在 `nick` 环境正常工作；
-- 不产生任何第二个 gateway；
-- 开发仓库可生成规范文件与测试脚本；
-- SOP 可从权威源发布到目标副本。
+Phase 0 结束后，开发体系已能安全地产生候选配置、脚本和文档，但尚未触碰现网执行面。
 
 ---
 
-## Phase 1：main agent 上线
+## Phase 1A：main bootstrap only（已完成）
 
 ### 目标
-让 main 成为稳定的宿主机控制代理，但仍不接入 Docker task execution。
+
+让 `main` 成为稳定的宿主机控制代理，但不接入正式 broker，不接入 Docker task execution。
+
+### 已完成内容
+
+1. 创建并发布 `workspace-main`
+2. 更新 `openclaw.json`，加入 `main`
+3. 配置：
+   - `subagents.allowAgents = ["task-runner"]`
+   - `maxSpawnDepth = 2`
+   - `maxChildrenPerAgent = 3`
+   - `runTimeoutSeconds = 3600`
+   - `archiveAfterMinutes = 120`
+4. 让 `main` 拥有：
+   - `read / write / edit / sessions_*`
+5. 保持 deny：
+   - `exec`
+   - `process`
+   - `apply_patch`
+   - `elevated`
+6. 修复了顶层 `tools.profile = messaging` 对 `main.tools.allow` 的覆盖问题
+7. 默认主模型切换到 `motchat-gpt-max/gpt-5.4`
+8. 已完成 pre / post 快照与 Vault 入库
+
+### 当前验收结果
+
+- `main` 能对话；
+- `main` 能列出当前工具；
+- `main` 能拒绝宿主机 shell；
+- `main` 的 runtime workspace 已生效；
+- 但 `host_ops` 正式链与 task-runner 尚未上线。
+
+---
+
+## Phase 1B：控制面收口与文档 / 发布模型固化（下一阶段）
+
+### 目标
+
+把 Phase 1A 的实操经验固化成正式控制规范，消除“计划态文档”和“现网事实”之间的漂移。
 
 ### 工作内容
 
-1. 创建 `workspace-main`
-2. 写入 bootstrap/control 文件
-3. 更新 `openclaw.json`，加入 `main`
-4. 配置 `subagents.allowAgents = ["task-runner"]`
-5. 配置 main 的工具 deny/allow
-6. 部署 `host_ops` 插件壳，但先只暴露只读动作：
-   - `gateway_health`
-   - `list_snapshots`
-   - `show_last_backup`
+1. 更新 SOP
+2. 更新 design-v3.1
+3. 明确：
+   - 权威控制仓库
+   - 开发仓
+   - runtime published workspace
+   - 任务级 repo
+4. 固化 publish 流与 candidate config 流
+5. 补齐 `workspace-main` 发布 / 校验脚本
+6. 决定 `/var/lib/openclaw` 哪些内容纳入独立备份 allowlist
 
 ### 验收标准
 
-- main 能对话；
-- main 能读 SOP；
-- main 不能执行宿主机 shell；
-- main 能调用只读 host_ops；
-- systemd 与快照链不被破坏。
+- 文档能完整反映现网 Phase 1A 结果；
+- 权威源 / 开发仓 / runtime 副本边界不再混淆；
+- 未来任何配置发布都可按同一流程执行。
 
 ---
 
 ## Phase 2：host-ops broker 正式落地
 
 ### 目标
+
 建立唯一宿主机副作用入口。
 
 ### 工作内容
 
 1. 实现 broker
 2. 实现 root-owned wrappers
-3. 部署 Unix socket / 权限组
-4. 扩展 `host_ops` plugin
+3. 部署 Unix socket / 权限边界
+4. 部署正式 `host_ops` plugin
 5. 新增结构化动作：
    - `validate_openclaw_json_candidate`
    - `deploy_openclaw_json_candidate`
@@ -1369,172 +1558,143 @@ openclaw-task-claude:2026-03-v3
 
 ### 验收标准
 
-- main 仍无宿主机任意 exec；
+- `main` 仍无宿主机任意 exec；
 - broker 能按 schema 拒绝非法输入；
-- wrapper 不接受自由路径/自由命令；
-- 配置变更可完成完整快照 → 变更 → 验证 → 入库链路。
+- wrapper 不接受自由路径 / 自由命令；
+- 配置变更可完成完整快照链。
 
 ---
 
 ## Phase 3：Docker sandbox capability probe 与 task-runner 上线
 
 ### 目标
-验证 OpenClaw 对 Docker sandbox 的真实接入能力，并上线 task-runner。
+
+把工程执行面从主控制面中剥离出来，正式引入 task-runner。
 
 ### 工作内容
 
-1. 安装/整理 Docker Engine
-2. 构建 `openclaw-task-claude:2026-03-v3`
-3. 创建 `workspace-task-runner`
-4. 配置 `task-runner` agent
-5. 做 capability probe：
-   - 容器创建
-   - 容器销毁
-   - `scope=session`
-   - `workspaceAccess=none`
-   - 自定义 bridge 网络
-   - 只读根
-   - tmpfs
-   - bind 任务目录
-6. 若受限 Docker 接入方案可行，则固化；
-7. 若不可行，记录为实现阻塞项，不将未验证方案推进生产。
+1. 整理 Docker Engine
+2. capability probe
+3. 构建任务镜像
+4. 创建 `workspace-task-runner`
+5. 更新 `openclaw.json` 加入 `task-runner`
+6. 验证 `sessions_spawn("task-runner")`
+7. 验证任务目录 bind / 清理
 
 ### 验收标准
 
-- task-runner 可成功 spawn；
-- 每任务单独容器；
-- 容器结束可清理；
-- 不能逃逸到宿主机；
-- 任务目录与 outputs 正常读写。
+- `main` 只做控制，不做重执行；
+- `task-runner` 在受限容器内完成工程任务；
+- 容器退出后状态可清理；
+- 不破坏宿主机控制面。
 
 ---
 
-## Phase 4：Claude Code 容器内执行链与硬门控
+## Phase 4：容器内 Claude Code 执行链
 
 ### 目标
-让 task-runner 在容器内实际使用 Claude Code 完成工程任务，并由 gate shim 强门控。
+
+把 Claude Code 作为任务容器内工程执行器正式接入。
 
 ### 工作内容
 
-1. 在镜像中安装固定版本 Claude Code CLI
-2. 建立 task project 模板
-3. 配置 `.claude/settings.json`
-4. 实现 `gate-check.sh`
-5. 实现 gate shim
-6. 对接宿主机 vLLM
-7. 实现 task outputs 契约
-8. 引入 project subagents：
-   - coder
-   - tester
-   - reviewer
-   - doc-writer
+1. 固定版本安装 Claude Code CLI
+2. 任务 project 模板
+3. `.claude/agents/*`
+4. `gate-check.sh`
+5. `host-change-request.json` / `summary.json` 等输出契约
+6. `PreToolUse` allow / deny / fail-closed 验证
 
 ### 验收标准
 
-- Claude Code 可在容器内针对 task repo 正常运行；
-- `PreToolUse` hook 可拿到真实 Bash/Edit/Write 事件；
-- deny/timeout/解析失败能 fail-closed；
-- gate 事件被完整记录；
-- 容器内无法直接操作宿主机关键路径。
+- Claude Code 仅在任务 repo 内运行；
+- hook / gate 行为可审计；
+- 宿主机变更仍需通过 broker。
 
 ---
 
-## Phase 5：LLM gateway / 短期 token / 上游兼容性
+## Phase 5：LLM gateway / token / secret 最小化
 
 ### 目标
-把 Claude Code 上游模型访问纳入可控代理层。
+
+让任务容器不持有长期密钥，仅持短期受限凭据。
 
 ### 工作内容
 
-1. 部署兼容 Claude Code 的 LLM gateway
-2. 验证 Anthropic Messages API 兼容性
-3. 实现 task token 机制
-4. 验证模型名、headers、流式输出、计费与错误处理
-5. 将长期上游密钥完全收回宿主机 proxy
+1. 选定 gateway
+2. 模型映射
+3. task token 发放与过期
+4. 审计日志
+5. 验证容器内不持长期 key
 
 ### 验收标准
 
-- Claude Code 通过网关正常调用上游；
-- 容器内不持有长期 key；
-- task token 可过期；
-- 失败模式可审计。
+- 任务容器的密钥暴露面最小化；
+- 可审计；
+- 可吊销。
 
 ---
 
-## Phase 6：宿主机变更任务闭环
+## Phase 6：备份扩展与长期运行收口
 
 ### 目标
-完成“容器内生成候选 → main 审批 → broker 落地 → 快照入库”的完整闭环。
+
+补齐 `/var/lib/openclaw` 独立备份策略与长期运行收口。
 
 ### 工作内容
 
-1. 定义 `host-change-request.json` schema
-2. task-runner 生成结构化请求
-3. main 自动审查请求
-4. broker 执行批准链
-5. 写回变更结果与回滚索引
-6. 主 agent 形成用户可读报告
+1. 为 `/var/lib/openclaw` 设计独立备份链
+2. 对 `workspace-main`、正式 extensions、cron state 等做 allowlist
+3. 排除高 churn 临时任务垃圾
+4. 收口长期恢复流程
 
 ### 验收标准
 
-- 从 task 容器到宿主机变更的链路完整跑通；
-- 每一步都有审计与 request-id；
-- 失败时可安全回退；
-- 用户能清楚看到“提议、批准、执行、验证、入库”的全过程。
+- 根系统恢复与运行态恢复职责边界清晰；
+- 高价值运行态可恢复；
+- 容量与审计复杂度可控。
 
 ---
 
 ## 8. 完整 TODO 清单
 
----
+## 8.1 Phase 0 已完成项
 
-## 8.1 Phase 0 TODO
-
-- [ ] 以 `nick` 用户安装 Claude Code CLI
-- [ ] 确认不会生成 `~/.openclaw/` gateway 运行态
-- [ ] 创建 `~/projects/openclaw-dev/`
-- [ ] `git init`
-- [ ] 写 `docs/host-sop.md`
-- [ ] 写 `docs/design-v3.md`
-- [ ] 写 `CLAUDE.md`
-- [ ] 写 `.claude/settings.json`
-- [ ] 写 `.claude/agents/config-auditor.md`
-- [ ] 写 `.claude/agents/plugin-dev.md`
-- [ ] 写 `.claude/agents/broker-dev.md`
-- [ ] 写 `.claude/agents/test-runner.md`
-- [ ] 创建 `/srv/openclaw-control/`
-- [ ] 初始化控制仓库 git
-- [ ] 确认权威 SOP 路径
-- [ ] 编写 `scripts/publish-sop.sh`
-- [ ] 编写 `scripts/check-no-user-gateway.sh`
-- [ ] 编写 `tests/test_sop_publish.sh`
+- [x] 以 `nick` 用户安装 Claude Code CLI
+- [x] 确认不会生成 `~/.openclaw/` gateway 运行态
+- [x] 创建 `~/projects/openclaw-dev/`
+- [x] `git init`
+- [x] 写 `docs/host-sop.md`
+- [x] 写 `docs/design-v3.1.md`
+- [x] 写 `CLAUDE.md`
+- [x] 写 `.claude/settings.json`
+- [x] 写 `.claude/agents/config-auditor.md`
+- [x] 写 `.claude/agents/plugin-dev.md`
+- [x] 写 `.claude/agents/broker-dev.md`
+- [x] 写 `.claude/agents/test-runner.md`
+- [x] 创建 `/srv/openclaw-control/`
+- [x] 初始化控制仓库 git
+- [x] 确认权威 SOP 路径
+- [x] 编写 `scripts/publish-sop.sh`
+- [x] 编写 `scripts/check-no-user-gateway.sh`
+- [x] 编写 `tests/test_sop_publish.sh`
 
 ---
 
-## 8.2 Phase 1 TODO
+## 8.2 Phase 1B TODO
 
-- [ ] 创建 `workspace-main/`
-- [ ] 写 `AGENTS.md`
-- [ ] 写 `SOUL.md`
-- [ ] 写 `TOOLS.md`
-- [ ] 写 `IDENTITY.md`
-- [ ] 写 `USER.md`
-- [ ] 写 `HEARTBEAT.md`
-- [ ] 写 `MEMORY.md`（若启用）
-- [ ] 写 `skills/host-sop/SKILL.md`
-- [ ] 写 `skills/routing/SKILL.md`
-- [ ] 写 `skills/approvals/SKILL.md`
-- [ ] 写 `control/routing-policy.md`
-- [ ] 写 `control/approval-policy.md`
-- [ ] 写 `control/allowed-workers.md`
-- [ ] 发布 SOP 到 `control/SOP.md`
-- [ ] 更新 `openclaw.json` 加入 `main`
-- [ ] 变更前快照
-- [ ] 重启 gateway
-- [ ] 验证 main 可读 SOP
-- [ ] 验证 main 无 exec/elevated
-- [ ] 变更后快照
-- [ ] Vault 入库
+- [ ] 更新 `docs/host-sop.md`
+- [ ] 更新 `docs/design-v3.1.md`
+- [ ] 在文档中明确 Phase 1A 已落地事实
+- [ ] 明确 `/var/lib/openclaw` 为独立 Btrfs 子卷且不在 root snapshot 内
+- [ ] 明确 `workspace-main` 是 published artifact
+- [ ] 明确权威控制仓库 / 开发仓 / runtime workspace / task repo 四层模型
+- [ ] 固化 `candidate -> deploy -> health -> snapshot -> vault -> capture-current` 流程
+- [ ] 补齐 `workspace-main` 的 publish / check 脚本
+- [ ] 记录 Phase 1A 快照名与 Vault 入库结果
+- [ ] 记录 `tools.profile` 覆盖问题与 fix-forward 结果
+- [ ] 记录默认主模型切换到 `g54`
+- [ ] 设计 `/var/lib/openclaw` 独立备份 allowlist 草案
 
 ---
 
@@ -1568,7 +1728,7 @@ openclaw-task-claude:2026-03-v3
 
 ## 8.4 Phase 3 TODO
 
-- [ ] 安装/整理 Docker Engine
+- [ ] 安装 / 整理 Docker Engine
 - [ ] 设计 `openclaw-task-net`
 - [ ] 编写 Docker capability probe 脚本
 - [ ] 构建 `openclaw-task-claude:2026-03-v3`
@@ -1576,7 +1736,7 @@ openclaw-task-claude:2026-03-v3
 - [ ] 验证只读 rootfs
 - [ ] 验证 tmpfs
 - [ ] 验证自定义网络
-- [ ] 验证 bind task repo/outputs
+- [ ] 验证 bind task repo / outputs
 - [ ] 创建 `workspace-task-runner/`
 - [ ] 写 runner `AGENTS.md`
 - [ ] 写 runner `TOOLS.md`
@@ -1638,13 +1798,10 @@ openclaw-task-claude:2026-03-v3
 - [ ] task-runner 生成该请求
 - [ ] main 审批逻辑落地
 - [ ] broker 接收审批请求
-- [ ] wrapper 执行配置部署
-- [ ] 执行健康检查
-- [ ] 记录 pre/post snapshot
-- [ ] Vault 入库
-- [ ] 生成回滚索引
-- [ ] main 输出用户报告
-- [ ] 端到端演练一次完整配置变更
+- [ ] broker 写回执行结果
+- [ ] 建立 `/var/lib/openclaw` 运行态 allowlist 备份机制
+- [ ] 明确恢复顺序与恢复脚本
+- [ ] 验证失败时可安全回退
 
 ---
 
@@ -1670,7 +1827,7 @@ openclaw-task-claude:2026-03-v3
 - 每任务一容器；
 - 不给 `elevated`；
 - 不给 OpenClaw 深层继续 spawn；
-- 只写本任务 repo/outputs；
+- 只写本任务 repo / outputs；
 - 不触达宿主机关键路径。
 
 ### 9.4 关于宿主机变更
@@ -1683,16 +1840,20 @@ openclaw-task-claude:2026-03-v3
 
 ## 10. 关键风险与对应策略
 
-| 风险 | 说明 | v3 对策 |
-|------|------|---------|
-| HTTP hook 被误认为硬阻断 | 超时/连接失败其实会继续执行 | 改为 command hook + gate shim + exit 2 |
-| runner 污染长期 workspace | `workspaceAccess=rw` 面太大 | 改为只写 per-task repo/outputs |
+| 风险 | 说明 | v3.1 对策 |
+|------|------|-----------|
+| HTTP hook 被误认为硬阻断 | 超时 / 连接失败其实会继续执行 | 改为 command hook + gate shim + exit 2 |
+| runner 污染长期 workspace | `workspaceAccess=rw` 面太大 | 改为只写 per-task repo / outputs |
 | Docker 接入方式不明 | 未证实某个 `DOCKER_HOST` 方案可完整支撑 OpenClaw sandbox | 在 Phase 3 做 capability probe，不把未验证方案写死 |
 | 容器持有长期凭证 | 一旦泄漏影响宿主机长期安全 | 使用上游 proxy + task token |
-| OpenClaw 子 agent 继承过多上下文/凭证 | 官方只有 `AGENTS.md + TOOLS.md` 稳定注入，且 auth 会 fallback 合并 | 关键规则写进 `AGENTS.md/TOOLS.md`，凭证靠 proxy/task token 隔离 |
+| OpenClaw 子 agent 继承过多上下文 / 凭证 | 官方只有 `AGENTS.md + TOOLS.md` 稳定注入，且 auth 会 fallback 合并 | 关键规则写进 `AGENTS.md/TOOLS.md`，凭证靠 proxy / task token 隔离 |
 | 把 OpenClaw 深度做得过深 | 编排复杂、排障困难、成本高 | OpenClaw 只到 task-runner；容器内细分交给 Claude Code subagents |
-| main 变成“半 root” | 宿主机控制面失去边界 | main 无 exec/elevated，只能调用 broker |
-| SOP 漂移 | 多副本不一致 | 单一权威源 + 发布脚本 + hash/version |
+| main 变成“半 root” | 宿主机控制面失去边界 | main 无 exec / elevated，只能调用 broker |
+| SOP 漂移 | 多副本不一致 | 单一权威源 + 发布脚本 + hash / version |
+| 全局 `tools.profile` 压制 per-agent allowlist | `main` 可能只有 session 工具，无法读写 workspace | 部署 `main` 时移除全局 `tools.profile` |
+| 默认 Claude 4.6 路径在飞书场景下可能卡住 | 现场出现 `embedded run timeout` 与长时间不回复 | 当前默认改为 `g54`，并把 Claude 4.6 稳定性排查列为独立 follow-up |
+| `workspace-main` 被误当作长期权威源 | root snapshot 无法覆盖该子卷，恢复语义被误判 | 明确将其定义为 published artifact，恢复依赖重发布 |
+| `session-memory` 路径展示混淆 | 日志出现 `~/.openclaw/...`，可能导致误判真实写入路径 | 单独核实日志展示与真实落点，不把 `nick` 用户路径重新引入运行态 |
 
 ---
 
@@ -1702,98 +1863,41 @@ openclaw-task-claude:2026-03-v3
 
 每个 phase 都必须满足：
 
-- 能单独验收；
-- 能独立回滚；
-- 不依赖后续 phase 才能保持安全。
+1. 变更前先做只读快照；
+2. 先在最小范围内引入新能力；
+3. 新能力通过健康检查后，才能成为下一阶段依赖；
+4. 未经验证的组件，不得反向写入“当前已完成能力”；
+5. 若阶段验收失败，优先回滚到最近一个已知健康快照；
+6. 回滚后必须重新做健康检查并记录结论。
 
-### 11.2 回滚边界
+### 11.2 Phase 1A 的回滚原则
 
-- Phase 0 失败：删除开发仓库与 Claude Code 设置，不影响生产运行；
-- Phase 1 失败：回滚 `openclaw.json` 中 main agent 变更，恢复快照；
-- Phase 2 失败：下线 broker/plugin，恢复前快照；
-- Phase 3 失败：不启用 task-runner，对生产主控制面无影响；
-- Phase 4 失败：task container 内 Claude Code 停用，runner 仍可存在；
-- Phase 5 失败：回到直接受控上游模式，不发 task token；
-- Phase 6 失败：宿主机仍保留 broker 保护链，不允许半完成写入停留。
+若 Phase 1A 需要回滚，优先路径为：
 
----
+1. 回退 `openclaw.json` 到上一已知可用版本；
+2. 重启 `openclaw-gateway.service`；
+3. 验证飞书 / gateway 基本健康；
+4. 必要时恢复到 `root-pre-main-agent-*` 或 `root-pre-toolfix-*` 快照；
+5. `workspace-main` 若被判定为损坏，优先使用 publish 流重发，而不是寄希望于 root snapshot 自动恢复。
 
-## 12. v3 的最终推荐拓扑
+### 11.3 Phase 2 以后的回滚原则
 
-```text
-Human (nick)
-  │
-  ├─ Claude Code CLI (dev repo, human-driven)
-  │     └─ 产出：broker/plugin/scripts/config/tests/docs
-  │
-  └─ OpenClaw Gateway (systemd, User=openclaw)
-        │
-        ├─ main agent (host control plane)
-        │    ├─ 读取：workspace-main/control/SOP.md
-        │    ├─ 调度：task-runner
-        │    └─ 调用：host-ops broker
-        │
-        ├─ task-runner agent (Docker sandbox, scope=session)
-        │    └─ 每任务：
-        │         tasks/<task-id>/repo
-        │         tasks/<task-id>/outputs
-        │         └─ Claude Code CLI
-        │              ├─ CLAUDE.md
-        │              ├─ .claude/settings.json
-        │              ├─ .claude/agents/*
-        │              └─ PreToolUse -> gate-check.sh -> gate shim -> vLLM
-        │
-        ├─ host-ops broker
-        │    └─ root-owned wrappers
-        │         └─ snapshot -> change -> health -> snapshot -> vault
-        │
-        ├─ vLLM audit service
-        └─ LLM gateway / upstream proxy
-```
+一旦引入 broker / wrapper / host-write chain，所有写操作回滚都必须输出：
 
----
+- pre snapshot 名称；
+- post snapshot 名称；
+- 变更对象；
+- 健康检查结果；
+- rollback 建议路径。
 
-## 13. 最终设计决策摘要（供快速复用）
+任何没有这些元数据的宿主机写操作，都不应视为合格实施。
 
-### 必须坚持
-- 主控制面在宿主机
-- task execution 在 Docker sandbox
-- Claude Code CLI 正式纳入体系
-- 强门控在 Claude `PreToolUse` command hook
-- 宿主机副作用必须走 broker
-- SOP 单一权威源 + 双层发布
-- OpenClaw 深度控制在 2，容器内细分交给 Claude Code subagents
+### 11.4 长期恢复原则
 
-### 明确禁止
-- main 直接拿 `exec + elevated`
-- runner 拿全局 workspace `rw`
-- 容器内直接操作 `/etc/openclaw`、`/opt/openclaw`、systemd
-- 把未验证的 Docker 接入方案写成既定事实
-- 把 `PermissionRequest` 当自动化主门控
-- 让 task 容器持有长期上游密钥
+长期恢复分为两类：
 
----
+- **根系统恢复**：依赖 root snapshot + Vault；
+- **运行态控制面恢复**：依赖 published artifact 重发 + 运行态 allowlist 备份。
 
-## 14. 下一步最优执行顺序
+不得再把两者混写成“恢复整个系统等于恢复所有运行态目录”。
 
-如果按“最小风险、最大收益”的顺序推进，建议：
-
-1. **先做 Phase 0**：把 Claude Code 开发仓库与 SOP 发布体系建起来  
-2. **再做 Phase 1**：main agent 上线，但不给执行权  
-3. **再做 Phase 2**：broker 与只读 host_ops 先跑通  
-4. **之后做 Phase 3**：Docker capability probe，确认 sandbox 能否安全落地  
-5. **再做 Phase 4**：把 Claude Code 放进 task container  
-6. **最后做 Phase 5-6**：上游代理与宿主机变更闭环
-
-这是最稳的次序。先把“控制面正确”建立起来，再把“自动执行面”接入。
-
----
-
-## 15. 文档状态
-
-- 本文档是 **v3 实施规格稿**
-- 可直接作为后续开发仓库中的 `docs/design-v3.md`
-- 后续只允许在以下条件下进入 v4：
-  1. Docker capability probe 有实测结论；
-  2. Claude Code 容器内 hook 链完成验收；
-  3. broker 首批 wrapper 已真实跑通。
