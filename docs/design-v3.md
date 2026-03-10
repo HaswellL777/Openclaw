@@ -1,7 +1,7 @@
 # OpenClaw 多 Agent + Claude Code 协作体系设计稿 v3.1
 
 > 初版编写日期：2026-03-07
-> 本次修订日期：2026-03-09（Phase 1B 开发仓候选产物落地后修订）
+> 本次修订日期：2026-03-10（Phase 1B 退出条件与 Phase 2 进入门槛定义）
 > 适用宿主机：当前单机 Ubuntu 24.04 LTS / Btrfs / systemd / OpenClaw 2026.3.2 基线
 > 上游输入：`openclaw-host-sop-2026-03-06.md`、`1.md`、`openclaw-design-v2-2026-03-07.md`、本轮 Phase 1A 实际落地结果、Phase 1B 开发仓候选产物
 > 文档定位：**可实施规格稿 + 落地状态稿**，用于后续继续开发、验证、回滚、审计与发布
@@ -10,7 +10,7 @@
 
 ## 0. 文档结论先行
 
-截至 2026-03-07，本设计稿 v3.1 的状态应表述为：
+截至 2026-03-10，本设计稿 v3.1 的状态应表述为：
 
 1. **当前真实落地阶段是 Phase 1A，而不是完整 Phase 1。**
 2. **主控制面仍在宿主机，不容器化。**
@@ -26,6 +26,7 @@
 12. **默认主模型已从 `motchat-claude-4-6/claude-opus-4-6` 切换到 `motchat-gpt-max/gpt-5.4`；当前把 g54 视为更稳妥的主控制面默认值，但不把“Claude 4.6 一定是卡顿根因”写成已证事实。**
 13. **Claude Code 容器内执行链、只读 `host_ops`、正式 broker 与 wrapper 仍属于后续阶段目标；除非特别注明”已验证”，否则不得写成当前事实。**
 14. **Phase 1B 控制面收口工作已在开发仓中部分完成（2026-03-09，备份设计稿 2026-03-10 修订）：`workspace-main-template/` 已建立并提交；`scripts/publish-workspace-main.sh`、`scripts/publish-sop.sh`、`scripts/check-workspace-main.sh` 已实现；`docs/runtime-allowlist-backup-draft.md` 已升级为设计定稿候选（design candidate）——分类模型、恢复语义、恢复优先级（P0–P5）、实施约束已结构化；但以上均为开发仓候选产物，脚本化发布链（`publish-workspace-main.sh --apply`）尚未首次用于 live target（workspace-main 本身已在 Phase 1A 部署）。**
+15. **Phase 1B 退出条件与 Phase 2 进入门槛已正式定义（2026-03-10，见 §7）；控制面备份脚本实现从 Phase 1B 重新归入 Phase 6。**
 
 ---
 
@@ -1556,21 +1557,62 @@ Phase 0 结束后，开发体系已能安全地产生候选配置、脚本和文
 - `docs/runtime-allowlist-backup-draft.md` 已升级为设计定稿候选（三类分类 + 恢复语义 + 恢复优先级 + 实施约束）
 - SOP 与 design-v3 回写 Phase 1B 状态（本次修订）
 
-**尚未完成：**
+**尚未完成（Phase 1B 退出所需）：**
 - 在现网执行首次 `publish-workspace-main.sh --apply` 正式发布
 - 移除 publish 脚本的生产路径 safety guard（需要 `--allow-live-target` flag）
-- 控制面备份脚本（将 backup draft 转化为可执行脚本）
-- `last-sop-hash.txt` 自动更新机制在运行态中的集成
 
-### 验收标准
+**已重新归入后续阶段：**
+- 控制面备份脚本（将 backup draft 转化为可执行脚本）→ Phase 6
+- `last-sop-hash.txt` 运行态自动更新集成（cron 触发）→ 后续阶段
 
-- 文档能完整反映现网 Phase 1A 结果；
-- 权威源 / 开发仓 / runtime 副本边界不再混淆；
-- 未来任何配置发布都可按同一流程执行。
+### 退出条件（Exit Criteria）
+
+Phase 1B 完成收口需要同时满足以下全部条件：
+
+**已满足：**
+1. 文档能完整反映现网 Phase 1A 结果（SOP §0.2、§15 已回写）；
+2. 权威源 / 开发仓 / runtime 副本边界不再混淆（四层模型已在 SOP §13.8.3 固化）；
+3. `workspace-main-template/` 已建立，publish / check 脚本已实现并通过 dry-run 验证；
+4. `/var/lib/openclaw` 备份策略已完成设计定稿候选（`runtime-allowlist-backup-draft.md`）；
+5. 文档间无未修复的事实冲突。
+
+**尚未满足：**
+6. publish 脚本增加 `--allow-live-target` flag 或等效机制，使其可用于生产路径；
+7. 首次通过 `publish-workspace-main.sh --apply` 将 workspace-main-template 发布到现网 live target；
+8. 发布后通过 `check-workspace-main.sh` 校验发布产物结构完整性（published artifact 模式）。
+
+**明确不作为本阶段退出条件的事项：**
+- 控制面备份脚本的编写与部署（设计已完成，实现归 Phase 6）
+- `host_ops` broker / wrapper 的部署（归 Phase 2）
+- task-runner / Docker sandbox 的任何部署（归 Phase 3+）
+- `last-sop-hash.txt` 运行态自动更新集成（publish 脚本已支持手动触发，cron 触发归后续阶段）
+
+### 阶段交付物
+
+| 交付物 | 类型 | 状态 |
+|--------|------|------|
+| `workspace-main-template/`（25 文件） | 开发仓模板 | ✅ 已提交 |
+| `scripts/publish-workspace-main.sh` | 发布脚本 | ✅ 已实现 |
+| `scripts/publish-sop.sh` | SOP 发布脚本 | ✅ 已实现 |
+| `scripts/check-workspace-main.sh` | 结构校验脚本 | ✅ 已实现 |
+| `docs/runtime-allowlist-backup-draft.md` | 备份设计稿 | ✅ 设计定稿候选 |
+| SOP + design-v3 Phase 1B 状态回写 | 文档同步 | ✅ 已完成 |
+| Phase 1B 退出条件 + Phase 2 进入门槛定义 | 阶段边界 | ✅ 已定义 |
+| 首次现网脚本化发布 + 校验 | 现网操作 | ⬚ 待执行 |
 
 ---
 
 ## Phase 2：host-ops broker 正式落地
+
+### 进入门槛（Entry Gates）
+
+开始 Phase 2 前必须满足以下全部前置条件：
+
+1. **Phase 1B 退出条件全部满足**（见上文 Phase 1B 退出条件 §1–§8）；
+2. `main` agent 在现网稳定运行（飞书可达、health check 通过）；
+3. `workspace-main` 已至少通过脚本化发布链（`publish-workspace-main.sh --apply`）完成一次端到端发布并校验通过；
+4. Phase 1B 收口操作（含首次现网发布）已按 §11.1 通用操作纪律完成 post snapshot 与 Vault 入库；
+5. design-v3 Phase 2 工作内容已审阅，broker / wrapper 设计方案已明确。
 
 ### 目标
 
@@ -1730,8 +1772,10 @@ Phase 0 结束后，开发体系已能安全地产生候选配置、脚本和文
 - [x] 记录默认主模型切换到 `g54`
 - [x] 设计 `/var/lib/openclaw` 独立备份 allowlist 并升级为设计定稿候选
 - [ ] 在现网执行首次 `publish-workspace-main.sh --apply` 正式发布
-- [ ] 实现控制面备份脚本（将 `runtime-allowlist-backup-draft.md` 转化为可执行脚本）
 - [ ] 移除 publish 脚本生产路径 safety guard 或增加 `--allow-live-target` flag
+- [ ] 发布后通过 `check-workspace-main.sh` 校验发布产物结构完整性
+
+> 注：控制面备份脚本的实现（将 `runtime-allowlist-backup-draft.md` 转化为可执行脚本）已从 Phase 1B 重新归入 Phase 6（§8.7），Phase 1B 的交付物为设计定稿候选文档。
 
 ---
 
@@ -1836,8 +1880,8 @@ Phase 0 结束后，开发体系已能安全地产生候选配置、脚本和文
 - [ ] main 审批逻辑落地
 - [ ] broker 接收审批请求
 - [ ] broker 写回执行结果
-- [ ] 建立 `/var/lib/openclaw` 运行态 allowlist 备份机制
-- [ ] 明确恢复顺序与恢复脚本
+- [ ] 将 `runtime-allowlist-backup-draft.md`（Phase 1B 设计定稿候选）转化为可执行备份脚本
+- [ ] 明确恢复顺序与恢复脚本（基于 `runtime-allowlist-backup-draft.md` §4 恢复优先级）
 - [ ] 验证失败时可安全回退
 
 ---

@@ -1,4 +1,4 @@
-# OpenClaw Host 状态记录（2026-03-09 Phase 1A+1B(dev) / GPT-5.4 修订版）
+# OpenClaw Host 状态记录（2026-03-10 Phase 1B 退出条件定义修订版）
 
 > 适用范围：Ubuntu 24.04 LTS 宿主机裸机安装 OpenClaw（非 Docker），Btrfs 根（subvolid=5），使用 `/.snapshots` + 离线 Vault（`/mnt/vault`, `noauto`）做增量 `send/receive`；OpenClaw 以 systemd **system-level** 服务运行（`User=openclaw`），并严格遵循目录边界：
 >
@@ -87,7 +87,7 @@ sudo mv /var/lib/openclaw/.openclaw/extensions/<plugin>.bak-* /var/lib/openclaw/
 
 ### 0.1 当前时间与主机
 - 时区：CST (+0800)
-- 日期：2026-03-09（本次修订整合到 Phase 1A 完成 + Phase 1B 开发仓候选产物就绪状态）
+- 日期：2026-03-10（本次修订新增 Phase 1B 退出条件与 Phase 2 进入门槛定义）
 - 主机：`nick-MS-7D73`（管理用户：`nick`，服务用户：`openclaw`）
 
 ### 0.2 当前阶段定位
@@ -106,6 +106,7 @@ sudo mv /var/lib/openclaw/.openclaw/extensions/<plugin>.bak-* /var/lib/openclaw/
 - 当前仍不是”Phase 1 完整态”：
   - **Phase 1B 的现网发布、校验闭环尚未执行**
   - **更不是 Phase 2（正式 broker / wrapper 写入链）**
+  - **Phase 1B 退出条件与 Phase 2 进入门槛已在 `design-v3.md` §7 中正式定义**
 
 ### 0.3 `/var/lib/openclaw` 与根快照的边界
 - `/var/lib/openclaw` 是独立 btrfs 子卷；
@@ -454,6 +455,17 @@ xfconf-query -c xfwm4 -p /general/use_compositing -s false
 - 开发仓已提交 `workspace-main-template/` 目录与 publish/check 脚本；
 - `docs/runtime-allowlist-backup-draft.md` 已升级为设计定稿候选（design candidate）；
 - `host_ops` broker / `task-runner` / Docker 执行面仍未进入生产落地。
+
+#### 11.3.1 Phase 1B 退出条件（摘要）
+
+Phase 1B 完成收口需要满足以下剩余条件：
+1. publish 脚本增加 live target 支持（`--allow-live-target` 或等效机制）；
+2. 首次通过脚本化发布链完成现网 workspace-main 发布；
+3. 发布后通过 `check-workspace-main.sh` 校验通过。
+
+控制面备份脚本实现不作为 Phase 1B 退出条件（设计已完成，实现归 Phase 6）。
+
+完整退出条件、阶段交付物与 Phase 2 进入门槛见 `docs/design-v3.md` §7 Phase 1B / Phase 2。
 
 ### 11.4 里程碑快照与入库（已执行）
 - 最近关键本地只读里程碑快照：
@@ -1742,3 +1754,4 @@ Phase 1A 完成后，已执行 post-change 里程碑快照与 Vault 入库：
 | 2026-03-07 19:11 | 创建 `root-post-phase1a-2026-03-07-1911` 并执行 Vault sync，作为本轮 Phase 1A + g54 默认模型切换的收尾里程碑；`last_sent` 更新为 `root-auto-2026-03-07-1911` |
 | 2026-03-07 19:xx | 飞书实测：默认模型显示为 `motchat-gpt-max/gpt-5.4`，`/reset`、简单回复与工具列举均恢复即时可用；当前将 g54 作为默认运营模型保留 |
 | 2026-03-09 | 文档收口：在开发仓 `docs/host-sop.md` 中回写 Phase 1B 开发仓候选产物状态（`workspace-main-template/`、publish/check 脚本、`runtime-allowlist-backup-draft.md`）；更新 §0.2 阶段定位、§0.5 未决问题、§11.3 阶段标签、§13.7.2 备份策略、§13.8.4 发布工作流 |
+| 2026-03-10 | Phase 1B 收口：正式定义 Phase 1B 退出条件与 Phase 2 进入门槛（`design-v3.md` §7）；将控制面备份脚本实现从 Phase 1B 重新归入 Phase 6；同步更新 SOP §0.2、§11.3（新增 §11.3.1）；同步更新 `runtime-allowlist-backup-draft.md` §8.1 |

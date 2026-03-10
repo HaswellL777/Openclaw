@@ -2,7 +2,7 @@
 
 > 初稿日期：2026-03-09
 > 本次修订日期：2026-03-10
-> 上游参考：`docs/host-sop.md`（2026-03-09 Phase 1A+1B(dev) 修订版）、`docs/design-v3.md`（v3.1）
+> 上游参考：`docs/host-sop.md`（2026-03-10 修订版）、`docs/design-v3.md`（v3.1）
 > 状态：**设计定稿候选（design candidate）**——分类模型、恢复语义、实施约束已结构化，但尚未转化为可执行脚本，也未在生产中启用
 > 前提：Phase 1A 已落地，Phase 1B workspace-main 模板/发布/校验链已形成候选闭环
 
@@ -328,7 +328,7 @@ SOP 的权威编辑入口在开发仓 `~/projects/openclaw-dev/docs/host-sop.md`
 ### 8.1 Phase 1B 剩余
 
 - [ ] publish 脚本（`scripts/publish-workspace-main.sh`）已形成候选闭环但尚未在现网执行首次发布
-- [ ] 基于本设计稿的控制面备份脚本尚未编写
+- [ ] 基于本设计稿的控制面备份脚本尚未编写（实现已从 Phase 1B 重新归入 Phase 6，见 `design-v3.md` §8.7）
 - [ ] `last-sop-hash.txt` 的自动更新机制尚未实施（当前为模板初始值）
 
 ### 8.2 Phase 2 依赖
