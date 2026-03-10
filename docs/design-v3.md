@@ -25,7 +25,7 @@
 11. **本轮实际落地过程中，曾出现 `main` 工具集被顶层 `tools.profile = messaging` 覆盖的问题；该问题已通过移除顶层 `tools.profile` 修复。**
 12. **默认主模型已从 `motchat-claude-4-6/claude-opus-4-6` 切换到 `motchat-gpt-max/gpt-5.4`；当前把 g54 视为更稳妥的主控制面默认值，但不把“Claude 4.6 一定是卡顿根因”写成已证事实。**
 13. **Claude Code 容器内执行链、只读 `host_ops`、正式 broker 与 wrapper 仍属于后续阶段目标；除非特别注明”已验证”，否则不得写成当前事实。**
-14. **Phase 1B 控制面收口工作已在开发仓中部分完成（2026-03-09）：`workspace-main-template/` 已建立并提交；`scripts/publish-workspace-main.sh`、`scripts/publish-sop.sh`、`scripts/check-workspace-main.sh` 已实现；`docs/runtime-allowlist-backup-draft.md` 已起草；但以上均为开发仓候选产物，尚未在现网执行首次正式发布。**
+14. **Phase 1B 控制面收口工作已在开发仓中部分完成（2026-03-09，备份设计稿 2026-03-10 修订）：`workspace-main-template/` 已建立并提交；`scripts/publish-workspace-main.sh`、`scripts/publish-sop.sh`、`scripts/check-workspace-main.sh` 已实现；`docs/runtime-allowlist-backup-draft.md` 已升级为设计定稿候选（design candidate）——分类模型、恢复语义、恢复优先级（P0–P5）、实施约束已结构化；但以上均为开发仓候选产物，脚本化发布链（`publish-workspace-main.sh --apply`）尚未首次用于 live target（workspace-main 本身已在 Phase 1A 部署）。**
 
 ---
 
@@ -224,7 +224,7 @@ v3.1 继续坚持“控制面 / 执行面分离”，但必须明确区分 **当
 2. root-owned wrapper 链
 3. 正式 `host_ops` plugin
 4. task token / gateway token 下发链
-5. `/var/lib/openclaw` 独立 allowlist 备份链（已有开发仓草案 `docs/runtime-allowlist-backup-draft.md`，尚未转化为可执行脚本）
+5. `/var/lib/openclaw` 独立 allowlist 备份链（开发仓设计定稿候选 `docs/runtime-allowlist-backup-draft.md` 已结构化，尚未转化为可执行脚本）
 
 #### C. 目标中的任务执行面（尚未落地）
 
@@ -596,7 +596,7 @@ v3.1 继续把 Claude Code CLI 分成两个角色，但必须明确写出：**�
 ├── docs/
 │   ├── host-sop.md
 │   ├── design-v3.md
-│   ├── runtime-allowlist-backup-draft.md   # Phase 1B 草案
+│   ├── runtime-allowlist-backup-draft.md   # Phase 1B 设计定稿候选
 │   └── acceptance-tests.md
 ├── workspace-main-template/   # Phase 1B：workspace-main 发布源模板
 │   ├── AGENTS.md
@@ -1553,7 +1553,7 @@ Phase 0 结束后，开发体系已能安全地产生候选配置、脚本和文
 - `scripts/publish-workspace-main.sh` 已实现（默认 dry-run，保留 `control/state/`，自动调用 `publish-sop.sh`）
 - `scripts/publish-sop.sh` 已实现（SHA256 + 时间戳头，hash 相同则跳过）
 - `scripts/check-workspace-main.sh` 已实现（模板模式 vs 发布产物模式校验）
-- `docs/runtime-allowlist-backup-draft.md` 已起草（三类分类 + 恢复语义）
+- `docs/runtime-allowlist-backup-draft.md` 已升级为设计定稿候选（三类分类 + 恢复语义 + 恢复优先级 + 实施约束）
 - SOP 与 design-v3 回写 Phase 1B 状态（本次修订）
 
 **尚未完成：**
@@ -1728,7 +1728,7 @@ Phase 0 结束后，开发体系已能安全地产生候选配置、脚本和文
 - [x] 记录 Phase 1A 快照名与 Vault 入库结果
 - [x] 记录 `tools.profile` 覆盖问题与 fix-forward 结果
 - [x] 记录默认主模型切换到 `g54`
-- [x] 设计 `/var/lib/openclaw` 独立备份 allowlist 草案
+- [x] 设计 `/var/lib/openclaw` 独立备份 allowlist 并升级为设计定稿候选
 - [ ] 在现网执行首次 `publish-workspace-main.sh --apply` 正式发布
 - [ ] 实现控制面备份脚本（将 `runtime-allowlist-backup-draft.md` 转化为可执行脚本）
 - [ ] 移除 publish 脚本生产路径 safety guard 或增加 `--allow-live-target` flag

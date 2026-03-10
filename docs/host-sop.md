@@ -101,8 +101,8 @@ sudo mv /var/lib/openclaw/.openclaw/extensions/<plugin>.bak-* /var/lib/openclaw/
 - **Phase 1B（控制面收口）在开发仓库中已部分完成**：
   - `workspace-main-template/` 目录已建立并提交至 `~/projects/openclaw-dev/`；
   - `scripts/publish-workspace-main.sh`、`scripts/publish-sop.sh`、`scripts/check-workspace-main.sh` 已实现并提交；
-  - `docs/runtime-allowlist-backup-draft.md` 已起草（草案状态，未进入生产执行）；
-  - 以上均为开发仓库内的候选产物，**尚未在现网执行首次正式发布**。
+  - `docs/runtime-allowlist-backup-draft.md` 已升级为设计定稿候选（design candidate）——分类模型、恢复语义、恢复优先级、实施约束已结构化，但尚未转化为可执行脚本，也未在生产中启用；
+  - 以上均为开发仓库内的候选产物，**脚本化发布链（`publish-workspace-main.sh --apply`）尚未首次用于 live target**（workspace-main 本身已在 Phase 1A 手动部署，见上文）。
 - 当前仍不是”Phase 1 完整态”：
   - **Phase 1B 的现网发布、校验闭环尚未执行**
   - **更不是 Phase 2（正式 broker / wrapper 写入链）**
@@ -452,7 +452,7 @@ xfconf-query -c xfwm4 -p /general/use_compositing -s false
 - `main` 的 file tools 已修正；
 - 默认主模型已切到 `motchat-gpt-max/gpt-5.4`；
 - 开发仓已提交 `workspace-main-template/` 目录与 publish/check 脚本；
-- `docs/runtime-allowlist-backup-draft.md` 已起草（草案状态）；
+- `docs/runtime-allowlist-backup-draft.md` 已升级为设计定稿候选（design candidate）；
 - `host_ops` broker / `task-runner` / Docker 执行面仍未进入生产落地。
 
 ### 11.4 里程碑快照与入库（已执行）
@@ -965,7 +965,7 @@ findmnt /mnt/vault && echo "WARNING: vault is mounted" || echo "OK: vault is unm
   - 尤其 `last_sent` 与可能新增的运行时备份元数据
 - 后续 broker 状态目录、request log 索引与 wrapper 审计索引
 
-> **2026-03-09 补充**：开发仓已起草 `docs/runtime-allowlist-backup-draft.md`，将 `/var/lib/openclaw` 内容分为三类（A: 必须备份的控制面状态、B: 可由 publish 重建的内容、C: 高 churn 排除项），并定义了各类的恢复语义。该草案为设计参考，**尚未转化为可执行的备份脚本，也未在生产中启用**。
+> **2026-03-09 补充，2026-03-10 修订**：开发仓 `docs/runtime-allowlist-backup-draft.md` 已从草案升级为**设计定稿候选（design candidate）**——将 `/var/lib/openclaw` 内容分为三类（A: 必须备份的控制面状态、B: 可由 publish 重建的内容、C: 高 churn 排除项），定义了各类的恢复语义与恢复优先级（P0–P5），并增加了实施约束（权限、路径白名单、原子性、Vault 操作、幂等性、与 publish 脚本的关系、验收条件）。该设计稿为结构化设计参考，**尚未转化为可执行的备份脚本，也未在生产中启用**。
 
 #### 13.7.3 运行态噪声层（默认不做强恢复）
 默认不纳入严格里程碑恢复的对象：
