@@ -19,6 +19,21 @@
 
 ## 1. 前置检查（operator 必须在执行前逐项确认）
 
+### 1.0 运行 preflight 预检（开发仓只读）
+
+在执行任何现网操作之前，先在开发仓内运行只读 preflight 脚本，确认开发仓侧的所有前提条件已满足：
+
+```bash
+cd ~/projects/openclaw-dev
+bash scripts/preflight-first-live-publish.sh 2>&1 | tee /tmp/preflight-$(date +%Y%m%d-%H%M%S).txt
+```
+
+preflight 会检查：仓库状态、必需文件、模板完整性、路径字符串一致性、必需命令、跨文档一致性、runbook 完整性、无误标已完成。
+
+**如果 preflight 输出 `NO-GO`，停止。先解决所有 FAIL 项。**
+
+保存 preflight 输出文件路径，作为发布前证据之一。
+
 ### 1.1 开发仓状态
 
 ```bash
@@ -125,6 +140,44 @@ chmod o-x /home/nick
 
 ---
 
+## 1.6 Go/No-Go 决策检查表
+
+在进入 §2（变更前快照）之前，operator 必须逐项确认以下 checklist。任一"必需"项不满足则 **No-Go**。
+
+| # | 检查项 | 必需/推荐 | preflight 可验证? | 确认 |
+|---|--------|-----------|-------------------|------|
+| 1 | 开发仓工作区 clean，HEAD 在预期提交 | 必需 | ✅ 是 | ☐ |
+| 2 | publish/check/preflight/runbook 文件齐全 | 必需 | ✅ 是 | ☐ |
+| 3 | workspace-main-template 结构完整（check 自检通过） | 必需 | ✅ 是 | ☐ |
+| 4 | 目标路径字符串跨文档/脚本一致 | 必需 | ✅ 是 | ☐ |
+| 5 | 所需命令可用（bash, rsync, sha256sum, jq, sudo, btrfs） | 必需 | ✅ 是 | ☐ |
+| 6 | preflight 输出 GO | 必需 | ✅ 是（即 preflight 本身） | ☐ |
+| 7 | Gateway health check 通过（§1.2） | 必需 | ❌ 否（需 live 访问） | ☐ |
+| 8 | Live workspace-main 当前存在（§1.3） | 必需 | ❌ 否（需 live 访问） | ☐ |
+| 9 | openclaw 用户可读取开发仓或已准备 staging（§1.5） | 必需 | ❌ 否（需 live 验证） | ☐ |
+| 10 | 当前终端为 TTY（交互确认需要） | 必需 | ❌ 否（operator 目视） | ☐ |
+| 11 | preflight 输出已保存 | 推荐 | 部分（tee 由 operator 执行） | ☐ |
+| 12 | 当前 live SOP hash 已记录（§1.4） | 推荐 | ❌ 否 | ☐ |
+
+**全部"必需"项确认后，方可进入 §2。**
+
+---
+
+## 1.7 发布前证据采集
+
+在确认 Go 之后、执行 §2 快照之前，记录以下信息（终端复制或笔记均可）：
+
+| 证据项 | 采集命令 |
+|--------|----------|
+| Git commit ID (full SHA) | `git rev-parse HEAD` |
+| Git commit 摘要 | `git log --oneline -1` |
+| preflight 输出 | 已在 §1.0 通过 tee 保存 |
+| Operator 执行时间 (UTC) | `date -u` |
+
+Pre-change snapshot 名称将在 §2 执行后记录。
+
+---
+
 ## 2. 变更前快照
 
 **这是硬性要求。** 遵循 host-sop.md 变更纪律：pre-change snapshot → change → health → post-change snapshot → Vault sync。
@@ -178,10 +231,12 @@ sudo -u openclaw bash scripts/publish-workspace-main.sh \
 ### 4.1 结构校验
 
 ```bash
-bash scripts/check-workspace-main.sh /var/lib/openclaw/.openclaw/workspace-main
+sudo bash scripts/check-workspace-main.sh /var/lib/openclaw/.openclaw/workspace-main
 ```
 
 期望输出：`All checks passed`
+
+> **注意执行身份**：check 脚本需要读取 `/var/lib/openclaw/.openclaw/workspace-main/`（权限 `openclaw:openclaw 700`），因此需要 `sudo`。check 脚本是只读操作，以 root 执行安全。
 
 check 脚本在 published artifact 模式下会验证：
 - 所有核心文件存在（AGENTS.md、IDENTITY.md、SOUL.md 等）
@@ -232,6 +287,25 @@ sudo umount /mnt/vault
 
 记录快照名与 Vault sync 结果。
 
+### 5.1 发布后证据采集
+
+完成 §4 校验和 §5 快照后，记录以下证据：
+
+| 证据项 | 来源 |
+|--------|------|
+| check-workspace-main.sh 完整输出 | §4.1 终端输出（建议 tee 保存） |
+| Gateway health check 输出 | §4.2 终端输出 |
+| 飞书可达性验证结果 | §4.3 截屏或文字记录 |
+| Pre-change snapshot 名称 | §2 记录 |
+| Post-change snapshot 名称 | §5 记录 |
+| Vault 入库结果（成功/失败） | §5 终端输出 |
+
+建议将 §4.1 的 check 输出也通过 tee 保存：
+
+```bash
+sudo bash scripts/check-workspace-main.sh /var/lib/openclaw/.openclaw/workspace-main 2>&1 | tee /tmp/check-post-publish-$(date +%Y%m%d-%H%M%S).txt
+```
+
 ---
 
 ## 6. 失败回退判断
@@ -274,8 +348,22 @@ workspace-main 的回退不依赖根快照回滚。回退方式是**重新 publi
 发布完成且校验通过后，需要：
 
 1. 在 `docs/host-sop.md` 的操作时间线（§16）追加一条记录
-2. 在 `docs/design-v3.md` Phase 1B 交付物表更新状态
+2. 在 `docs/design-v3.md` Phase 1B 交付物表更新状态（`⬚ 待执行` → `✅ 已完成`）
 3. 提交开发仓变更
+
+### 7.1 应归档的完整证据清单
+
+| 证据项 | 阶段 | 保存位置建议 |
+|--------|------|-------------|
+| Git commit ID (full SHA) | 发布前 | commit message / 时间线记录 |
+| preflight 输出 | §1.0 | /tmp/preflight-*.txt |
+| Operator 执行时间 (UTC) | 发布前 | 时间线记录 |
+| Pre-change snapshot 名称 | §2 | 时间线记录 |
+| check-workspace-main.sh 输出 | §4.1 | /tmp/check-post-publish-*.txt |
+| Gateway health check 输出 | §4.2 | 终端日志 |
+| 飞书可达性验证结果 | §4.3 | 截屏/文字 |
+| Post-change snapshot 名称 | §5 | 时间线记录 |
+| Vault 入库结果 | §5 | 终端日志 |
 
 **注意：以上文档更新应在现网操作实际完成后执行，不应提前写成已完成。**
 

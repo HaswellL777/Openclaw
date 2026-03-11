@@ -614,7 +614,8 @@ v3.1 继续把 Claude Code CLI 分成两个角色，但必须明确写出：**�
 ├── scripts/
 │   ├── publish-workspace-main.sh   # Phase 1B：workspace 发布脚本
 │   ├── publish-sop.sh              # Phase 1B：SOP 发布脚本
-│   └── check-workspace-main.sh     # Phase 1B：结构校验脚本
+│   ├── check-workspace-main.sh     # Phase 1B：结构校验脚本
+│   └── preflight-first-live-publish.sh  # Phase 1B：首次 live publish 只读预检
 ├── examples/
 └── tests/
 ```
@@ -1556,6 +1557,8 @@ Phase 0 结束后，开发体系已能安全地产生候选配置、脚本和文
 - `scripts/check-workspace-main.sh` 已实现（模板模式 vs 发布产物模式校验）
 - `docs/runtime-allowlist-backup-draft.md` 已升级为设计定稿候选（三类分类 + 恢复语义 + 恢复优先级 + 实施约束）
 - SOP 与 design-v3 回写 Phase 1B 状态（本次修订）
+- `scripts/preflight-first-live-publish.sh` 已实现（只读预检，含 Go/No-Go 判定）
+- `docs/runbook-first-live-publish.md` 已增强（Go/No-Go checklist、证据采集要求、preflight 集成）
 
 **尚未完成（Phase 1B 退出所需）：**
 - 在现网执行首次 `publish-workspace-main.sh --apply --allow-live-target` 正式发布
@@ -1593,12 +1596,13 @@ Phase 1B 完成收口需要同时满足以下全部条件：
 |--------|------|------|
 | `workspace-main-template/`（25 文件） | 开发仓模板 | ✅ 已提交 |
 | `scripts/publish-workspace-main.sh` | 发布脚本 | ✅ 已实现（含 `--allow-live-target`） |
-| `scripts/publish-sop.sh` | SOP 发布脚本 | ✅ 已实现（含 `--allow-live-target`） |
+| `scripts/publish-sop.sh` | SOP 发布脚本 | ✅ 已实现（无条件拒绝 live path；live 场景由父脚本 inline 处理） |
 | `scripts/check-workspace-main.sh` | 结构校验脚本 | ✅ 已实现（含 SOP hash 交叉校验） |
 | `docs/runtime-allowlist-backup-draft.md` | 备份设计稿 | ✅ 设计定稿候选 |
 | SOP + design-v3 Phase 1B 状态回写 | 文档同步 | ✅ 已完成 |
 | Phase 1B 退出条件 + Phase 2 进入门槛定义 | 阶段边界 | ✅ 已定义 |
-| `docs/runbook-first-live-publish.md` | 首次现网发布 Operator Runbook | ✅ 已编写（待执行） |
+| `docs/runbook-first-live-publish.md` | 首次现网发布 Operator Runbook | ✅ 已编写（含 Go/No-Go checklist 与证据采集要求，待执行） |
+| `scripts/preflight-first-live-publish.sh` | 首次 live publish 只读预检脚本 | ✅ 已实现 |
 | 首次现网脚本化发布 + 校验 | 现网操作 | ⬚ 待执行 |
 
 ---
@@ -1774,6 +1778,9 @@ Phase 1B 完成收口需要同时满足以下全部条件：
 - [x] 设计 `/var/lib/openclaw` 独立备份 allowlist 并升级为设计定稿候选
 - [ ] 在现网执行首次 `publish-workspace-main.sh --apply --allow-live-target` 正式发布
 - [x] 移除 publish 脚本生产路径 safety guard 或增加 `--allow-live-target` flag
+- [x] 实现首次 live publish 只读 preflight 脚本（`scripts/preflight-first-live-publish.sh`）
+- [x] 增强 runbook（Go/No-Go checklist、证据采集要求、preflight 集成、check 命令 sudo 修正）
+- [x] 修正 `publish-sop.sh` 描述（无条件拒绝 live path，非"含 --allow-live-target"）
 - [ ] 发布后通过 `check-workspace-main.sh` 校验发布产物结构完整性
 
 > 注：控制面备份脚本的实现（将 `runtime-allowlist-backup-draft.md` 转化为可执行脚本）已从 Phase 1B 重新归入 Phase 6（§8.7），Phase 1B 的交付物为设计定稿候选文档。
