@@ -1620,11 +1620,15 @@ Phase 1B 完成收口需要同时满足以下全部条件：
 - broker 请求/结果 JSON Schema（`broker/schemas/`）
 - 8 个 per-action 输入 schema（`broker/schemas/actions/`）
 - 8 个 wrapper stub（`broker/wrappers/ocw-*.sh`，仅验证 + echo，不执行 live 操作）
+- wrapper 共享验证库（`broker/wrappers/lib/common.sh`，消除 8 个 wrapper 间代码重复）
 - 8 对 request/result 测试 fixture + 1 negative test（`examples/broker/`）
 - schema / wrapper / fixture 交叉验证脚本（`scripts/validate-broker-schemas.sh`，192 checks pass）
 - wrapper stub 运行时测试脚本（`tests/test_broker_schemas.sh`，62 checks pass）
+- host-ops broker 协议规格文档（`docs/specs/host-ops-broker-protocol-v1.md`）
+- plugin skeleton 已升级为 phase2-prep：request builder、request validator、result validator（`plugins/host-ops-tool/`）
+- 聚合验证脚本（`scripts/validate-phase2-prep.sh`）与集成测试（`tests/test_phase2_integration.sh`）
 - `workspace-main-template/control/host-ops-api.md` 已对齐 §5.6.2 请求契约
-- plugin skeleton 已升级为 phase2-prep 标记（`plugins/host-ops-tool/`）
+- `workspace-main-template/skills/broker/SKILL.md` 已对齐当前协议契约（消除 operation/parameters/approval_id 漂移）
 
 现网部署需要 Phase 2 正式启动后按进入门槛逐项执行。
 
@@ -1821,6 +1825,15 @@ Phase 1B 完成收口需要同时满足以下全部条件：
 - [x] 创建 `plugins/host-ops-tool/`（skeleton index.js、package.json，phase2-prep 标记）
 - [x] 对齐 `workspace-main-template/control/host-ops-api.md` 与 `design-v3.md` §5.6.2 请求契约（消除 operation/parameters/approval_id 与 action/inputs/requested_by 漂移）
 - [x] 修正全仓 "Phase 1B+" / "Phase 0" 残留引用为准确阶段标号（routing-policy、approval-policy、broker SKILL、broker README、wrappers README）
+- [x] 创建 `broker/wrappers/lib/common.sh`（共享验证库，消除 8 个 wrapper stub 间代码重复）
+- [x] 重构 8 个 wrapper stub 使用 `common.sh`（validate_request_file、parse_common、validate_action、emit_result）
+- [x] 创建 `docs/specs/host-ops-broker-protocol-v1.md`（协议规格文档：传输、信封、字段语义、fail-closed 规则、per-action 输入规格）
+- [x] 创建 `plugins/host-ops-tool/lib/build-request.sh`（shell-based request fixture generator）
+- [x] 创建 `plugins/host-ops-tool/lib/validate-request.sh`（shell-based request validator，与 common.sh 和 index.js 验证逻辑镜像）
+- [x] 增强 `plugins/host-ops-tool/index.js`（buildRequest、validateRequest、validateResult 函数）
+- [x] 创建 `scripts/validate-phase2-prep.sh`（聚合验证：schema + wrapper + plugin + fixture + protocol spec + cross-layer contract）
+- [x] 创建 `tests/test_phase2_integration.sh`（集成测试：plugin→wrapper pipeline、negative tests、contract drift detection）
+- [x] 修正 `workspace-main-template/skills/broker/SKILL.md` 契约漂移（operation/parameters/approval_id → action/inputs/requested_by）
 
 ### 现网部署（需 Phase 2 正式启动后执行）
 

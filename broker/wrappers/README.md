@@ -21,10 +21,23 @@ Current status (2026-03-11):
 | `ocw-vault-sync.sh` | `vault_sync` | Yes |
 | `ocw-rollback-prepare.sh` | `rollback_prepare` | Yes |
 
+## Shared validation library
+
+All wrappers source `lib/common.sh`, which provides:
+- `broker_validate_request_file` — argument count and file existence check
+- `broker_parse_common` — extract action, request_id, task_id from JSON
+- `broker_validate_action` — verify action matches expected value
+- `broker_validate_required_fields` — verify request_id and task_id non-empty
+- `broker_validate_sha256` — 64-char lowercase hex validation
+- `broker_validate_path` — candidate path whitelist + traversal detection
+- `broker_validate_label` — alphanumeric format check
+- `broker_error` — emit structured error JSON to stderr and exit 1
+- `broker_emit_result` — emit structured success JSON to stdout
+
 ## Design rules (per design-v3.md §5.6.4)
 
 1. Each wrapper does exactly one thing
-2. Validates inputs before acting
+2. Validates inputs before acting (via common.sh shared functions)
 3. Verifies candidate file hashes where applicable
 4. Returns structured JSON result on stdout
 5. Never executes free-form shell or user-supplied commands

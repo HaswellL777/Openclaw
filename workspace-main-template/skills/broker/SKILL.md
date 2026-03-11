@@ -6,84 +6,97 @@
 - **Purpose**: Interface with host-ops broker for host state mutations
 
 ## Status
-**Phase 2**: This skill is planned but not yet implemented.
+**Phase 2 planned**: This skill is designed but not yet implemented.
 The host-ops broker is not yet deployed. Phase 2 has not started.
 
 ## What this skill does (planned)
 This skill provides the interface for calling host-ops broker to execute:
-- OpenClaw configuration changes
-- Gateway restarts
-- Snapshot creation
+- OpenClaw configuration changes (validate + deploy candidate)
+- Gateway health checks and restarts
+- Snapshot creation (pre-change and post-change)
 - Vault sync
-- System rollback
+- Rollback preparation
 - Other host mutations requiring elevated privileges
 
 ## Authority
 The authoritative broker API contract is `control/host-ops-api.md`.
+The authoritative protocol specification is `docs/specs/host-ops-broker-protocol-v1.md`.
 
 This skill should:
 1. Reference `control/host-ops-api.md` for API contract
 2. Check `control/approval-policy.md` for approval requirements
 3. Verify approval exists in `control/state/pending-approvals.json`
-4. Prepare structured host-change-request
+4. Prepare structured host-ops request
 5. Call broker API
 6. Monitor execution
 7. Update state files with results
 
 ## Broker API (planned)
 
-### Endpoint
-```
-POST /host-ops/execute
-```
+### Transport
+Unix socket or root-owned local IPC (exact path TBD at Phase 2 deployment).
 
 ### Request format
+Per `docs/specs/host-ops-broker-protocol-v1.md` §2 and `broker/schemas/host-ops-request.schema.json`:
+
 ```json
 {
-  "request_id": "req-YYYYMMDD-HHMMSS-<random>",
-  "timestamp": "YYYY-MM-DD HH:MM:SS UTC",
-  "operation": "config-update | gateway-restart | snapshot-create | vault-sync | rollback",
-  "approval_id": "approval-YYYYMMDD-HHMMSS-<random>",
-  "parameters": { "operation-specific": "parameters" },
-  "pre_snapshot_required": true | false,
-  "post_snapshot_required": true | false,
-  "vault_sync_required": true | false
+  "action": "deploy_openclaw_json_candidate",
+  "request_id": "req-20260311-143000-a1b2c3",
+  "task_id": "task-...",
+  "requested_by": "agent:main",
+  "inputs": {
+    "candidate_path": "/var/lib/openclaw/approvals/candidates/openclaw.json",
+    "expected_sha256": "abc123..."
+  }
 }
 ```
+
+Required fields:
+- `action` — One of 8 supported action strings
+- `request_id` — Unique request identifier
+- `task_id` — OpenClaw task identifier
+- `requested_by` — Identity of requester
+- `inputs` — Action-specific input object
 
 ### Response format
+Per `broker/schemas/host-ops-result.schema.json`:
+
 ```json
 {
-  "request_id": "req-YYYYMMDD-HHMMSS-<random>",
-  "status": "success | failed | partial",
-  "timestamp": "YYYY-MM-DD HH:MM:SS UTC",
-  "pre_snapshot": "snapshot-name or null",
-  "post_snapshot": "snapshot-name or null",
-  "vault_synced": true | false,
-  "changes": [...],
-  "validation_results": {...},
-  "rollback_available": true | false,
-  "rollback_procedure": "Step-by-step undo instructions",
-  "logs": "/path/to/operation/logs"
+  "ok": true,
+  "action": "deploy_openclaw_json_candidate",
+  "request_id": "req-20260311-143000-a1b2c3",
+  "task_id": "task-...",
+  "status": "ok",
+  "message": "Config deployed successfully",
+  "artifacts": {
+    "deployed_path": "/etc/openclaw/openclaw.json",
+    "deployed_sha256": "abc123..."
+  },
+  "rollback_hint": "Restore from pre-change snapshot: root-pre-20260311-1430"
 }
 ```
 
-## Supported operations (planned)
+Required fields:
+- `ok` — Boolean success indicator
+- `action` — Echo of requested action
+- `request_id` — Echo of request_id
+- `task_id` — Echo of task_id
+- `status` — One of: `ok`, `error`, `denied`
 
-### config-update
-Update `/etc/openclaw/openclaw.json`
+## Supported actions (planned)
 
-### gateway-restart
-Restart openclaw-gateway.service
-
-### snapshot-create
-Create btrfs snapshot
-
-### vault-sync
-Sync snapshot to vault
-
-### rollback
-Rollback to previous snapshot
+| Action | Purpose |
+|--------|---------|
+| `gateway_health` | Check gateway service health |
+| `gateway_restart` | Restart openclaw-gateway.service |
+| `validate_openclaw_json_candidate` | Validate candidate config file |
+| `deploy_openclaw_json_candidate` | Deploy validated candidate to /etc/openclaw |
+| `snapshot_pre` | Create pre-change btrfs snapshot |
+| `snapshot_post` | Create post-change btrfs snapshot |
+| `vault_sync` | Sync snapshot to vault |
+| `rollback_prepare` | Prepare rollback to previous snapshot |
 
 See `control/host-ops-api.md` for detailed parameters and examples.
 
@@ -96,14 +109,13 @@ Verify approval exists and status is "approved".
 ### Step 2: Prepare request
 Read `control/host-ops-api.md` for API contract.
 Prepare structured request with:
-- Unique request_id
-- Operation type
-- Approval_id reference
-- Operation-specific parameters
-- Snapshot/vault requirements
+- Unique request_id (format: `req-YYYYMMDD-HHMMSS-<random>`)
+- Action type
+- requested_by identity
+- Action-specific inputs
 
 ### Step 3: Call broker
-Send POST request to broker API.
+Send request to broker via Unix socket.
 (Implementation details TBD in Phase 2)
 
 ### Step 4: Monitor execution
@@ -161,7 +173,7 @@ When broker is deployed:
 - main agent can call broker API directly
 - Manual runbook execution is replaced by automated broker calls
 - Human approval still required for Category 1/2 operations
-- Broker handles snapshot → change → validate → snapshot → vault workflow automatically
+- Broker handles snapshot -> change -> validate -> snapshot -> vault workflow automatically
 
 ## Notes
 - Broker is a critical safety component

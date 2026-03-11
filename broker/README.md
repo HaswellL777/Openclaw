@@ -20,3 +20,12 @@ Directory layout:
 - `schemas/` — JSON schemas for request/response validation
 - `schemas/actions/` — Per-action input schemas
 - `wrappers/` — Wrapper script stubs and contracts
+- `wrappers/lib/common.sh` — Shared validation library (sourced by all wrappers)
+
+Related files outside this directory:
+- `docs/specs/host-ops-broker-protocol-v1.md` — Protocol specification
+- `plugins/host-ops-tool/` — Plugin skeleton (request builder, validator, index.js)
+- `scripts/validate-broker-schemas.sh` — Schema cross-validation
+- `scripts/validate-phase2-prep.sh` — Aggregated Phase 2 prep validation
+- `tests/test_phase2_integration.sh` — Integration tests (plugin → wrapper pipeline, negative tests, drift detection)
+- `tests/test_broker_schemas.sh` — Schema/wrapper/fixture runtime tests

@@ -13,45 +13,24 @@
 
 set -euo pipefail
 
-# --- Input validation ---
-if [ $# -ne 1 ]; then
-  echo '{"ok":false,"status":"error","message":"Usage: ocw-rollback-prepare.sh <request-json-path>"}' >&2
-  exit 1
-fi
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+source "${SCRIPT_DIR}/lib/common.sh"
 
-REQUEST_FILE="$1"
-if [ ! -f "$REQUEST_FILE" ]; then
-  echo "{\"ok\":false,\"status\":\"error\",\"message\":\"Request file not found: $REQUEST_FILE\"}" >&2
-  exit 1
-fi
+# --- Common validation ---
+broker_validate_request_file "$@"
+broker_parse_common "$REQUEST_FILE"
+broker_validate_action "rollback_prepare"
+broker_validate_required_fields
 
-# --- Parse request ---
-ACTION=$(jq -r '.action // empty' "$REQUEST_FILE" 2>/dev/null || true)
-REQUEST_ID=$(jq -r '.request_id // empty' "$REQUEST_FILE" 2>/dev/null || true)
-TASK_ID=$(jq -r '.task_id // empty' "$REQUEST_FILE" 2>/dev/null || true)
+# --- Action-specific validation ---
 TARGET_SNAPSHOT=$(jq -r '.inputs.target_snapshot // empty' "$REQUEST_FILE" 2>/dev/null || true)
 REASON=$(jq -r '.inputs.reason // empty' "$REQUEST_FILE" 2>/dev/null || true)
 
-if [ "$ACTION" != "rollback_prepare" ]; then
-  echo "{\"ok\":false,\"action\":\"$ACTION\",\"request_id\":\"$REQUEST_ID\",\"task_id\":\"$TASK_ID\",\"status\":\"error\",\"message\":\"Wrong action: expected rollback_prepare, got $ACTION\"}" >&2
-  exit 1
-fi
-
-if [ -z "$REQUEST_ID" ] || [ -z "$TASK_ID" ]; then
-  echo '{"ok":false,"status":"error","message":"Missing required fields: request_id, task_id"}' >&2
-  exit 1
-fi
-
 if [ -z "$TARGET_SNAPSHOT" ] || [ -z "$REASON" ]; then
-  echo "{\"ok\":false,\"action\":\"rollback_prepare\",\"request_id\":\"$REQUEST_ID\",\"task_id\":\"$TASK_ID\",\"status\":\"error\",\"message\":\"Missing required inputs: target_snapshot, reason\"}" >&2
-  exit 1
+  broker_error "error" "Missing required inputs: target_snapshot, reason"
 fi
 
-# --- Snapshot name format check ---
-if ! echo "$TARGET_SNAPSHOT" | grep -qE '^[a-zA-Z0-9._-]+$'; then
-  echo "{\"ok\":false,\"action\":\"rollback_prepare\",\"request_id\":\"$REQUEST_ID\",\"task_id\":\"$TASK_ID\",\"status\":\"error\",\"message\":\"Invalid target_snapshot format: alphanumeric, dots, hyphens, underscores only\"}" >&2
-  exit 1
-fi
+broker_validate_label "$TARGET_SNAPSHOT" "target_snapshot"
 
 # --- STUB: Echo intended action (no live execution) ---
 echo "[STUB] Would verify snapshot exists: btrfs subvolume show /.snapshots/$TARGET_SNAPSHOT" >&2
@@ -60,25 +39,7 @@ echo "[STUB] Reason: $REASON" >&2
 echo "[STUB] NOTE: Actual rollback execution requires separate human confirmation" >&2
 
 # --- Return structured result ---
-cat <<EOF
-{
-  "ok": true,
-  "action": "rollback_prepare",
-  "request_id": "$REQUEST_ID",
-  "task_id": "$TASK_ID",
-  "status": "ok",
-  "message": "[STUB] Rollback preparation — no live execution in Phase 2 prep",
-  "artifacts": {
-    "target_snapshot": "$TARGET_SNAPSHOT",
-    "reason": "$REASON",
-    "rollback_steps": [
-      "1. Create safety snapshot of current state",
-      "2. Verify target snapshot integrity",
-      "3. Execute rollback: btrfs subvolume snapshot /.snapshots/$TARGET_SNAPSHOT /",
-      "4. Restart affected services",
-      "5. Validate system health"
-    ]
-  },
-  "rollback_hint": "Rollback preparation is read-only; no undo needed"
-}
-EOF
+broker_emit_result \
+  "{\"target_snapshot\":\"$TARGET_SNAPSHOT\",\"reason\":\"$REASON\",\"rollback_steps\":[\"1. Create safety snapshot of current state\",\"2. Verify target snapshot integrity\",\"3. Execute rollback: btrfs subvolume snapshot /.snapshots/$TARGET_SNAPSHOT /\",\"4. Restart affected services\",\"5. Validate system health\"]}" \
+  "[STUB] Rollback preparation — no live execution in Phase 2 prep" \
+  "Rollback preparation is read-only; no undo needed"
