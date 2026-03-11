@@ -9,11 +9,11 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 SOURCE_SOP="$REPO_ROOT/docs/host-sop.md"
 
-# Default: dry-run mode
+# Default: dry-run mode, live target refused
 DRY_RUN=1
 TARGET_DIR=""
 
-# Prohibited live paths (safety guard)
+# Prohibited live paths (safety guard — fail-closed by default)
 PROHIBITED_PATHS=(
     "/var/lib/openclaw"
     "/etc/openclaw"
@@ -29,9 +29,9 @@ Usage: $0 [OPTIONS] TARGET_DIR
 Publish host-sop.md from development repo to target workspace.
 
 OPTIONS:
-    -n, --dry-run       Dry-run mode (default)
-    --apply             Actually perform the publish (disables dry-run)
-    -h, --help          Show this help
+    -n, --dry-run           Dry-run mode (default)
+    --apply                 Actually perform the publish (disables dry-run)
+    -h, --help              Show this help
 
 ARGUMENTS:
     TARGET_DIR          Target workspace directory (must contain control/ subdirectory)
@@ -46,13 +46,10 @@ EXAMPLES:
 SAFETY:
     - Default mode is dry-run (shows what would be done)
     - Use --apply to actually perform the publish
-    - Refuses to write to live system paths:
-      - /var/lib/openclaw
-      - /etc/openclaw
-      - /opt/openclaw
-      - /mnt/vault
-      - /srv/openclaw-control
-    - Future: may add --allow-live-target flag with explicit confirmation
+    - UNCONDITIONALLY refuses to write to live system paths:
+      /var/lib/openclaw, /etc/openclaw, /opt/openclaw, /mnt/vault, /srv/openclaw-control
+    - There is NO flag or env var to override this restriction
+    - For live targets, SOP publish is handled inline by publish-workspace-main.sh
 
 SOURCE:
     $SOURCE_SOP
@@ -103,14 +100,16 @@ if [[ ! -f "$SOURCE_SOP" ]]; then
     exit 1
 fi
 
-# Safety check: refuse to write to prohibited live paths
+# Safety check: refuse to write to prohibited live paths — unconditionally.
+# There is no flag, env var, or parent-process signal that overrides this.
+# For live targets, SOP publish is handled inline by publish-workspace-main.sh.
 for prohibited in "${PROHIBITED_PATHS[@]}"; do
     if [[ "$TARGET_DIR" == "$prohibited"* ]]; then
         echo "Error: refusing to write to live system path: $TARGET_DIR" >&2
         echo "This path is prohibited for safety: $prohibited" >&2
         echo "" >&2
-        echo "Current implementation only supports publishing to test/development paths." >&2
-        echo "Future: may add --allow-live-target flag with explicit confirmation." >&2
+        echo "publish-sop.sh unconditionally refuses live targets." >&2
+        echo "Use publish-workspace-main.sh --apply --allow-live-target instead." >&2
         exit 1
     fi
 done
@@ -152,9 +151,17 @@ TARGET_HASH_FILE="$TARGET_DIR/control/state/last-sop-hash.txt"
 if [[ -f "$TARGET_HASH_FILE" ]]; then
     EXISTING_HASH=$(cat "$TARGET_HASH_FILE" 2>/dev/null || echo "")
     if [[ "$EXISTING_HASH" == "$SOURCE_HASH" ]]; then
-        echo "Target SOP is already up-to-date (hash matches)."
-        echo "No publish needed."
-        exit 0
+        # Hash file matches — but also verify the target SOP.md is actually
+        # a published copy (not a placeholder reverted by rsync).
+        # Without this check, re-publish after rsync would skip writing SOP.md.
+        if grep -q "^\*\*SHA256\*\*: \`$SOURCE_HASH\`" "$TARGET_SOP" 2>/dev/null; then
+            echo "Target SOP is already up-to-date (hash matches and SOP.md verified)."
+            echo "No publish needed."
+            exit 0
+        else
+            echo "Target SOP hash file matches but SOP.md content is stale or placeholder."
+            echo "Will republish."
+        fi
     else
         echo "Target SOP hash differs from source."
         echo "  Existing: $EXISTING_HASH"

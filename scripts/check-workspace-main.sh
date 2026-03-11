@@ -251,6 +251,20 @@ if [[ $IS_TEMPLATE -eq 0 ]]; then
     # Check if SOP has SHA256
     if grep -qE '^\*\*SHA256\*\*:' "$TARGET_DIR/control/SOP.md" 2>/dev/null; then
         echo "✓ SOP.md has SHA256 hash"
+
+        # Cross-validate: SOP.md embedded hash should match last-sop-hash.txt
+        if [[ -s "$TARGET_DIR/control/state/last-sop-hash.txt" ]]; then
+            SOP_EMBEDDED_HASH=$(grep -oP '(?<=\*\*SHA256\*\*: `)[a-f0-9]{64}' "$TARGET_DIR/control/SOP.md" 2>/dev/null || echo "")
+            STATE_HASH=$(cat "$TARGET_DIR/control/state/last-sop-hash.txt" 2>/dev/null | tr -d '[:space:]')
+            if [[ -n "$SOP_EMBEDDED_HASH" && "$SOP_EMBEDDED_HASH" == "$STATE_HASH" ]]; then
+                echo "✓ SOP.md embedded hash matches last-sop-hash.txt"
+            elif [[ -z "$SOP_EMBEDDED_HASH" ]]; then
+                echo "⚠ Could not extract hash from SOP.md header (non-fatal)"
+            else
+                echo "✗ SOP.md embedded hash ($SOP_EMBEDDED_HASH) does not match last-sop-hash.txt ($STATE_HASH)"
+                FAILED=1
+            fi
+        fi
     else
         echo "✗ SOP.md missing SHA256 hash"
         FAILED=1

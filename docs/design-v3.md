@@ -1,7 +1,7 @@
 # OpenClaw 多 Agent + Claude Code 协作体系设计稿 v3.1
 
 > 初版编写日期：2026-03-07
-> 本次修订日期：2026-03-10（Phase 1B 退出条件与 Phase 2 进入门槛定义）
+> 本次修订日期：2026-03-10（Phase 1B live publish 闸门与 runbook 就绪）
 > 适用宿主机：当前单机 Ubuntu 24.04 LTS / Btrfs / systemd / OpenClaw 2026.3.2 基线
 > 上游输入：`openclaw-host-sop-2026-03-06.md`、`1.md`、`openclaw-design-v2-2026-03-07.md`、本轮 Phase 1A 实际落地结果、Phase 1B 开发仓候选产物
 > 文档定位：**可实施规格稿 + 落地状态稿**，用于后续继续开发、验证、回滚、审计与发布
@@ -25,7 +25,7 @@
 11. **本轮实际落地过程中，曾出现 `main` 工具集被顶层 `tools.profile = messaging` 覆盖的问题；该问题已通过移除顶层 `tools.profile` 修复。**
 12. **默认主模型已从 `motchat-claude-4-6/claude-opus-4-6` 切换到 `motchat-gpt-max/gpt-5.4`；当前把 g54 视为更稳妥的主控制面默认值，但不把“Claude 4.6 一定是卡顿根因”写成已证事实。**
 13. **Claude Code 容器内执行链、只读 `host_ops`、正式 broker 与 wrapper 仍属于后续阶段目标；除非特别注明”已验证”，否则不得写成当前事实。**
-14. **Phase 1B 控制面收口工作已在开发仓中部分完成（2026-03-09，备份设计稿 2026-03-10 修订）：`workspace-main-template/` 已建立并提交；`scripts/publish-workspace-main.sh`、`scripts/publish-sop.sh`、`scripts/check-workspace-main.sh` 已实现；`docs/runtime-allowlist-backup-draft.md` 已升级为设计定稿候选（design candidate）——分类模型、恢复语义、恢复优先级（P0–P5）、实施约束已结构化；但以上均为开发仓候选产物，脚本化发布链（`publish-workspace-main.sh --apply`）尚未首次用于 live target（workspace-main 本身已在 Phase 1A 部署）。**
+14. **Phase 1B 控制面收口工作已在开发仓中部分完成（2026-03-09，备份设计稿 2026-03-10 修订）：`workspace-main-template/` 已建立并提交；`scripts/publish-workspace-main.sh`、`scripts/publish-sop.sh`、`scripts/check-workspace-main.sh` 已实现；`docs/runtime-allowlist-backup-draft.md` 已升级为设计定稿候选（design candidate）——分类模型、恢复语义、恢复优先级（P0–P5）、实施约束已结构化；publish 脚本已增加 `--allow-live-target` flag（含交互确认 + TTY 检查），check 脚本已增加 SOP hash 交叉校验；首次现网发布 operator runbook 已编写（`docs/runbook-first-live-publish.md`）；但脚本化发布链尚未首次用于 live target。**
 15. **Phase 1B 退出条件与 Phase 2 进入门槛已正式定义（2026-03-10，见 §7）；控制面备份脚本实现从 Phase 1B 重新归入 Phase 6。**
 
 ---
@@ -1558,8 +1558,8 @@ Phase 0 结束后，开发体系已能安全地产生候选配置、脚本和文
 - SOP 与 design-v3 回写 Phase 1B 状态（本次修订）
 
 **尚未完成（Phase 1B 退出所需）：**
-- 在现网执行首次 `publish-workspace-main.sh --apply` 正式发布
-- 移除 publish 脚本的生产路径 safety guard（需要 `--allow-live-target` flag）
+- 在现网执行首次 `publish-workspace-main.sh --apply --allow-live-target` 正式发布
+- ~~移除 publish 脚本的生产路径 safety guard（需要 `--allow-live-target` flag）~~ ✅ 已实现（2026-03-10，`--allow-live-target` flag + 交互确认 + TTY 检查）
 
 **已重新归入后续阶段：**
 - 控制面备份脚本（将 backup draft 转化为可执行脚本）→ Phase 6
@@ -1577,8 +1577,8 @@ Phase 1B 完成收口需要同时满足以下全部条件：
 5. 文档间无未修复的事实冲突。
 
 **尚未满足：**
-6. publish 脚本增加 `--allow-live-target` flag 或等效机制，使其可用于生产路径；
-7. 首次通过 `publish-workspace-main.sh --apply` 将 workspace-main-template 发布到现网 live target；
+6. ~~publish 脚本增加 `--allow-live-target` flag 或等效机制，使其可用于生产路径；~~ ✅ 已实现（2026-03-10）
+7. 首次通过 `publish-workspace-main.sh --apply --allow-live-target` 将 workspace-main-template 发布到现网 live target；
 8. 发布后通过 `check-workspace-main.sh` 校验发布产物结构完整性（published artifact 模式）。
 
 **明确不作为本阶段退出条件的事项：**
@@ -1592,12 +1592,13 @@ Phase 1B 完成收口需要同时满足以下全部条件：
 | 交付物 | 类型 | 状态 |
 |--------|------|------|
 | `workspace-main-template/`（25 文件） | 开发仓模板 | ✅ 已提交 |
-| `scripts/publish-workspace-main.sh` | 发布脚本 | ✅ 已实现 |
-| `scripts/publish-sop.sh` | SOP 发布脚本 | ✅ 已实现 |
-| `scripts/check-workspace-main.sh` | 结构校验脚本 | ✅ 已实现 |
+| `scripts/publish-workspace-main.sh` | 发布脚本 | ✅ 已实现（含 `--allow-live-target`） |
+| `scripts/publish-sop.sh` | SOP 发布脚本 | ✅ 已实现（含 `--allow-live-target`） |
+| `scripts/check-workspace-main.sh` | 结构校验脚本 | ✅ 已实现（含 SOP hash 交叉校验） |
 | `docs/runtime-allowlist-backup-draft.md` | 备份设计稿 | ✅ 设计定稿候选 |
 | SOP + design-v3 Phase 1B 状态回写 | 文档同步 | ✅ 已完成 |
 | Phase 1B 退出条件 + Phase 2 进入门槛定义 | 阶段边界 | ✅ 已定义 |
+| `docs/runbook-first-live-publish.md` | 首次现网发布 Operator Runbook | ✅ 已编写（待执行） |
 | 首次现网脚本化发布 + 校验 | 现网操作 | ⬚ 待执行 |
 
 ---
@@ -1771,8 +1772,8 @@ Phase 1B 完成收口需要同时满足以下全部条件：
 - [x] 记录 `tools.profile` 覆盖问题与 fix-forward 结果
 - [x] 记录默认主模型切换到 `g54`
 - [x] 设计 `/var/lib/openclaw` 独立备份 allowlist 并升级为设计定稿候选
-- [ ] 在现网执行首次 `publish-workspace-main.sh --apply` 正式发布
-- [ ] 移除 publish 脚本生产路径 safety guard 或增加 `--allow-live-target` flag
+- [ ] 在现网执行首次 `publish-workspace-main.sh --apply --allow-live-target` 正式发布
+- [x] 移除 publish 脚本生产路径 safety guard 或增加 `--allow-live-target` flag
 - [ ] 发布后通过 `check-workspace-main.sh` 校验发布产物结构完整性
 
 > 注：控制面备份脚本的实现（将 `runtime-allowlist-backup-draft.md` 转化为可执行脚本）已从 Phase 1B 重新归入 Phase 6（§8.7），Phase 1B 的交付物为设计定稿候选文档。

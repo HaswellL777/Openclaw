@@ -102,7 +102,7 @@ sudo mv /var/lib/openclaw/.openclaw/extensions/<plugin>.bak-* /var/lib/openclaw/
   - `workspace-main-template/` 目录已建立并提交至 `~/projects/openclaw-dev/`；
   - `scripts/publish-workspace-main.sh`、`scripts/publish-sop.sh`、`scripts/check-workspace-main.sh` 已实现并提交；
   - `docs/runtime-allowlist-backup-draft.md` 已升级为设计定稿候选（design candidate）——分类模型、恢复语义、恢复优先级、实施约束已结构化，但尚未转化为可执行脚本，也未在生产中启用；
-  - 以上均为开发仓库内的候选产物，**脚本化发布链（`publish-workspace-main.sh --apply`）尚未首次用于 live target**（workspace-main 本身已在 Phase 1A 手动部署，见上文）。
+  - 以上均为开发仓库内的候选产物，**publish 脚本已增加 `--allow-live-target` flag 和交互确认机制，首次现网发布 operator runbook 已编写（`docs/runbook-first-live-publish.md`），但脚本化发布链尚未首次用于 live target**（workspace-main 本身已在 Phase 1A 手动部署，见上文）。
 - 当前仍不是”Phase 1 完整态”：
   - **Phase 1B 的现网发布、校验闭环尚未执行**
   - **更不是 Phase 2（正式 broker / wrapper 写入链）**
@@ -136,7 +136,9 @@ sudo mv /var/lib/openclaw/.openclaw/extensions/<plugin>.bak-* /var/lib/openclaw/
    - 但本机实际状态尚未达到该子阶段。
 4. **Phase 1B 发布 / 校验脚本已在开发仓就绪，但尚未在现网执行首次正式发布。**
    - `scripts/publish-workspace-main.sh`、`scripts/publish-sop.sh`、`scripts/check-workspace-main.sh` 已提交开发仓；
-   - 这些脚本当前默认 dry-run、拒绝写入生产路径（safety guard）；
+   - publish 脚本已增加 `--allow-live-target` flag（含交互确认 + TTY 检查），默认仍拒绝写入生产路径；
+   - check 脚本已增加 SOP hash 交叉校验（`SOP.md` 内嵌 hash vs `last-sop-hash.txt`）；
+   - 首次现网发布 operator runbook 已编写（`docs/runbook-first-live-publish.md`）；
    - 首次现网正式发布仍待安排。
 
 ## 1. 磁盘与分区布局（lsblk 摘要）
@@ -447,7 +449,7 @@ xfconf-query -c xfwm4 -p /general/use_compositing -s false
 
 ### 11.3 当前阶段标签
 - **Phase 1A / main bootstrap only — 已完成落地**
-- **Phase 1B / 控制面收口 — 开发仓候选产物已就绪，现网首次发布待执行**
+- **Phase 1B / 控制面收口 — 开发仓候选产物已就绪（含 live publish 闸门与 runbook），现网首次发布待执行**
 - `main` agent 已正式上线；
 - `workspace-main` 已落地；
 - `main` 的 file tools 已修正；
@@ -459,8 +461,8 @@ xfconf-query -c xfwm4 -p /general/use_compositing -s false
 #### 11.3.1 Phase 1B 退出条件（摘要）
 
 Phase 1B 完成收口需要满足以下剩余条件：
-1. publish 脚本增加 live target 支持（`--allow-live-target` 或等效机制）；
-2. 首次通过脚本化发布链完成现网 workspace-main 发布；
+1. ~~publish 脚本增加 live target 支持（`--allow-live-target` 或等效机制）~~ ✅ 已实现；
+2. 首次通过脚本化发布链完成现网 workspace-main 发布（runbook 已就绪：`docs/runbook-first-live-publish.md`）；
 3. 发布后通过 `check-workspace-main.sh` 校验通过。
 
 控制面备份脚本实现不作为 Phase 1B 退出条件（设计已完成，实现归 Phase 6）。
@@ -1047,10 +1049,11 @@ A. 文档发布：
 B. workspace 发布：
 - `workspace-main/` 模板文件在开发仓维护（`workspace-main-template/` 目录）；
 - 受控发布到 `/var/lib/openclaw/.openclaw/workspace-main/`
-- 开发仓已提供发布与校验脚本（均默认 dry-run，拒绝写入生产路径）：
-  - `scripts/publish-workspace-main.sh`：从 `workspace-main-template/` 发布到目标目录，保留 `control/state/`，自动调用 `publish-sop.sh`
-  - `scripts/publish-sop.sh`：从 `docs/host-sop.md` 发布到 `control/SOP.md`，附加 SHA256 与时间戳头，写入 `last-sop-hash.txt`
-  - `scripts/check-workspace-main.sh`：校验 workspace-main 结构完整性（区分模板模式 vs 发布产物模式）
+- 开发仓已提供发布与校验脚本：
+  - `scripts/publish-workspace-main.sh`：从 `workspace-main-template/` 发布到目标目录，保留 `control/state/`，自动调用 `publish-sop.sh`；默认 dry-run + 拒绝写入生产路径；`--allow-live-target` flag 可解锁唯一指定的 live workspace 路径（需 `--apply` + 交互确认 + TTY 检查）
+  - `scripts/publish-sop.sh`：从 `docs/host-sop.md` 发布到 `control/SOP.md`，附加 SHA256 与时间戳头，写入 `last-sop-hash.txt`；支持 `--allow-live-target` flag（由父脚本传递）
+  - `scripts/check-workspace-main.sh`：校验 workspace-main 结构完整性（区分模板模式 vs 发布产物模式），含 SOP hash 交叉校验
+- 首次现网脚本化发布 operator runbook：`docs/runbook-first-live-publish.md`
 
 C. 配置发布：
 - 在开发仓生成候选配置；
@@ -1755,3 +1758,4 @@ Phase 1A 完成后，已执行 post-change 里程碑快照与 Vault 入库：
 | 2026-03-07 19:xx | 飞书实测：默认模型显示为 `motchat-gpt-max/gpt-5.4`，`/reset`、简单回复与工具列举均恢复即时可用；当前将 g54 作为默认运营模型保留 |
 | 2026-03-09 | 文档收口：在开发仓 `docs/host-sop.md` 中回写 Phase 1B 开发仓候选产物状态（`workspace-main-template/`、publish/check 脚本、`runtime-allowlist-backup-draft.md`）；更新 §0.2 阶段定位、§0.5 未决问题、§11.3 阶段标签、§13.7.2 备份策略、§13.8.4 发布工作流 |
 | 2026-03-10 | Phase 1B 收口：正式定义 Phase 1B 退出条件与 Phase 2 进入门槛（`design-v3.md` §7）；将控制面备份脚本实现从 Phase 1B 重新归入 Phase 6；同步更新 SOP §0.2、§11.3（新增 §11.3.1）；同步更新 `runtime-allowlist-backup-draft.md` §8.1 |
+| 2026-03-10 | Phase 1B live publish 准备：publish 脚本增加 `--allow-live-target` flag（交互确认 + TTY 检查，默认仍 fail-closed）；check 脚本增加 SOP hash 交叉校验；编写首次现网发布 operator runbook（`docs/runbook-first-live-publish.md`）；文档同步更新 SOP §0.2/§0.5/§11.3/§13.8.4 与 design-v3 §0/§7/§8.2——**均未将现网发布写为已完成** |
