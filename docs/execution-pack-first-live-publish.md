@@ -3,9 +3,10 @@
 > 创建日期：2026-03-11
 > 适用阶段：Phase 1B 退出收口
 > 前提：Phase 1A 已落地，开发仓 publish/check/preflight 脚本已验证通过
-> 状态：**待执行**
+> 状态：**执行包**（可复用于后续 workspace-main 发布）
 
-**本文档是执行包，不代表操作已执行。**
+**本文档是执行包（执行前参考材料），不是结果报告。**
+**首轮执行已于 2026-03-11 完成，详见 `docs/records/first-live-publish-2026-03-11.md`。**
 **本文档是 `docs/runbook-first-live-publish.md` 的操作伴侣，不替代 runbook。**
 
 ---

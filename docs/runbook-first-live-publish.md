@@ -3,7 +3,9 @@
 > 创建日期：2026-03-10
 > 适用阶段：Phase 1B 退出收口
 > 前提：Phase 1A 已落地，开发仓 publish/check 脚本已在 test path 验证通过
-> 状态：**待执行**（本文档是操作指南，不代表操作已完成）
+> 状态：**流程文档**（可复用于后续 workspace-main 发布）
+>
+> 首轮执行已于 2026-03-11 完成，详见 `docs/records/first-live-publish-2026-03-11.md` 与 `docs/host-sop.md` §16。
 
 ---
 
