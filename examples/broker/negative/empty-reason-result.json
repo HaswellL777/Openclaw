@@ -1,0 +1,8 @@
+{
+  "ok": false,
+  "action": "gateway_restart",
+  "request_id": "req-20260311-170000-neg101",
+  "task_id": "task-neg-empty-reason",
+  "status": "error",
+  "message": "gateway_restart requires inputs.reason"
+}

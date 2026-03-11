@@ -171,6 +171,91 @@ done
 echo ""
 
 # ========================================
+# Frozen: Per-action schema property types
+# ========================================
+echo "--- Frozen: Per-action schema property types ---"
+
+# Freeze the type of every property in each per-action schema
+declare -A FROZEN_PROP_TYPES
+FROZEN_PROP_TYPES["gateway-restart:reason"]="string"
+FROZEN_PROP_TYPES["validate-openclaw-json:candidate_path"]="string"
+FROZEN_PROP_TYPES["validate-openclaw-json:expected_sha256"]="string"
+FROZEN_PROP_TYPES["deploy-openclaw-json:candidate_path"]="string"
+FROZEN_PROP_TYPES["deploy-openclaw-json:expected_sha256"]="string"
+FROZEN_PROP_TYPES["snapshot-pre:label"]="string"
+FROZEN_PROP_TYPES["snapshot-pre:reason"]="string"
+FROZEN_PROP_TYPES["snapshot-post:label"]="string"
+FROZEN_PROP_TYPES["snapshot-post:reason"]="string"
+FROZEN_PROP_TYPES["vault-sync:snapshot_name"]="string"
+FROZEN_PROP_TYPES["vault-sync:incremental"]="boolean"
+FROZEN_PROP_TYPES["rollback-prepare:target_snapshot"]="string"
+FROZEN_PROP_TYPES["rollback-prepare:reason"]="string"
+
+for key in $(echo "${!FROZEN_PROP_TYPES[@]}" | tr ' ' '\n' | sort); do
+  schema_stem="${key%%:*}"
+  prop_name="${key#*:}"
+  expected_type="${FROZEN_PROP_TYPES[$key]}"
+  schema_file="$REPO_ROOT/broker/schemas/actions/${schema_stem}.schema.json"
+  actual_type=$(jq -r ".properties.${prop_name}.type" "$schema_file" 2>/dev/null)
+  if [ "$actual_type" = "$expected_type" ]; then
+    pass "Property type frozen: ${schema_stem}.${prop_name} = ${expected_type}"
+  else
+    fail "Property type changed: ${schema_stem}.${prop_name} (expected ${expected_type}, got ${actual_type})"
+  fi
+done
+
+# Freeze maxLength constraint on label-like fields
+for schema_stem in snapshot-pre snapshot-post vault-sync rollback-prepare; do
+  schema_file="$REPO_ROOT/broker/schemas/actions/${schema_stem}.schema.json"
+  # Get first required field that has maxLength
+  for prop in label snapshot_name target_snapshot; do
+    max_len=$(jq -r ".properties.${prop}.maxLength // empty" "$schema_file" 2>/dev/null)
+    if [ -n "$max_len" ]; then
+      if [ "$max_len" = "128" ]; then
+        pass "maxLength=128 frozen: ${schema_stem}.${prop}"
+      else
+        fail "maxLength changed: ${schema_stem}.${prop} (expected 128, got ${max_len})"
+      fi
+    fi
+  done
+done
+
+echo ""
+
+# ========================================
+# Frozen: Wrapper stub existence
+# ========================================
+echo "--- Frozen: Wrapper stub existence ---"
+
+FROZEN_WRAPPERS=(
+  "ocw-gateway-health.sh"
+  "ocw-gateway-restart.sh"
+  "ocw-validate-openclaw-json.sh"
+  "ocw-deploy-openclaw-json.sh"
+  "ocw-snapshot-pre.sh"
+  "ocw-snapshot-post.sh"
+  "ocw-vault-sync.sh"
+  "ocw-rollback-prepare.sh"
+)
+
+for wrapper in "${FROZEN_WRAPPERS[@]}"; do
+  if [ -f "$REPO_ROOT/broker/wrappers/$wrapper" ]; then
+    pass "Wrapper exists: $wrapper"
+  else
+    fail "Missing wrapper: $wrapper"
+  fi
+done
+
+WRAPPER_COUNT=$(find "$REPO_ROOT/broker/wrappers" -maxdepth 1 -name 'ocw-*.sh' -type f | wc -l)
+if [ "$WRAPPER_COUNT" -eq 8 ]; then
+  pass "Wrapper count frozen at 8"
+else
+  fail "Wrapper count changed: expected 8, got $WRAPPER_COUNT"
+fi
+
+echo ""
+
+# ========================================
 # Frozen: ok/status consistency invariant
 # ========================================
 echo "--- Frozen: ok/status invariant in fixtures ---"
@@ -249,6 +334,29 @@ done
 echo ""
 
 # ========================================
+# Frozen: No deprecated field names in fixtures
+# ========================================
+echo "--- Frozen: No deprecated field names in fixtures ---"
+
+for dep_field in "${DEPRECATED_FIELDS[@]}"; do
+  for f in "$REPO_ROOT"/examples/broker/*-request.json "$REPO_ROOT"/examples/broker/*-result.json; do
+    basename_f=$(basename "$f")
+    if grep -q "\"$dep_field\"" "$f" 2>/dev/null; then
+      fail "Deprecated field '$dep_field' in fixture: $basename_f"
+    fi
+  done
+  for f in "$REPO_ROOT"/examples/broker/negative/*-request.json "$REPO_ROOT"/examples/broker/negative/*-result.json; do
+    basename_f=$(basename "$f")
+    if grep -q "\"$dep_field\"" "$f" 2>/dev/null; then
+      fail "Deprecated field '$dep_field' in negative fixture: $basename_f"
+    fi
+  done
+  pass "No '$dep_field' in any fixtures"
+done
+
+echo ""
+
+# ========================================
 # Frozen: Action list consistency across layers
 # ========================================
 echo "--- Frozen: Action list consistency ---"
@@ -310,6 +418,14 @@ EXPECTED_NEGATIVE_FIXTURES=(
   "missing-reason"
   "missing-candidate-path"
   "wrong-wrapper-action"
+  "empty-reason"
+  "empty-label"
+  "empty-sha256"
+  "missing-snapshot-name"
+  "missing-target-snapshot"
+  "missing-label"
+  "type-error-reason"
+  "empty-action"
 )
 
 for case_name in "${EXPECTED_NEGATIVE_FIXTURES[@]}"; do

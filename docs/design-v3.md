@@ -1838,6 +1838,17 @@ Phase 1B 完成收口需要同时满足以下全部条件：
 - [x] 创建 `scripts/validate-phase2-prep.sh`（聚合验证：schema + wrapper + plugin + fixture + protocol spec + cross-layer contract）
 - [x] 创建 `tests/test_phase2_integration.sh`（集成测试：plugin→wrapper pipeline、negative tests、contract drift detection）
 - [x] 修正 `workspace-main-template/skills/broker/SKILL.md` 契约漂移（operation/parameters/approval_id → action/inputs/requested_by）
+- [x] 创建 `docs/specs/error-taxonomy-v1.md`（错误分类、错误码、denied/error 语义区分、negative fixture 索引）
+- [x] 创建 `tests/test_contract_freeze.sh`（协议冻结测试：action enum、envelope fields、status enum、per-action schema、ok/status invariant、deprecated fields、cross-layer consistency、negative fixture coverage）
+- [x] 扩充 negative fixture 覆盖至 17 场景（empty-reason、empty-label、empty-sha256、missing-snapshot-name、missing-target-snapshot、missing-label、type-error-reason、empty-action）
+- [x] 在 `common.sh`、`index.js`、`validate-request.sh` 三层同步 `maxLength` 校验（label/snapshot_name/target_snapshot ≤ 128 chars）
+- [x] 扩展 builder→wrapper pipeline 集成测试覆盖全部 8 个 action
+- [x] 增强 `validate-phase2-prep.sh`：扩展 builder 测试 action 覆盖、负面 fixture 验证器拒绝测试、schema maxLength 一致性校验
+- [x] 修正 protocol spec 描述漂移：snapshot_name / target_snapshot / label 字段描述由 "alphanumeric" 精确化为 "alphanumeric, dots, hyphens, underscores; max 128 chars"
+- [x] 冻结 per-action schema property types 与 maxLength=128 约束
+- [x] 冻结 wrapper stub 存在性（8 个 ocw-*.sh）
+- [x] 冻结 fixture 中无 deprecated field names
+- [x] 更新 error taxonomy negative fixture index 至完整 19 条
 
 ### 现网部署（需 Phase 2 正式启动后执行）
 

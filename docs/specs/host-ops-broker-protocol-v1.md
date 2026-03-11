@@ -282,7 +282,7 @@ No required inputs. The `inputs` object may be empty (`{}`).
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `label` | string | Yes | Snapshot label (alphanumeric, dots, hyphens, underscores) |
+| `label` | string | Yes | Snapshot label (alphanumeric, dots, hyphens, underscores; max 128 chars) |
 | `reason` | string | Yes | Human-readable reason for snapshot |
 
 Snapshot name generated as: `root-pre-<label>`
@@ -291,7 +291,7 @@ Snapshot name generated as: `root-pre-<label>`
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `label` | string | Yes | Snapshot label (alphanumeric, dots, hyphens, underscores) |
+| `label` | string | Yes | Snapshot label (alphanumeric, dots, hyphens, underscores; max 128 chars) |
 | `reason` | string | Yes | Human-readable reason for snapshot |
 
 Snapshot name generated as: `root-post-<label>`
@@ -300,14 +300,14 @@ Snapshot name generated as: `root-post-<label>`
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `snapshot_name` | string | Yes | Name of snapshot to sync (alphanumeric format) |
+| `snapshot_name` | string | Yes | Name of snapshot to sync (alphanumeric, dots, hyphens, underscores; max 128 chars) |
 | `incremental` | boolean | No | Whether to use incremental send (default: true) |
 
 ### 7.8 `rollback_prepare`
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `target_snapshot` | string | Yes | Name of snapshot to rollback to (alphanumeric format) |
+| `target_snapshot` | string | Yes | Name of snapshot to rollback to (alphanumeric, dots, hyphens, underscores; max 128 chars) |
 | `reason` | string | Yes | Human-readable reason for rollback |
 
 ---

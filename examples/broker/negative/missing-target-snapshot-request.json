@@ -1,0 +1,9 @@
+{
+  "action": "rollback_prepare",
+  "request_id": "req-20260311-170400-neg105",
+  "task_id": "task-neg-missing-target-snapshot",
+  "requested_by": "agent:main",
+  "inputs": {
+    "reason": "rollback for testing"
+  }
+}

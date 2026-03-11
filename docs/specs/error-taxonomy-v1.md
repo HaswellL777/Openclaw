@@ -99,13 +99,21 @@ Each error category has a corresponding negative fixture pair in `examples/broke
 | Error code | Request fixture | Result fixture |
 |-----------|----------------|----------------|
 | `E_UNKNOWN_ACTION` | `invalid-action-request.json` | `invalid-action-result.json` |
+| `E_UNKNOWN_ACTION` (empty) | `empty-action-request.json` | `empty-action-result.json` |
 | `E_MISSING_FIELD` (request_id) | `missing-request-id-request.json` | `missing-request-id-result.json` |
 | `E_MISSING_FIELD` (task_id) | `missing-task-id-request.json` | `missing-task-id-result.json` |
 | `D_PATH_TRAVERSAL` | `path-traversal-request.json` | `path-traversal-result.json` |
 | `E_INVALID_SHA256` | `bad-sha256-request.json` | `bad-sha256-result.json` |
+| `E_INVALID_SHA256` (empty) | `empty-sha256-request.json` | `empty-sha256-result.json` |
 | `E_INVALID_LABEL` | `bad-label-request.json` | `bad-label-result.json` |
+| `E_INVALID_LABEL` (empty) | `empty-label-request.json` | `empty-label-result.json` |
 | `E_MISSING_INPUT` (reason) | `missing-reason-request.json` | `missing-reason-result.json` |
+| `E_MISSING_INPUT` (reason, empty) | `empty-reason-request.json` | `empty-reason-result.json` |
+| `E_MISSING_INPUT` (reason, type) | `type-error-reason-request.json` | `type-error-reason-result.json` |
 | `E_MISSING_INPUT` (candidate_path) | `missing-candidate-path-request.json` | `missing-candidate-path-result.json` |
+| `E_MISSING_INPUT` (label) | `missing-label-request.json` | `missing-label-result.json` |
+| `E_MISSING_INPUT` (snapshot_name) | `missing-snapshot-name-request.json` | `missing-snapshot-name-result.json` |
+| `E_MISSING_INPUT` (target_snapshot) | `missing-target-snapshot-request.json` | `missing-target-snapshot-result.json` |
 | `E_WRONG_ACTION` | `wrong-wrapper-action-request.json` | `wrong-wrapper-action-result.json` |
 | `E_FILE_NOT_FOUND` | *(no request file)* | `missing-file-result.json` |
 | `D_PATH_WHITELIST` | `../bad-path-request.json` | `../bad-path-result.json` |

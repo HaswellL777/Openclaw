@@ -118,10 +118,16 @@ broker_validate_path() {
   esac
 }
 
-# Validate label/name format (alphanumeric, dots, hyphens, underscores)
+# Validate label/name format (alphanumeric, dots, hyphens, underscores; max 128 chars)
 # Usage: broker_validate_label "$value" "field_name"
 broker_validate_label() {
   local value="$1" field="${2:-label}"
+  if [ -z "$value" ]; then
+    broker_error "error" "Empty ${field}"
+  fi
+  if [ "${#value}" -gt 128 ]; then
+    broker_error "error" "Invalid ${field}: exceeds 128 character limit"
+  fi
   if ! echo "$value" | grep -qE '^[a-zA-Z0-9._-]+$'; then
     broker_error "error" "Invalid ${field} format: alphanumeric, dots, hyphens, underscores only"
   fi

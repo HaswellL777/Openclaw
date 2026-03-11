@@ -123,6 +123,8 @@ if [ "$ERRORS" -eq 0 ] && [ -n "$ACTION" ]; then
       REASON=$(jq -r '.inputs.reason // empty' "$REQUEST_FILE")
       if [ -z "$LABEL" ]; then
         err "$ACTION requires inputs.label"
+      elif [ "${#LABEL}" -gt 128 ]; then
+        err "label exceeds 128 character limit"
       elif ! echo "$LABEL" | grep -qE '^[a-zA-Z0-9._-]+$'; then
         err "label must be alphanumeric with dots, hyphens, underscores"
       fi
@@ -134,6 +136,8 @@ if [ "$ERRORS" -eq 0 ] && [ -n "$ACTION" ]; then
       SNAPSHOT_NAME=$(jq -r '.inputs.snapshot_name // empty' "$REQUEST_FILE")
       if [ -z "$SNAPSHOT_NAME" ]; then
         err "vault_sync requires inputs.snapshot_name"
+      elif [ "${#SNAPSHOT_NAME}" -gt 128 ]; then
+        err "snapshot_name exceeds 128 character limit"
       elif ! echo "$SNAPSHOT_NAME" | grep -qE '^[a-zA-Z0-9._-]+$'; then
         err "snapshot_name must be alphanumeric with dots, hyphens, underscores"
       fi
@@ -143,6 +147,8 @@ if [ "$ERRORS" -eq 0 ] && [ -n "$ACTION" ]; then
       REASON=$(jq -r '.inputs.reason // empty' "$REQUEST_FILE")
       if [ -z "$TARGET" ]; then
         err "rollback_prepare requires inputs.target_snapshot"
+      elif [ "${#TARGET}" -gt 128 ]; then
+        err "target_snapshot exceeds 128 character limit"
       elif ! echo "$TARGET" | grep -qE '^[a-zA-Z0-9._-]+$'; then
         err "target_snapshot must be alphanumeric with dots, hyphens, underscores"
       fi

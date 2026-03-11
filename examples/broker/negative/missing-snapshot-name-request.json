@@ -1,0 +1,7 @@
+{
+  "action": "vault_sync",
+  "request_id": "req-20260311-170300-neg104",
+  "task_id": "task-neg-missing-snapshot-name",
+  "requested_by": "agent:main",
+  "inputs": {}
+}

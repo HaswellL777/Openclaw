@@ -1,0 +1,8 @@
+{
+  "ok": false,
+  "action": "validate_openclaw_json_candidate",
+  "request_id": "req-20260311-170200-neg103",
+  "task_id": "task-neg-empty-sha256",
+  "status": "error",
+  "message": "validate_openclaw_json_candidate requires inputs.expected_sha256"
+}

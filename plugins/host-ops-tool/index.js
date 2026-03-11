@@ -150,6 +150,8 @@ function validateActionInputs(action, inputs) {
     case "snapshot_post":
       if (!inputs.label || typeof inputs.label !== "string") {
         errors.push(`${action} requires inputs.label (string)`);
+      } else if (inputs.label.length > 128) {
+        errors.push("label exceeds 128 character limit");
       } else if (!/^[a-zA-Z0-9._-]+$/.test(inputs.label)) {
         errors.push("label must be alphanumeric with dots, hyphens, underscores only");
       }
@@ -161,6 +163,8 @@ function validateActionInputs(action, inputs) {
     case "vault_sync":
       if (!inputs.snapshot_name || typeof inputs.snapshot_name !== "string") {
         errors.push("vault_sync requires inputs.snapshot_name (string)");
+      } else if (inputs.snapshot_name.length > 128) {
+        errors.push("snapshot_name exceeds 128 character limit");
       } else if (!/^[a-zA-Z0-9._-]+$/.test(inputs.snapshot_name)) {
         errors.push("snapshot_name must be alphanumeric with dots, hyphens, underscores only");
       }
@@ -169,6 +173,8 @@ function validateActionInputs(action, inputs) {
     case "rollback_prepare":
       if (!inputs.target_snapshot || typeof inputs.target_snapshot !== "string") {
         errors.push("rollback_prepare requires inputs.target_snapshot (string)");
+      } else if (inputs.target_snapshot.length > 128) {
+        errors.push("target_snapshot exceeds 128 character limit");
       } else if (!/^[a-zA-Z0-9._-]+$/.test(inputs.target_snapshot)) {
         errors.push("target_snapshot must be alphanumeric with dots, hyphens, underscores only");
       }

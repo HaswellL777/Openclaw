@@ -173,6 +173,95 @@ else
 fi
 rm -f "$TMPFILE"
 
+# snapshot_post: needs label + reason
+TMPFILE=$(mktemp)
+if bash "$BUILD_REQUEST" snapshot_post "label=post-config-20260311" "reason=post-change snapshot" > "$TMPFILE" 2>/dev/null; then
+  if RESULT=$(bash "$REPO_ROOT/broker/wrappers/ocw-snapshot-post.sh" "$TMPFILE" 2>/dev/null); then
+    if echo "$RESULT" | jq -e '.ok == true' >/dev/null 2>&1; then
+      pass "Builder -> wrapper pipeline: snapshot_post"
+    else
+      fail "Builder -> wrapper pipeline: snapshot_post (ok!=true)"
+    fi
+  else
+    fail "Builder -> wrapper pipeline: snapshot_post (wrapper failed)"
+  fi
+else
+  fail "build-request.sh snapshot_post failed"
+fi
+rm -f "$TMPFILE"
+
+# validate_openclaw_json_candidate: needs candidate_path + expected_sha256
+TMPFILE=$(mktemp)
+if bash "$BUILD_REQUEST" validate_openclaw_json_candidate \
+  "candidate_path=/var/lib/openclaw/approvals/candidates/openclaw.json" \
+  "expected_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855" > "$TMPFILE" 2>/dev/null; then
+  if RESULT=$(bash "$REPO_ROOT/broker/wrappers/ocw-validate-openclaw-json.sh" "$TMPFILE" 2>/dev/null); then
+    if echo "$RESULT" | jq -e '.ok == true' >/dev/null 2>&1; then
+      pass "Builder -> wrapper pipeline: validate_openclaw_json_candidate"
+    else
+      fail "Builder -> wrapper pipeline: validate_openclaw_json_candidate (ok!=true)"
+    fi
+  else
+    fail "Builder -> wrapper pipeline: validate_openclaw_json_candidate (wrapper failed)"
+  fi
+else
+  fail "build-request.sh validate_openclaw_json_candidate failed"
+fi
+rm -f "$TMPFILE"
+
+# deploy_openclaw_json_candidate: needs candidate_path + expected_sha256
+TMPFILE=$(mktemp)
+if bash "$BUILD_REQUEST" deploy_openclaw_json_candidate \
+  "candidate_path=/var/lib/openclaw/approvals/candidates/openclaw.json" \
+  "expected_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855" > "$TMPFILE" 2>/dev/null; then
+  if RESULT=$(bash "$REPO_ROOT/broker/wrappers/ocw-deploy-openclaw-json.sh" "$TMPFILE" 2>/dev/null); then
+    if echo "$RESULT" | jq -e '.ok == true' >/dev/null 2>&1; then
+      pass "Builder -> wrapper pipeline: deploy_openclaw_json_candidate"
+    else
+      fail "Builder -> wrapper pipeline: deploy_openclaw_json_candidate (ok!=true)"
+    fi
+  else
+    fail "Builder -> wrapper pipeline: deploy_openclaw_json_candidate (wrapper failed)"
+  fi
+else
+  fail "build-request.sh deploy_openclaw_json_candidate failed"
+fi
+rm -f "$TMPFILE"
+
+# vault_sync: needs snapshot_name
+TMPFILE=$(mktemp)
+if bash "$BUILD_REQUEST" vault_sync "snapshot_name=root-20260311-pre" > "$TMPFILE" 2>/dev/null; then
+  if RESULT=$(bash "$REPO_ROOT/broker/wrappers/ocw-vault-sync.sh" "$TMPFILE" 2>/dev/null); then
+    if echo "$RESULT" | jq -e '.ok == true' >/dev/null 2>&1; then
+      pass "Builder -> wrapper pipeline: vault_sync"
+    else
+      fail "Builder -> wrapper pipeline: vault_sync (ok!=true)"
+    fi
+  else
+    fail "Builder -> wrapper pipeline: vault_sync (wrapper failed)"
+  fi
+else
+  fail "build-request.sh vault_sync failed"
+fi
+rm -f "$TMPFILE"
+
+# rollback_prepare: needs target_snapshot + reason
+TMPFILE=$(mktemp)
+if bash "$BUILD_REQUEST" rollback_prepare "target_snapshot=root-20260310-pre" "reason=rollback test" > "$TMPFILE" 2>/dev/null; then
+  if RESULT=$(bash "$REPO_ROOT/broker/wrappers/ocw-rollback-prepare.sh" "$TMPFILE" 2>/dev/null); then
+    if echo "$RESULT" | jq -e '.ok == true' >/dev/null 2>&1; then
+      pass "Builder -> wrapper pipeline: rollback_prepare"
+    else
+      fail "Builder -> wrapper pipeline: rollback_prepare (ok!=true)"
+    fi
+  else
+    fail "Builder -> wrapper pipeline: rollback_prepare (wrapper failed)"
+  fi
+else
+  fail "build-request.sh rollback_prepare failed"
+fi
+rm -f "$TMPFILE"
+
 echo ""
 
 # ========================================
@@ -404,6 +493,42 @@ else
   pass "Plugin validator rejects invalid action"
 fi
 rm -f "$TMPFILE"
+
+# 5l. Plugin validator rejects negative fixtures
+echo ""
+echo "--- Test 5 (cont): Negative fixture validation ---"
+
+NEGATIVE_DIR="$REPO_ROOT/examples/broker/negative"
+NEGATIVE_CASES_WITH_REQUEST=(
+  "invalid-action"
+  "missing-request-id"
+  "missing-task-id"
+  "bad-sha256"
+  "bad-label"
+  "missing-reason"
+  "missing-candidate-path"
+  "path-traversal"
+  "empty-reason"
+  "empty-label"
+  "empty-sha256"
+  "missing-snapshot-name"
+  "missing-target-snapshot"
+  "missing-label"
+  "empty-action"
+)
+
+for case_name in "${NEGATIVE_CASES_WITH_REQUEST[@]}"; do
+  req_file="$NEGATIVE_DIR/${case_name}-request.json"
+  if [ -f "$req_file" ]; then
+    if bash "$VALIDATE_REQUEST" "$req_file" >/dev/null 2>&1; then
+      fail "Validator should reject negative fixture: ${case_name}"
+    else
+      pass "Validator correctly rejects: ${case_name}"
+    fi
+  else
+    fail "Missing negative fixture: ${case_name}-request.json"
+  fi
+done
 
 echo ""
 

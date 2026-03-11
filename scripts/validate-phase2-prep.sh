@@ -224,7 +224,7 @@ for action in "${ACTIONS[@]}"; do
 done
 
 # Test request builder produces valid output
-for action in gateway_health gateway_restart; do
+for action in gateway_health gateway_restart snapshot_pre vault_sync rollback_prepare; do
   TMPFILE=$(mktemp)
   case "$action" in
     gateway_health)
@@ -232,6 +232,15 @@ for action in gateway_health gateway_restart; do
       ;;
     gateway_restart)
       bash "$PLUGIN_DIR/lib/build-request.sh" "$action" "reason=test" > "$TMPFILE" 2>/dev/null
+      ;;
+    snapshot_pre)
+      bash "$PLUGIN_DIR/lib/build-request.sh" "$action" "label=test-20260311" "reason=test" > "$TMPFILE" 2>/dev/null
+      ;;
+    vault_sync)
+      bash "$PLUGIN_DIR/lib/build-request.sh" "$action" "snapshot_name=root-20260311-pre" > "$TMPFILE" 2>/dev/null
+      ;;
+    rollback_prepare)
+      bash "$PLUGIN_DIR/lib/build-request.sh" "$action" "target_snapshot=root-20260310-pre" "reason=test" > "$TMPFILE" 2>/dev/null
       ;;
   esac
   if [ -s "$TMPFILE" ] && jq empty "$TMPFILE" 2>/dev/null; then
@@ -404,6 +413,14 @@ EXPECTED_NEGATIVES=(
   "missing-reason"
   "missing-candidate-path"
   "wrong-wrapper-action"
+  "empty-reason"
+  "empty-label"
+  "empty-sha256"
+  "missing-snapshot-name"
+  "missing-target-snapshot"
+  "missing-label"
+  "type-error-reason"
+  "empty-action"
 )
 
 for case_name in "${EXPECTED_NEGATIVES[@]}"; do
@@ -437,6 +454,61 @@ if [ -f "$MISSING_FILE_RES" ] && jq empty "$MISSING_FILE_RES" 2>/dev/null; then
 else
   fail "Missing or invalid: missing-file-result.json"
 fi
+
+# Validate negative fixtures are rejected by the validator
+VALIDATE_REQUEST="$PLUGIN_DIR/lib/validate-request.sh"
+VALIDATOR_NEGATIVE_CASES=(
+  "invalid-action"
+  "missing-request-id"
+  "missing-task-id"
+  "bad-sha256"
+  "bad-label"
+  "missing-reason"
+  "missing-candidate-path"
+  "path-traversal"
+  "empty-reason"
+  "empty-label"
+  "empty-sha256"
+  "missing-snapshot-name"
+  "missing-target-snapshot"
+  "missing-label"
+  "empty-action"
+)
+
+for case_name in "${VALIDATOR_NEGATIVE_CASES[@]}"; do
+  req_file="$NEGATIVE_DIR/${case_name}-request.json"
+  if [ -f "$req_file" ]; then
+    if bash "$VALIDATE_REQUEST" "$req_file" >/dev/null 2>&1; then
+      fail "Validator should reject: ${case_name}"
+    else
+      pass "Validator correctly rejects: ${case_name}"
+    fi
+  fi
+done
+
+echo ""
+
+# ========================================
+# Section 7b: Schema maxLength consistency
+# ========================================
+echo "--- Section 7b: Schema maxLength consistency ---"
+
+SCHEMAS_DIR="$REPO_ROOT/broker/schemas/actions"
+for schema_stem in snapshot-pre snapshot-post vault-sync rollback-prepare; do
+  schema_file="$SCHEMAS_DIR/${schema_stem}.schema.json"
+  if [ -f "$schema_file" ]; then
+    for prop in label snapshot_name target_snapshot; do
+      max_len=$(jq -r ".properties.${prop}.maxLength // empty" "$schema_file" 2>/dev/null)
+      if [ -n "$max_len" ]; then
+        if [ "$max_len" = "128" ]; then
+          pass "maxLength=128: ${schema_stem}.${prop}"
+        else
+          fail "Unexpected maxLength: ${schema_stem}.${prop} (got ${max_len}, expected 128)"
+        fi
+      fi
+    done
+  fi
+done
 
 echo ""
 

@@ -1,0 +1,9 @@
+{
+  "action": "gateway_restart",
+  "request_id": "req-20260311-170600-neg107",
+  "task_id": "task-neg-type-error-reason",
+  "requested_by": "agent:main",
+  "inputs": {
+    "reason": 12345
+  }
+}

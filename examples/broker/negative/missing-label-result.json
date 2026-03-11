@@ -1,0 +1,8 @@
+{
+  "ok": false,
+  "action": "snapshot_pre",
+  "request_id": "req-20260311-170500-neg106",
+  "task_id": "task-neg-missing-label",
+  "status": "error",
+  "message": "snapshot_pre requires inputs.label"
+}
