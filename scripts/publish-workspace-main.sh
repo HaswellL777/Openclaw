@@ -66,7 +66,9 @@ TEMPLATE SOURCE:
 PUBLISH STEPS:
     1. Copy workspace-main-template to target
     2. Preserve existing control/state/ (if exists)
-    3. Call publish-sop.sh to publish docs/host-sop.md to target/control/SOP.md
+    3. Publish docs/host-sop.md to target/control/SOP.md
+       (non-live targets: delegates to publish-sop.sh;
+        live targets: inline SOP publish by this script)
 
 EOF
     exit 0
