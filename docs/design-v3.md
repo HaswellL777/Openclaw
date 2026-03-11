@@ -1629,6 +1629,10 @@ Phase 1B 完成收口需要同时满足以下全部条件：
 - 聚合验证脚本（`scripts/validate-phase2-prep.sh`）与集成测试（`tests/test_phase2_integration.sh`）
 - `workspace-main-template/control/host-ops-api.md` 已对齐 §5.6.2 请求契约
 - `workspace-main-template/skills/broker/SKILL.md` 已对齐当前协议契约（消除 operation/parameters/approval_id 漂移）
+- 错误分类规格文档（`docs/specs/error-taxonomy-v1.md`，定义 E_*/D_* 错误码与 error/denied 语义）
+- 9 组负面测试 fixture + 1 missing-file result（`examples/broker/negative/`，覆盖所有 §4 error/denied 类别）
+- 协议契约冻结测试（`tests/test_contract_freeze.sh`，109 checks pass，冻结 action enum / required fields / ok-status 不变量 / 跨层一致性）
+- `host-ops-api.md` SHA256 示例修正（消除 abc123 占位符，添加 error/denied 区分文档）
 
 现网部署需要 Phase 2 正式启动后按进入门槛逐项执行。
 

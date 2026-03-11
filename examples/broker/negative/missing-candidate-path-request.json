@@ -1,0 +1,9 @@
+{
+  "action": "deploy_openclaw_json_candidate",
+  "request_id": "req-20260311-160700-neg008",
+  "task_id": "task-neg-missing-candidate",
+  "requested_by": "agent:main",
+  "inputs": {
+    "expected_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

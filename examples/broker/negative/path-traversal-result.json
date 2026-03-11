@@ -1,0 +1,8 @@
+{
+  "ok": false,
+  "action": "deploy_openclaw_json_candidate",
+  "request_id": "req-20260311-160300-neg004",
+  "task_id": "task-neg-traversal",
+  "status": "denied",
+  "message": "Path traversal detected"
+}

@@ -1,0 +1,7 @@
+{
+  "action": "gateway_restart",
+  "request_id": "req-20260311-160600-neg007",
+  "task_id": "task-neg-missing-reason",
+  "requested_by": "agent:main",
+  "inputs": {}
+}

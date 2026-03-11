@@ -1,0 +1,6 @@
+{
+  "action": "gateway_health",
+  "task_id": "task-neg-missing-reqid",
+  "requested_by": "agent:main",
+  "inputs": {}
+}

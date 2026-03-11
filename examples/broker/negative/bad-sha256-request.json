@@ -1,0 +1,10 @@
+{
+  "action": "validate_openclaw_json_candidate",
+  "request_id": "req-20260311-160400-neg005",
+  "task_id": "task-neg-bad-sha256",
+  "requested_by": "agent:main",
+  "inputs": {
+    "candidate_path": "/var/lib/openclaw/approvals/candidates/openclaw.json",
+    "expected_sha256": "not-a-valid-sha256-at-all"
+  }
+}

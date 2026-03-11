@@ -1,0 +1,8 @@
+{
+  "ok": false,
+  "action": "validate_openclaw_json_candidate",
+  "request_id": "req-20260311-160400-neg005",
+  "task_id": "task-neg-bad-sha256",
+  "status": "error",
+  "message": "Invalid SHA256 format"
+}

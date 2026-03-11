@@ -154,6 +154,14 @@ If validation passes but execution fails midway, the wrapper MUST:
 2. Include rollback_hint in the error response
 3. Not leave the system in an inconsistent state (or clearly document the inconsistency)
 
+### 4.4 Error taxonomy
+
+For formal error codes, denial reason definitions, and the error-vs-denied distinction, see `docs/specs/error-taxonomy-v1.md`. That document codifies the machine-readable error codes (`E_UNKNOWN_ACTION`, `D_PATH_TRAVERSAL`, etc.) and maps them to the result envelope fields.
+
+### 4.5 Negative test fixtures
+
+Each error category has a corresponding negative test fixture pair in `examples/broker/negative/`. These fixtures serve as the authoritative examples of expected error/denied response shapes.
+
 ---
 
 ## 5. Wrapper invocation contract

@@ -1,0 +1,5 @@
+{
+  "ok": false,
+  "status": "error",
+  "message": "Request file not found: /nonexistent/file.json"
+}

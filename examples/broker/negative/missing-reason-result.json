@@ -1,0 +1,8 @@
+{
+  "ok": false,
+  "action": "gateway_restart",
+  "request_id": "req-20260311-160600-neg007",
+  "task_id": "task-neg-missing-reason",
+  "status": "error",
+  "message": "Missing required input: reason"
+}

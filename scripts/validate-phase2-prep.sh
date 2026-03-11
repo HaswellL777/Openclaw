@@ -372,8 +372,8 @@ else
 fi
 
 # Check fixture count
-FIXTURE_REQ_COUNT=$(find "$FIXTURES_DIR" -name '*-request.json' -not -name 'bad-*' -type f 2>/dev/null | wc -l)
-FIXTURE_RES_COUNT=$(find "$FIXTURES_DIR" -name '*-result.json' -not -name 'bad-*' -type f 2>/dev/null | wc -l)
+FIXTURE_REQ_COUNT=$(find "$FIXTURES_DIR" -maxdepth 1 -name '*-request.json' -not -name 'bad-*' -type f 2>/dev/null | wc -l)
+FIXTURE_RES_COUNT=$(find "$FIXTURES_DIR" -maxdepth 1 -name '*-result.json' -not -name 'bad-*' -type f 2>/dev/null | wc -l)
 if [ "$FIXTURE_REQ_COUNT" -eq 8 ]; then
   pass "Request fixture count matches: 8"
 else
@@ -388,9 +388,118 @@ fi
 echo ""
 
 # ========================================
-# Section 7: Workspace template check
+# Section 7: Negative fixture validation
 # ========================================
-echo "--- Section 7: Workspace template check (delegated) ---"
+echo "--- Section 7: Negative fixture validation ---"
+
+NEGATIVE_DIR="$REPO_ROOT/examples/broker/negative"
+
+EXPECTED_NEGATIVES=(
+  "invalid-action"
+  "missing-request-id"
+  "missing-task-id"
+  "path-traversal"
+  "bad-sha256"
+  "bad-label"
+  "missing-reason"
+  "missing-candidate-path"
+  "wrong-wrapper-action"
+)
+
+for case_name in "${EXPECTED_NEGATIVES[@]}"; do
+  req_file="$NEGATIVE_DIR/${case_name}-request.json"
+  res_file="$NEGATIVE_DIR/${case_name}-result.json"
+
+  if [ -f "$req_file" ] && jq empty "$req_file" 2>/dev/null; then
+    pass "Negative fixture valid: ${case_name}-request.json"
+  else
+    fail "Missing or invalid negative fixture: ${case_name}-request.json"
+  fi
+
+  if [ -f "$res_file" ] && jq empty "$res_file" 2>/dev/null; then
+    # Verify ok=false
+    neg_ok=$(jq -r '.ok' "$res_file" 2>/dev/null)
+    neg_status=$(jq -r '.status' "$res_file" 2>/dev/null)
+    if [ "$neg_ok" = "false" ] && { [ "$neg_status" = "error" ] || [ "$neg_status" = "denied" ]; }; then
+      pass "Negative fixture valid: ${case_name}-result.json (ok=false, status=$neg_status)"
+    else
+      fail "Negative fixture bad envelope: ${case_name}-result.json (ok=$neg_ok, status=$neg_status)"
+    fi
+  else
+    fail "Missing or invalid negative fixture: ${case_name}-result.json"
+  fi
+done
+
+# Special: missing-file-result.json (no request file, that's the point)
+MISSING_FILE_RES="$NEGATIVE_DIR/missing-file-result.json"
+if [ -f "$MISSING_FILE_RES" ] && jq empty "$MISSING_FILE_RES" 2>/dev/null; then
+  pass "Negative fixture valid: missing-file-result.json"
+else
+  fail "Missing or invalid: missing-file-result.json"
+fi
+
+echo ""
+
+# ========================================
+# Section 8: Error taxonomy spec
+# ========================================
+echo "--- Section 8: Error taxonomy spec ---"
+
+ERROR_SPEC="$REPO_ROOT/docs/specs/error-taxonomy-v1.md"
+if [ -f "$ERROR_SPEC" ]; then
+  pass "Error taxonomy spec exists"
+  # Check it references key error codes
+  for code in E_UNKNOWN_ACTION E_MISSING_FIELD E_INVALID_SHA256 D_PATH_WHITELIST D_PATH_TRAVERSAL; do
+    if grep -q "$code" "$ERROR_SPEC"; then
+      pass "Error taxonomy defines: $code"
+    else
+      fail "Error taxonomy missing: $code"
+    fi
+  done
+  # Check it states Phase 2 not started
+  if grep -q "not yet deployed" "$ERROR_SPEC"; then
+    pass "Error taxonomy states broker not yet deployed"
+  else
+    fail "Error taxonomy missing 'not yet deployed' statement"
+  fi
+else
+  fail "Error taxonomy spec missing"
+fi
+
+echo ""
+
+# ========================================
+# Section 9: Contract freeze test
+# ========================================
+echo "--- Section 9: Contract freeze test (delegated) ---"
+if bash "$REPO_ROOT/tests/test_contract_freeze.sh" >/dev/null 2>&1; then
+  pass "test_contract_freeze.sh passes"
+else
+  fail "test_contract_freeze.sh fails"
+fi
+echo ""
+
+# ========================================
+# Section 10: Cross-layer SHA256 example consistency
+# ========================================
+echo "--- Section 10: SHA256 example consistency ---"
+
+# host-ops-api.md should not contain placeholder SHA256 like "abc123..."
+API_DOC="$REPO_ROOT/workspace-main-template/control/host-ops-api.md"
+if [ -f "$API_DOC" ]; then
+  if grep -q '"abc123' "$API_DOC"; then
+    fail "host-ops-api.md still contains placeholder SHA256 'abc123...'"
+  else
+    pass "host-ops-api.md uses proper SHA256 examples"
+  fi
+fi
+
+echo ""
+
+# ========================================
+# Section 11: Workspace template check (delegated)
+# ========================================
+echo "--- Section 11: Workspace template check (delegated) ---"
 if bash "$REPO_ROOT/scripts/check-workspace-main.sh" >/dev/null 2>&1; then
   pass "check-workspace-main.sh passes on template"
 else

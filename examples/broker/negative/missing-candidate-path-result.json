@@ -1,0 +1,8 @@
+{
+  "ok": false,
+  "action": "deploy_openclaw_json_candidate",
+  "request_id": "req-20260311-160700-neg008",
+  "task_id": "task-neg-missing-candidate",
+  "status": "error",
+  "message": "Missing required inputs: candidate_path, expected_sha256"
+}

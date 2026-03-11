@@ -48,7 +48,7 @@ Per `docs/design-v3.md` §5.6.2:
   "requested_by": "agent:main",
   "inputs": {
     "candidate_path": "/var/lib/openclaw/approvals/candidates/openclaw.json",
-    "expected_sha256": "abc123..."
+    "expected_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
   }
 }
 ```
@@ -75,7 +75,7 @@ Per-action input schemas: `broker/schemas/actions/<action>.schema.json`
   "message": "Config deployed successfully",
   "artifacts": {
     "deployed_path": "/etc/openclaw/openclaw.json",
-    "deployed_sha256": "abc123..."
+    "deployed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
   },
   "rollback_hint": "Restore from pre-change snapshot: root-pre-20260311-1430"
 }
@@ -135,7 +135,7 @@ No required inputs. Returns gateway service status.
   "requested_by": "agent:main",
   "inputs": {
     "candidate_path": "/var/lib/openclaw/approvals/candidates/openclaw.json",
-    "expected_sha256": "abc123..."
+    "expected_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
   }
 }
 ```
@@ -150,7 +150,7 @@ No required inputs. Returns gateway service status.
   "requested_by": "agent:main",
   "inputs": {
     "candidate_path": "/var/lib/openclaw/approvals/candidates/openclaw.json",
-    "expected_sha256": "abc123..."
+    "expected_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
   }
 }
 ```
@@ -246,10 +246,30 @@ Per design-v3.md §5.6.5:
 ## Error handling
 
 If an operation fails:
-1. Wrapper returns structured error JSON with `ok: false, status: "error"`
+1. Wrapper returns structured error JSON with `ok: false, status: "error"` or `status: "denied"`
 2. Broker preserves all logs with request-id
 3. Result includes `rollback_hint` when applicable
 4. Caller (main agent) can present rollback options to human
+
+### Error vs denied
+
+- **`error`**: Request was malformed, incomplete, or execution failed. May be retryable after correction.
+- **`denied`**: Request was understood but rejected by security policy (path whitelist, traversal). Do NOT retry with same inputs.
+
+### Error example
+
+```json
+{
+  "ok": false,
+  "action": "deploy_openclaw_json_candidate",
+  "request_id": "req-20260311-160300-neg004",
+  "task_id": "task-neg-traversal",
+  "status": "denied",
+  "message": "Path traversal detected"
+}
+```
+
+See `docs/specs/error-taxonomy-v1.md` for the full error code taxonomy.
 
 ## Phase 1 workaround (current)
 
@@ -262,6 +282,8 @@ Since broker is not yet deployed:
 
 ## References
 - `docs/design-v3.md` §5.6 — Authoritative broker protocol definition
+- `docs/specs/host-ops-broker-protocol-v1.md` — Full protocol specification
+- `docs/specs/error-taxonomy-v1.md` — Error taxonomy and result codes
 - `broker/schemas/host-ops-request.schema.json` — Request JSON Schema
 - `broker/schemas/host-ops-result.schema.json` — Result JSON Schema
 - `broker/schemas/actions/*.schema.json` — Per-action input schemas

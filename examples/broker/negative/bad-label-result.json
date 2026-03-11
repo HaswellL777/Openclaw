@@ -1,0 +1,8 @@
+{
+  "ok": false,
+  "action": "snapshot_pre",
+  "request_id": "req-20260311-160500-neg006",
+  "task_id": "task-neg-bad-label",
+  "status": "error",
+  "message": "Invalid label format: alphanumeric, dots, hyphens, underscores only"
+}

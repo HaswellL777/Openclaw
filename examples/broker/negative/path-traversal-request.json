@@ -1,0 +1,10 @@
+{
+  "action": "deploy_openclaw_json_candidate",
+  "request_id": "req-20260311-160300-neg004",
+  "task_id": "task-neg-traversal",
+  "requested_by": "agent:main",
+  "inputs": {
+    "candidate_path": "/var/lib/openclaw/approvals/candidates/../../etc/passwd",
+    "expected_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

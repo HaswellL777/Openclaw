@@ -1,0 +1,8 @@
+{
+  "ok": false,
+  "action": "delete_everything",
+  "request_id": "req-20260311-160000-neg001",
+  "task_id": "task-neg-invalid-action",
+  "status": "error",
+  "message": "Unknown action: delete_everything"
+}

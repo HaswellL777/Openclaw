@@ -1,0 +1,10 @@
+{
+  "action": "snapshot_pre",
+  "request_id": "req-20260311-160500-neg006",
+  "task_id": "task-neg-bad-label",
+  "requested_by": "agent:main",
+  "inputs": {
+    "label": "has spaces and $pecial!",
+    "reason": "Test bad label"
+  }
+}

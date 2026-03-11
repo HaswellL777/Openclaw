@@ -1,0 +1,8 @@
+{
+  "ok": false,
+  "action": "gateway_health",
+  "request_id": "",
+  "task_id": "task-neg-missing-reqid",
+  "status": "error",
+  "message": "Missing required fields: request_id, task_id"
+}
