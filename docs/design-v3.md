@@ -1636,8 +1636,15 @@ Phase 1B 完成收口需要同时满足以下全部条件：
 - 跨层契约矩阵（`docs/specs/contract-matrix-v1.md`，字段映射 / 镜像关系 / deprecated 名称索引）
 - result schema 强化（`additionalProperties: false`、`minLength`、`if/then/else` ok/status 不变量、reserved `error_code` 字段）
 - `SKILL.md` SHA256 占位符修正（`abc123...` → proper 64-char hex）
+- **Phase 2 部署设计包已完成（2026-03-11）**：
+  - 部署布局规格文档（`docs/specs/phase2-broker-deployment-layout.md`，定义目标文件系统布局、权限、systemd unit）
+  - 部署 runbook（`docs/runbook-phase2-broker-deployment.md`，含 10 项进入条件、7 项禁止条件、10 阶段部署序列、回滚规程）
+  - 执行包（`docs/execution-pack-phase2-broker-deployment.md`，含 15 步分步命令块、人工确认点）
+  - 现场记录模板（`docs/templates/phase2-broker-deployment-record-template.md`）
+  - 文档回写模板（`docs/templates/phase2-broker-deployment-syncback-template.md`）
+  - 只读预检脚本（`scripts/preflight-phase2-broker-deployment.sh`）
 
-现网部署需要 Phase 2 正式启动后按进入门槛逐项执行。
+现网部署需要 Phase 2 正式启动后按进入门槛逐项执行。部署设计包已就绪供操作员审阅与执行。
 
 ### 进入门槛（Entry Gates）
 
@@ -1865,6 +1872,12 @@ Phase 1B 完成收口需要同时满足以下全部条件：
 - [x] 创建 `docs/specs/phase2-repo-prep-gate.md`（prep 退出标准、明确 deferred 事项、残留低优先级项）
 - [x] 增强 `test_contract_freeze.sh`：action inventory 冻结验证、fixture registry 一致性验证
 - [x] 增强 `validate-phase2-prep.sh`：action inventory、fixture registry、prep gate、validator parity freeze 校验
+- [x] 创建 `docs/specs/phase2-broker-deployment-layout.md`（部署目标文件系统布局规格：daemon、socket、wrappers、logs、state、systemd unit、权限模型）
+- [x] 创建 `docs/runbook-phase2-broker-deployment.md`（部署 runbook：进入条件、禁止条件、10 阶段部署序列、验证序列、回滚规程、快照纪律）
+- [x] 创建 `docs/execution-pack-phase2-broker-deployment.md`（分步执行包：15 步命令块 + 人工确认点 + 回退规程）
+- [x] 创建 `docs/templates/phase2-broker-deployment-record-template.md`（部署现场记录模板）
+- [x] 创建 `docs/templates/phase2-broker-deployment-syncback-template.md`（部署后文档回写模板）
+- [x] 创建 `scripts/preflight-phase2-broker-deployment.sh`（只读预检脚本：10 段验证，不访问 live path）
 
 ### 现网部署（需 Phase 2 正式启动后执行）
 
