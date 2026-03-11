@@ -1603,6 +1603,9 @@ Phase 1B 完成收口需要同时满足以下全部条件：
 | Phase 1B 退出条件 + Phase 2 进入门槛定义 | 阶段边界 | ✅ 已定义 |
 | `docs/runbook-first-live-publish.md` | 首次现网发布 Operator Runbook | ✅ 已编写（含 Go/No-Go checklist 与证据采集要求，待执行） |
 | `scripts/preflight-first-live-publish.sh` | 首次 live publish 只读预检脚本 | ✅ 已实现 |
+| `docs/execution-pack-first-live-publish.md` | 首次现网发布执行包（分步命令 + 确认点 + 回退速查卡） | ✅ 已编写（执行前准备材料，不代表操作已执行） |
+| `docs/templates/first-live-publish-record-template.md` | 现场记录模板 | ✅ 已编写 |
+| `docs/templates/phase1b-live-publish-syncback-template.md` | 发布后文档回写模板 | ✅ 已编写 |
 | 首次现网脚本化发布 + 校验 | 现网操作 | ⬚ 待执行 |
 
 ---

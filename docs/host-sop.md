@@ -1055,6 +1055,9 @@ B. workspace 发布：
   - `scripts/check-workspace-main.sh`：校验 workspace-main 结构完整性（区分模板模式 vs 发布产物模式），含 SOP hash 交叉校验
   - `scripts/preflight-first-live-publish.sh`：首次 live publish 只读预检脚本，验证开发仓侧所有前置条件（不访问 live path），输出 Go/No-Go 结论
 - 首次现网脚本化发布 operator runbook：`docs/runbook-first-live-publish.md`（含 Go/No-Go checklist 与证据采集要求）
+- 首次现网发布执行包：`docs/execution-pack-first-live-publish.md`（分步命令块 + 人工确认点 + 回退速查卡，执行前准备材料，不代表操作已执行）
+- 现场记录模板：`docs/templates/first-live-publish-record-template.md`
+- 发布后文档回写模板：`docs/templates/phase1b-live-publish-syncback-template.md`
 
 C. 配置发布：
 - 在开发仓生成候选配置；
@@ -1761,3 +1764,4 @@ Phase 1A 完成后，已执行 post-change 里程碑快照与 Vault 入库：
 | 2026-03-10 | Phase 1B 收口：正式定义 Phase 1B 退出条件与 Phase 2 进入门槛（`design-v3.md` §7）；将控制面备份脚本实现从 Phase 1B 重新归入 Phase 6；同步更新 SOP §0.2、§11.3（新增 §11.3.1）；同步更新 `runtime-allowlist-backup-draft.md` §8.1 |
 | 2026-03-10 | Phase 1B live publish 准备：publish 脚本增加 `--allow-live-target` flag（交互确认 + TTY 检查，默认仍 fail-closed）；check 脚本增加 SOP hash 交叉校验；编写首次现网发布 operator runbook（`docs/runbook-first-live-publish.md`）；文档同步更新 SOP §0.2/§0.5/§11.3/§13.8.4 与 design-v3 §0/§7/§8.2——**均未将现网发布写为已完成** |
 | 2026-03-11 | Phase 1B 预检包：新增只读 preflight 脚本（`scripts/preflight-first-live-publish.sh`）；增强 runbook（Go/No-Go checklist、证据采集要求、preflight 集成、check 命令 sudo 修正）；修正 `publish-sop.sh` 描述（无条件拒绝 live path，非"含 --allow-live-target"）；同步更新 SOP §0.2/§11.3/§13.8.4 与 design-v3 §5.3.1/§7/§8.2——**现网发布仍未执行** |
+| 2026-03-11 | Phase 1B 执行包：新增首次现网发布执行包（`docs/execution-pack-first-live-publish.md`，含分步命令块、人工确认点、回退速查卡）；新增现场记录模板（`docs/templates/first-live-publish-record-template.md`）与发布后文档回写模板（`docs/templates/phase1b-live-publish-syncback-template.md`）；一致性复核确认 preflight/runbook/publish/check 命令顺序一致、无文档间冲突；更新 SOP §13.8.4 引用新文档——**所有文档均为执行前准备材料，现网发布仍未执行** |
