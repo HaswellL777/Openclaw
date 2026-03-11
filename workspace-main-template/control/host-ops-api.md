@@ -92,6 +92,7 @@ Optional fields:
 - `message` — Human-readable description
 - `artifacts` — Action-specific output data
 - `rollback_hint` — Instructions for undoing the operation
+- `error_code` — Machine-readable error code (reserved; see `docs/specs/error-taxonomy-v1.md`)
 
 Schema: `broker/schemas/host-ops-result.schema.json`
 

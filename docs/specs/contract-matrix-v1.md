@@ -102,7 +102,12 @@ Note: `"operation"` in the approval system (`pending-approvals.json`) is a separ
 ## 7. Verification
 
 This matrix is verified by:
-- `tests/test_contract_freeze.sh` — action enum, field sets, types, deprecated names, cross-layer lists
-- `scripts/validate-broker-schemas.sh` — schema structure, fixture conformance
-- `scripts/validate-phase2-prep.sh` — full cross-layer alignment
-- `tests/test_phase2_integration.sh` — runtime validation parity
+- `tests/test_contract_freeze.sh` — action enum, field sets, types, deprecated names, cross-layer lists ✅ implemented
+- `scripts/validate-broker-schemas.sh` — schema structure, fixture conformance ✅ implemented
+- `scripts/validate-phase2-prep.sh` — full cross-layer alignment ✅ implemented
+- `tests/test_phase2_integration.sh` — runtime validation parity ✅ implemented
+- `tests/test_broker_schemas.sh` — wrapper stub execution with fixtures ✅ implemented
+
+Single-source references:
+- `broker/schemas/action-inventory.json` — frozen action inventory (schema, wrapper, fixture mapping)
+- `examples/broker/fixture-registry.json` — fixture registry (happy-path, negative, expected results)

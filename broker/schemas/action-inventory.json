@@ -1,0 +1,63 @@
+{
+  "$comment": "Single-source action inventory — Phase 2 dev-repo prep. Not live deployment.",
+  "frozen": true,
+  "version": "1.0.0",
+  "actions": [
+    {
+      "name": "deploy_openclaw_json_candidate",
+      "schema": "actions/deploy-openclaw-json.schema.json",
+      "wrapper": "ocw-deploy-openclaw-json.sh",
+      "fixture": "deploy-openclaw-json",
+      "required_inputs": ["candidate_path", "expected_sha256"]
+    },
+    {
+      "name": "gateway_health",
+      "schema": "actions/gateway-health.schema.json",
+      "wrapper": "ocw-gateway-health.sh",
+      "fixture": "gateway-health",
+      "required_inputs": []
+    },
+    {
+      "name": "gateway_restart",
+      "schema": "actions/gateway-restart.schema.json",
+      "wrapper": "ocw-gateway-restart.sh",
+      "fixture": "gateway-restart",
+      "required_inputs": ["reason"]
+    },
+    {
+      "name": "rollback_prepare",
+      "schema": "actions/rollback-prepare.schema.json",
+      "wrapper": "ocw-rollback-prepare.sh",
+      "fixture": "rollback-prepare",
+      "required_inputs": ["target_snapshot", "reason"]
+    },
+    {
+      "name": "snapshot_post",
+      "schema": "actions/snapshot-post.schema.json",
+      "wrapper": "ocw-snapshot-post.sh",
+      "fixture": "snapshot-post",
+      "required_inputs": ["label", "reason"]
+    },
+    {
+      "name": "snapshot_pre",
+      "schema": "actions/snapshot-pre.schema.json",
+      "wrapper": "ocw-snapshot-pre.sh",
+      "fixture": "snapshot-pre",
+      "required_inputs": ["label", "reason"]
+    },
+    {
+      "name": "validate_openclaw_json_candidate",
+      "schema": "actions/validate-openclaw-json.schema.json",
+      "wrapper": "ocw-validate-openclaw-json.sh",
+      "fixture": "validate-openclaw-json",
+      "required_inputs": ["candidate_path", "expected_sha256"]
+    },
+    {
+      "name": "vault_sync",
+      "schema": "actions/vault-sync.schema.json",
+      "wrapper": "ocw-vault-sync.sh",
+      "fixture": "vault-sync",
+      "required_inputs": ["snapshot_name"]
+    }
+  ]
+}

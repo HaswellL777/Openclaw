@@ -1858,6 +1858,13 @@ Phase 1B 完成收口需要同时满足以下全部条件：
 - [x] 冻结 result envelope property types 与 minLength/invariant schema 约束
 - [x] 修正 `SKILL.md` SHA256 占位符（`abc123...` → proper 64-char hex）
 - [x] 更新 error taxonomy negative fixture index 至完整 25 条
+- [x] 创建 `broker/schemas/action-inventory.json`（单一来源 action inventory，frozen=true，映射 schema/wrapper/fixture/required_inputs）
+- [x] 创建 `examples/broker/fixture-registry.json`（fixture registry：happy-path、negative、expected results、error types）
+- [x] 在 `host-ops-api.md` 补充 `error_code` 可选字段文档（reserved，指向 error-taxonomy-v1.md）
+- [x] 在 `contract-matrix-v1.md` §7 添加验证脚本实现状态标记与单一来源引用
+- [x] 创建 `docs/specs/phase2-repo-prep-gate.md`（prep 退出标准、明确 deferred 事项、残留低优先级项）
+- [x] 增强 `test_contract_freeze.sh`：action inventory 冻结验证、fixture registry 一致性验证
+- [x] 增强 `validate-phase2-prep.sh`：action inventory、fixture registry、prep gate、validator parity freeze 校验
 
 ### 现网部署（需 Phase 2 正式启动后执行）
 

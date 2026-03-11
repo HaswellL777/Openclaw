@@ -1,0 +1,43 @@
+{
+  "$comment": "Fixture registry — Phase 2 dev-repo prep. Maps fixtures to actions, categories, and expected results.",
+  "version": "1.0.0",
+  "happy_path": [
+    { "stem": "gateway-health", "action": "gateway_health", "expected_ok": true },
+    { "stem": "gateway-restart", "action": "gateway_restart", "expected_ok": true },
+    { "stem": "validate-openclaw-json", "action": "validate_openclaw_json_candidate", "expected_ok": true },
+    { "stem": "deploy-openclaw-json", "action": "deploy_openclaw_json_candidate", "expected_ok": true },
+    { "stem": "snapshot-pre", "action": "snapshot_pre", "expected_ok": true },
+    { "stem": "snapshot-post", "action": "snapshot_post", "expected_ok": true },
+    { "stem": "vault-sync", "action": "vault_sync", "expected_ok": true },
+    { "stem": "rollback-prepare", "action": "rollback_prepare", "expected_ok": true }
+  ],
+  "negative": [
+    { "stem": "invalid-action", "category": "envelope", "error_type": "E_UNKNOWN_ACTION", "expected_status": "error", "has_request": true },
+    { "stem": "missing-request-id", "category": "envelope", "error_type": "E_MISSING_FIELD", "expected_status": "error", "has_request": true },
+    { "stem": "missing-task-id", "category": "envelope", "error_type": "E_MISSING_FIELD", "expected_status": "error", "has_request": true },
+    { "stem": "empty-action", "category": "envelope", "error_type": "E_MISSING_FIELD", "expected_status": "error", "has_request": true },
+    { "stem": "null-action", "category": "envelope", "error_type": "E_MISSING_FIELD", "expected_status": "error", "has_request": true },
+    { "stem": "numeric-action", "category": "envelope", "error_type": "E_SCHEMA_VALIDATION", "expected_status": "error", "has_request": true },
+    { "stem": "null-inputs", "category": "envelope", "error_type": "E_SCHEMA_VALIDATION", "expected_status": "error", "has_request": true },
+    { "stem": "array-inputs", "category": "envelope", "error_type": "E_SCHEMA_VALIDATION", "expected_status": "error", "has_request": true },
+    { "stem": "extra-fields", "category": "envelope", "error_type": "E_SCHEMA_VALIDATION", "expected_status": "error", "has_request": true },
+    { "stem": "missing-reason", "category": "action_input", "action": "gateway_restart", "error_type": "E_MISSING_INPUT", "expected_status": "error", "has_request": true },
+    { "stem": "empty-reason", "category": "action_input", "action": "gateway_restart", "error_type": "E_MISSING_INPUT", "expected_status": "error", "has_request": true },
+    { "stem": "type-error-reason", "category": "action_input", "action": "gateway_restart", "error_type": "E_SCHEMA_VALIDATION", "expected_status": "error", "has_request": true },
+    { "stem": "missing-candidate-path", "category": "action_input", "action": "validate_openclaw_json_candidate", "error_type": "E_MISSING_INPUT", "expected_status": "error", "has_request": true },
+    { "stem": "bad-sha256", "category": "action_input", "action": "validate_openclaw_json_candidate", "error_type": "E_INVALID_SHA256", "expected_status": "error", "has_request": true },
+    { "stem": "empty-sha256", "category": "action_input", "action": "validate_openclaw_json_candidate", "error_type": "E_INVALID_SHA256", "expected_status": "error", "has_request": true },
+    { "stem": "missing-label", "category": "action_input", "action": "snapshot_pre", "error_type": "E_MISSING_INPUT", "expected_status": "error", "has_request": true },
+    { "stem": "empty-label", "category": "action_input", "action": "snapshot_pre", "error_type": "E_INVALID_LABEL", "expected_status": "error", "has_request": true },
+    { "stem": "bad-label", "category": "action_input", "action": "snapshot_pre", "error_type": "E_INVALID_LABEL", "expected_status": "error", "has_request": true },
+    { "stem": "missing-snapshot-name", "category": "action_input", "action": "vault_sync", "error_type": "E_MISSING_INPUT", "expected_status": "error", "has_request": true },
+    { "stem": "missing-target-snapshot", "category": "action_input", "action": "rollback_prepare", "error_type": "E_MISSING_INPUT", "expected_status": "error", "has_request": true },
+    { "stem": "path-traversal", "category": "policy", "action": "deploy_openclaw_json_candidate", "error_type": "D_PATH_TRAVERSAL", "expected_status": "denied", "has_request": true },
+    { "stem": "wrong-wrapper-action", "category": "execution", "error_type": "E_WRONG_ACTION", "expected_status": "error", "has_request": true },
+    { "stem": "missing-file", "category": "execution", "error_type": "E_FILE_NOT_FOUND", "expected_status": "error", "has_request": false },
+    { "stem": "ok-status-mismatch", "category": "invariant_demo", "error_type": "invariant_violation", "expected_status": "error", "has_request": false }
+  ],
+  "special": [
+    { "stem": "bad-path", "dir": "broker", "category": "policy", "action": "deploy_openclaw_json_candidate", "error_type": "D_PATH_WHITELIST", "expected_ok": false, "expected_status": "denied" }
+  ]
+}

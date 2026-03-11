@@ -649,6 +649,156 @@ fi
 echo ""
 
 # ========================================
+# Section 12: Action inventory validation
+# ========================================
+echo "--- Section 12: Action inventory ---"
+
+INVENTORY_FILE="$REPO_ROOT/broker/schemas/action-inventory.json"
+if [ -f "$INVENTORY_FILE" ]; then
+  if jq empty "$INVENTORY_FILE" 2>/dev/null; then
+    pass "action-inventory.json is valid JSON"
+  else
+    fail "action-inventory.json is invalid JSON"
+  fi
+  inv_count=$(jq '.actions | length' "$INVENTORY_FILE" 2>/dev/null)
+  if [ "$inv_count" = "8" ]; then
+    pass "action-inventory.json has 8 actions"
+  else
+    fail "action-inventory.json action count: expected 8, got $inv_count"
+  fi
+  inv_frozen=$(jq -r '.frozen' "$INVENTORY_FILE" 2>/dev/null)
+  if [ "$inv_frozen" = "true" ]; then
+    pass "action-inventory.json frozen=true"
+  else
+    fail "action-inventory.json should have frozen=true"
+  fi
+else
+  fail "action-inventory.json missing"
+fi
+echo ""
+
+# ========================================
+# Section 13: Fixture registry validation
+# ========================================
+echo "--- Section 13: Fixture registry ---"
+
+REGISTRY_FILE="$REPO_ROOT/examples/broker/fixture-registry.json"
+if [ -f "$REGISTRY_FILE" ]; then
+  if jq empty "$REGISTRY_FILE" 2>/dev/null; then
+    pass "fixture-registry.json is valid JSON"
+  else
+    fail "fixture-registry.json is invalid JSON"
+  fi
+  happy_count=$(jq '.happy_path | length' "$REGISTRY_FILE" 2>/dev/null)
+  if [ "$happy_count" = "8" ]; then
+    pass "fixture-registry.json has 8 happy-path entries"
+  else
+    fail "fixture-registry.json happy-path count: expected 8, got $happy_count"
+  fi
+  neg_count=$(jq '.negative | length' "$REGISTRY_FILE" 2>/dev/null)
+  if [ "$neg_count" -ge 22 ]; then
+    pass "fixture-registry.json has $neg_count negative entries (>=22)"
+  else
+    fail "fixture-registry.json negative count too low: $neg_count"
+  fi
+else
+  fail "fixture-registry.json missing"
+fi
+echo ""
+
+# ========================================
+# Section 14: Prep entry-gate document
+# ========================================
+echo "--- Section 14: Prep entry-gate ---"
+
+GATE_DOC="$REPO_ROOT/docs/specs/phase2-repo-prep-gate.md"
+if [ -f "$GATE_DOC" ]; then
+  pass "phase2-repo-prep-gate.md exists"
+  if grep -q "not yet deployed" "$GATE_DOC" || grep -q "has not started" "$GATE_DOC"; then
+    pass "Prep gate states broker not yet deployed"
+  else
+    fail "Prep gate missing 'not yet deployed' statement"
+  fi
+  if grep -q "Explicitly deferred" "$GATE_DOC"; then
+    pass "Prep gate has deferred items section"
+  else
+    fail "Prep gate missing deferred items section"
+  fi
+else
+  fail "phase2-repo-prep-gate.md missing"
+fi
+echo ""
+
+# ========================================
+# Section 15: Validator parity freeze
+# ========================================
+echo "--- Section 15: Validator parity freeze ---"
+
+# Verify that common.sh, validate-request.sh, and index.js all enforce the same validation rules
+# by checking key function/pattern presence
+
+COMMON_SH_FILE="$REPO_ROOT/broker/wrappers/lib/common.sh"
+VALIDATE_SH="$REPO_ROOT/plugins/host-ops-tool/lib/validate-request.sh"
+PLUGIN_JS="$REPO_ROOT/plugins/host-ops-tool/index.js"
+
+# SHA256 validation parity
+for f in "$COMMON_SH_FILE" "$VALIDATE_SH"; do
+  if grep -Fq '[a-f0-9]{64}' "$f" 2>/dev/null; then
+    pass "SHA256 regex present: $(basename "$f")"
+  else
+    fail "SHA256 regex missing: $(basename "$f")"
+  fi
+done
+if grep -Fq '[a-f0-9]{64}' "$PLUGIN_JS" 2>/dev/null; then
+  pass "SHA256 regex present: index.js"
+else
+  fail "SHA256 regex missing: index.js"
+fi
+
+# Label validation parity
+for f in "$COMMON_SH_FILE" "$VALIDATE_SH"; do
+  if grep -q '\[a-zA-Z0-9._-\]' "$f" 2>/dev/null; then
+    pass "Label regex present: $(basename "$f")"
+  else
+    fail "Label regex missing: $(basename "$f")"
+  fi
+done
+if grep -q '\[a-zA-Z0-9._-\]' "$PLUGIN_JS" 2>/dev/null; then
+  pass "Label regex present: index.js"
+else
+  fail "Label regex missing: index.js"
+fi
+
+# Path prefix parity
+for f in "$COMMON_SH_FILE" "$VALIDATE_SH" "$PLUGIN_JS"; do
+  if grep -q '/var/lib/openclaw/approvals/candidates/' "$f" 2>/dev/null; then
+    pass "Path prefix present: $(basename "$f")"
+  else
+    fail "Path prefix missing: $(basename "$f")"
+  fi
+done
+
+# Path traversal parity
+for f in "$COMMON_SH_FILE" "$VALIDATE_SH" "$PLUGIN_JS"; do
+  if grep -q '\.\.' "$f" 2>/dev/null; then
+    pass "Path traversal check present: $(basename "$f")"
+  else
+    fail "Path traversal check missing: $(basename "$f")"
+  fi
+done
+
+# maxLength=128 parity
+for f in "$COMMON_SH_FILE" "$VALIDATE_SH" "$PLUGIN_JS"; do
+  if grep -q '128' "$f" 2>/dev/null; then
+    pass "maxLength=128 check present: $(basename "$f")"
+  else
+    fail "maxLength=128 check missing: $(basename "$f")"
+  fi
+done
+
+echo ""
+
+# ========================================
 # Summary
 # ========================================
 echo "=== Summary ==="

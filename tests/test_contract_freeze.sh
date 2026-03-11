@@ -424,6 +424,123 @@ done
 echo ""
 
 # ========================================
+# Frozen: Action inventory single-source file
+# ========================================
+echo "--- Frozen: Action inventory file ---"
+
+INVENTORY_FILE="$REPO_ROOT/broker/schemas/action-inventory.json"
+if [ -f "$INVENTORY_FILE" ]; then
+  if jq empty "$INVENTORY_FILE" 2>/dev/null; then
+    pass "action-inventory.json is valid JSON"
+  else
+    fail "action-inventory.json is invalid JSON"
+  fi
+
+  # Verify frozen flag
+  inv_frozen=$(jq -r '.frozen' "$INVENTORY_FILE" 2>/dev/null)
+  if [ "$inv_frozen" = "true" ]; then
+    pass "action-inventory.json has frozen=true"
+  else
+    fail "action-inventory.json should have frozen=true"
+  fi
+
+  # Verify action count matches
+  inv_count=$(jq '.actions | length' "$INVENTORY_FILE" 2>/dev/null)
+  if [ "$inv_count" = "8" ]; then
+    pass "action-inventory.json has 8 actions"
+  else
+    fail "action-inventory.json action count: expected 8, got $inv_count"
+  fi
+
+  # Verify action names match schema enum
+  INV_ACTIONS=$(jq -r '.actions[].name' "$INVENTORY_FILE" 2>/dev/null | sort)
+  if [ "$INV_ACTIONS" = "$FROZEN_ACTIONS" ]; then
+    pass "action-inventory.json names match frozen enum"
+  else
+    fail "action-inventory.json names do not match frozen enum"
+  fi
+
+  # Verify each action has schema, wrapper, fixture
+  for action_name in $(jq -r '.actions[].name' "$INVENTORY_FILE" 2>/dev/null); do
+    schema_ref=$(jq -r --arg a "$action_name" '.actions[] | select(.name==$a) | .schema' "$INVENTORY_FILE" 2>/dev/null)
+    wrapper_ref=$(jq -r --arg a "$action_name" '.actions[] | select(.name==$a) | .wrapper' "$INVENTORY_FILE" 2>/dev/null)
+    fixture_ref=$(jq -r --arg a "$action_name" '.actions[] | select(.name==$a) | .fixture' "$INVENTORY_FILE" 2>/dev/null)
+
+    if [ -f "$REPO_ROOT/broker/schemas/$schema_ref" ]; then
+      pass "Inventory schema exists: $schema_ref"
+    else
+      fail "Inventory schema missing: $schema_ref"
+    fi
+
+    if [ -f "$REPO_ROOT/broker/wrappers/$wrapper_ref" ]; then
+      pass "Inventory wrapper exists: $wrapper_ref"
+    else
+      fail "Inventory wrapper missing: $wrapper_ref"
+    fi
+
+    if [ -f "$REPO_ROOT/examples/broker/${fixture_ref}-request.json" ]; then
+      pass "Inventory fixture exists: ${fixture_ref}-request.json"
+    else
+      fail "Inventory fixture missing: ${fixture_ref}-request.json"
+    fi
+  done
+else
+  fail "action-inventory.json missing"
+fi
+
+echo ""
+
+# ========================================
+# Frozen: Fixture registry consistency
+# ========================================
+echo "--- Frozen: Fixture registry ---"
+
+REGISTRY_FILE="$REPO_ROOT/examples/broker/fixture-registry.json"
+if [ -f "$REGISTRY_FILE" ]; then
+  if jq empty "$REGISTRY_FILE" 2>/dev/null; then
+    pass "fixture-registry.json is valid JSON"
+  else
+    fail "fixture-registry.json is invalid JSON"
+  fi
+
+  # All happy-path stems must have files on disk
+  for stem in $(jq -r '.happy_path[].stem' "$REGISTRY_FILE" 2>/dev/null); do
+    if [ -f "$REPO_ROOT/examples/broker/${stem}-request.json" ] && [ -f "$REPO_ROOT/examples/broker/${stem}-result.json" ]; then
+      pass "Registry happy-path on disk: $stem"
+    else
+      fail "Registry happy-path missing on disk: $stem"
+    fi
+  done
+
+  # All negative stems with has_request=true must have request file
+  for entry in $(jq -r '.negative[] | select(.has_request==true) | .stem' "$REGISTRY_FILE" 2>/dev/null); do
+    if [ -f "$REPO_ROOT/examples/broker/negative/${entry}-request.json" ]; then
+      pass "Registry negative on disk: ${entry}-request.json"
+    else
+      fail "Registry negative missing: ${entry}-request.json"
+    fi
+    if [ -f "$REPO_ROOT/examples/broker/negative/${entry}-result.json" ]; then
+      pass "Registry negative on disk: ${entry}-result.json"
+    else
+      fail "Registry negative missing: ${entry}-result.json"
+    fi
+  done
+
+  # Negative stems with has_request=false should only have result file
+  for entry in $(jq -r '.negative[] | select(.has_request==false) | .stem' "$REGISTRY_FILE" 2>/dev/null); do
+    if [ -f "$REPO_ROOT/examples/broker/negative/${entry}-result.json" ]; then
+      pass "Registry result-only on disk: ${entry}-result.json"
+    else
+      fail "Registry result-only missing: ${entry}-result.json"
+    fi
+  done
+else
+  fail "fixture-registry.json missing"
+fi
+
+echo ""
+
+# ========================================
 # Frozen: Action list consistency across layers
 # ========================================
 echo "--- Frozen: Action list consistency ---"
