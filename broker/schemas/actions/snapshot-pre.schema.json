@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SnapshotPreInputs",
+  "description": "Input schema for snapshot_pre action.",
+  "type": "object",
+  "required": ["label", "reason"],
+  "properties": {
+    "label": {
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9._-]+$",
+      "minLength": 1,
+      "maxLength": 128,
+      "description": "Snapshot label (alphanumeric, dots, hyphens, underscores only)"
+    },
+    "reason": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Reason for creating pre-change snapshot"
+    }
+  },
+  "additionalProperties": false
+}

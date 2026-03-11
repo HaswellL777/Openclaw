@@ -1,0 +1,15 @@
+{
+  "ok": true,
+  "action": "deploy_openclaw_json_candidate",
+  "request_id": "req-20260311-143000-sample04",
+  "task_id": "task-sample-deploy",
+  "status": "ok",
+  "message": "Config deployed successfully",
+  "artifacts": {
+    "candidate_path": "/var/lib/openclaw/approvals/candidates/openclaw.json",
+    "deployed_path": "/etc/openclaw/openclaw.json",
+    "backup_path": "/etc/openclaw/openclaw.json.bak",
+    "deployed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "rollback_hint": "Restore from backup: cp /etc/openclaw/openclaw.json.bak /etc/openclaw/openclaw.json"
+}

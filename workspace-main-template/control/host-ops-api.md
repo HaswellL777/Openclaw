@@ -1,10 +1,11 @@
 # Host Operations API
 
 ## Purpose
-This document defines the API contract for host-ops broker (Phase 1B+, not yet implemented).
+This document defines the API contract for the host-ops broker.
+The authoritative protocol definition is `docs/design-v3.md` §5.6.
 
 ## Status
-**Phase 1B+**: This API is planned but not yet implemented.
+**Phase 2**: This API is designed and schemas exist in the dev repo, but broker is not yet deployed.
 
 ## Overview
 
@@ -14,171 +15,255 @@ The host-ops broker provides a controlled interface for host state mutations tha
 - Must follow snapshot → change → validate → snapshot → vault workflow
 - Are too risky for direct execution
 
-## API endpoint (planned)
+The broker is the **sole host mutation entry point**. It accepts only structured JSON requests, delegates to root-owned wrapper scripts, and never executes free-form shell commands.
 
-```
-POST /host-ops/execute
-```
+## Transport
+
+Unix socket or root-owned local IPC (exact path TBD at Phase 2 deployment).
+
+## Actions
+
+The broker supports exactly 8 actions:
+
+| Action | Wrapper | Purpose |
+|--------|---------|---------|
+| `gateway_health` | `ocw-gateway-health.sh` | Check gateway service health |
+| `gateway_restart` | `ocw-gateway-restart.sh` | Restart openclaw-gateway.service |
+| `validate_openclaw_json_candidate` | `ocw-validate-openclaw-json.sh` | Validate a candidate config file |
+| `deploy_openclaw_json_candidate` | `ocw-deploy-openclaw-json.sh` | Deploy validated candidate to /etc/openclaw |
+| `snapshot_pre` | `ocw-snapshot-pre.sh` | Create pre-change btrfs snapshot |
+| `snapshot_post` | `ocw-snapshot-post.sh` | Create post-change btrfs snapshot |
+| `vault_sync` | `ocw-vault-sync.sh` | Sync snapshot to vault |
+| `rollback_prepare` | `ocw-rollback-prepare.sh` | Prepare rollback to previous snapshot |
 
 ## Request format
 
+Per `docs/design-v3.md` §5.6.2:
+
 ```json
 {
-  "request_id": "req-YYYYMMDD-HHMMSS-<random>",
-  "timestamp": "YYYY-MM-DD HH:MM:SS UTC",
-  "operation": "config-update | gateway-restart | snapshot-create | vault-sync | rollback",
-  "approval_id": "approval-YYYYMMDD-HHMMSS-<random>",
-  "parameters": {
-    "operation-specific": "parameters"
+  "action": "deploy_openclaw_json_candidate",
+  "request_id": "req-20260311-143000-a1b2c3",
+  "task_id": "task-...",
+  "requested_by": "agent:main",
+  "inputs": {
+    "candidate_path": "/var/lib/openclaw/approvals/candidates/openclaw.json",
+    "expected_sha256": "abc123..."
+  }
+}
+```
+
+Required fields:
+- `action` — One of the 8 supported action strings
+- `request_id` — Unique request identifier (format: `req-YYYYMMDD-HHMMSS-<random>`)
+- `task_id` — OpenClaw task identifier
+- `requested_by` — Identity of requester (e.g. `agent:main`)
+- `inputs` — Action-specific input object (schema varies per action)
+
+Schema: `broker/schemas/host-ops-request.schema.json`
+Per-action input schemas: `broker/schemas/actions/<action>.schema.json`
+
+## Result format
+
+```json
+{
+  "ok": true,
+  "action": "deploy_openclaw_json_candidate",
+  "request_id": "req-20260311-143000-a1b2c3",
+  "task_id": "task-...",
+  "status": "ok",
+  "message": "Config deployed successfully",
+  "artifacts": {
+    "deployed_path": "/etc/openclaw/openclaw.json",
+    "deployed_sha256": "abc123..."
   },
-  "pre_snapshot_required": true | false,
-  "post_snapshot_required": true | false,
-  "vault_sync_required": true | false
+  "rollback_hint": "Restore from pre-change snapshot: root-pre-20260311-1430"
 }
 ```
 
-## Response format
+Required fields:
+- `ok` — Boolean success indicator
+- `action` — Echo of requested action
+- `request_id` — Echo of request_id
+- `task_id` — Echo of task_id
+- `status` — One of: `ok`, `error`, `denied`
+
+Optional fields:
+- `message` — Human-readable description
+- `artifacts` — Action-specific output data
+- `rollback_hint` — Instructions for undoing the operation
+
+Schema: `broker/schemas/host-ops-result.schema.json`
+
+## Per-action input specifications
+
+### gateway_health
+
+No required inputs. Returns gateway service status.
 
 ```json
 {
-  "request_id": "req-YYYYMMDD-HHMMSS-<random>",
-  "status": "success | failed | partial",
-  "timestamp": "YYYY-MM-DD HH:MM:SS UTC",
-  "pre_snapshot": "snapshot-name or null",
-  "post_snapshot": "snapshot-name or null",
-  "vault_synced": true | false,
-  "changes": [
-    {
-      "path": "/etc/openclaw/openclaw.json",
-      "action": "modified",
-      "backup": "/path/to/backup"
-    }
-  ],
-  "validation_results": {
-    "gateway_healthy": true | false,
-    "config_valid": true | false,
-    "services_running": true | false
-  },
-  "rollback_available": true | false,
-  "rollback_procedure": "Step-by-step undo instructions",
-  "logs": "/path/to/operation/logs"
+  "action": "gateway_health",
+  "request_id": "req-...",
+  "task_id": "task-...",
+  "requested_by": "agent:main",
+  "inputs": {}
 }
 ```
 
-## Supported operations (planned)
+### gateway_restart
 
-### config-update
-Update `/etc/openclaw/openclaw.json`
-
-**Parameters**:
 ```json
 {
-  "operation": "config-update",
-  "parameters": {
-    "patch": { "json": "patch" },
-    "validate_before": true,
-    "restart_gateway": true
+  "action": "gateway_restart",
+  "request_id": "req-...",
+  "task_id": "task-...",
+  "requested_by": "agent:main",
+  "inputs": {
+    "reason": "Post config-deploy restart"
   }
 }
 ```
 
-### gateway-restart
-Restart openclaw-gateway.service
+### validate_openclaw_json_candidate
 
-**Parameters**:
 ```json
 {
-  "operation": "gateway-restart",
-  "parameters": {
-    "graceful": true,
-    "timeout_seconds": 30
+  "action": "validate_openclaw_json_candidate",
+  "request_id": "req-...",
+  "task_id": "task-...",
+  "requested_by": "agent:main",
+  "inputs": {
+    "candidate_path": "/var/lib/openclaw/approvals/candidates/openclaw.json",
+    "expected_sha256": "abc123..."
   }
 }
 ```
 
-### snapshot-create
-Create btrfs snapshot
+### deploy_openclaw_json_candidate
 
-**Parameters**:
 ```json
 {
-  "operation": "snapshot-create",
-  "parameters": {
-    "name": "snapshot-name",
-    "description": "Snapshot description"
+  "action": "deploy_openclaw_json_candidate",
+  "request_id": "req-...",
+  "task_id": "task-...",
+  "requested_by": "agent:main",
+  "inputs": {
+    "candidate_path": "/var/lib/openclaw/approvals/candidates/openclaw.json",
+    "expected_sha256": "abc123..."
   }
 }
 ```
 
-### vault-sync
-Sync snapshot to vault
+### snapshot_pre
 
-**Parameters**:
 ```json
 {
-  "operation": "vault-sync",
-  "parameters": {
-    "snapshot": "snapshot-name",
+  "action": "snapshot_pre",
+  "request_id": "req-...",
+  "task_id": "task-...",
+  "requested_by": "agent:main",
+  "inputs": {
+    "label": "pre-config-deploy-20260311",
+    "reason": "Pre-change snapshot before config deploy"
+  }
+}
+```
+
+### snapshot_post
+
+```json
+{
+  "action": "snapshot_post",
+  "request_id": "req-...",
+  "task_id": "task-...",
+  "requested_by": "agent:main",
+  "inputs": {
+    "label": "post-config-deploy-20260311",
+    "reason": "Post-change snapshot after config deploy"
+  }
+}
+```
+
+### vault_sync
+
+```json
+{
+  "action": "vault_sync",
+  "request_id": "req-...",
+  "task_id": "task-...",
+  "requested_by": "agent:main",
+  "inputs": {
+    "snapshot_name": "root-pre-20260311-1430",
     "incremental": true
   }
 }
 ```
 
-### rollback
-Rollback to previous snapshot
+### rollback_prepare
 
-**Parameters**:
 ```json
 {
-  "operation": "rollback",
-  "parameters": {
-    "snapshot": "snapshot-name",
-    "confirm": true
+  "action": "rollback_prepare",
+  "request_id": "req-...",
+  "task_id": "task-...",
+  "requested_by": "agent:main",
+  "inputs": {
+    "target_snapshot": "root-pre-20260311-1430",
+    "reason": "Config deploy caused gateway failure"
   }
 }
 ```
 
 ## Safety guarantees
 
-The broker MUST:
-1. Verify approval_id exists and is approved
-2. Create pre-change snapshot if required
-3. Validate operation parameters
-4. Execute operation with proper error handling
-5. Validate results
-6. Create post-change snapshot if required
-7. Sync to vault if required
-8. Return structured results with rollback info
+The broker MUST (per design-v3.md §5.6.3):
+1. Use Unix socket or root-owned local IPC
+2. Apply strict schema validation on every request
+3. Enforce parameter whitelisting per action
+4. Enforce path whitelisting (no arbitrary paths)
+5. Only call root-owned wrapper scripts
+6. Never execute free-form shell commands
+7. Maintain complete logging with request-id tracing
+8. Default to deny on any failure
 
 The broker MUST NOT:
-1. Execute without valid approval
-2. Skip snapshot steps if required
-3. Proceed if validation fails
-4. Leave system in inconsistent state
+1. Execute without schema-valid request
+2. Accept free-form shell or user-supplied commands
+3. Allow path traversal outside whitelisted directories
+4. Proceed if wrapper validation fails
+5. Leave system in inconsistent state
+
+## Relationship to main agent
+
+Per design-v3.md §5.6.5:
+- `main` does not have `exec` capability
+- `main` calls the `host_ops(...)` plugin tool
+- The plugin tool submits structured requests to the broker
+- The broker delegates to root-owned wrappers
+- This ensures the control plane can invoke host mutations without having arbitrary command execution
 
 ## Error handling
 
-If operation fails:
-1. Attempt automatic rollback if safe
-2. If rollback not safe, freeze and alert human
-3. Preserve all logs and state
-4. Provide clear rollback instructions
-5. Update approval status to "failed"
+If an operation fails:
+1. Wrapper returns structured error JSON with `ok: false, status: "error"`
+2. Broker preserves all logs with request-id
+3. Result includes `rollback_hint` when applicable
+4. Caller (main agent) can present rollback options to human
 
-## Phase 1A workaround
+## Phase 1 workaround (current)
 
-Since broker is not yet implemented:
-1. main prepares operation plan
-2. main requests approval
-3. Human executes manually following runbooks
+Since broker is not yet deployed:
+1. main agent prepares operation plan
+2. main agent requests approval via approval-policy.md workflow
+3. Human executes manually following runbooks in `control/runbooks/`
 4. Human reports results
-5. main updates state files
+5. main agent updates state files
 
-## Implementation notes
-
-The broker should be implemented as:
-- Separate service or command-line tool
-- Root-owned, minimal attack surface
-- Comprehensive logging and audit trail
-- Idempotent operations where possible
-- Clear error messages and rollback guidance
+## References
+- `docs/design-v3.md` §5.6 — Authoritative broker protocol definition
+- `broker/schemas/host-ops-request.schema.json` — Request JSON Schema
+- `broker/schemas/host-ops-result.schema.json` — Result JSON Schema
+- `broker/schemas/actions/*.schema.json` — Per-action input schemas
+- `broker/wrappers/` — Wrapper script stubs
+- `control/approval-policy.md` — When approval is required

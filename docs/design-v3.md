@@ -1530,7 +1530,7 @@ Phase 0 结束后，开发体系已能安全地产生候选配置、脚本和文
 
 ---
 
-## Phase 1B：控制面收口与文档 / 发布模型固化（进行中）
+## Phase 1B：控制面收口与文档 / 发布模型固化（已完成）
 
 ### 目标
 
@@ -1612,6 +1612,21 @@ Phase 1B 完成收口需要同时满足以下全部条件：
 ---
 
 ## Phase 2：host-ops broker 正式落地
+
+### 当前状态（2026-03-11）
+
+**Phase 2 尚未正式启动。** 以下开发仓内准备工作已完成：
+
+- broker 请求/结果 JSON Schema（`broker/schemas/`）
+- 8 个 per-action 输入 schema（`broker/schemas/actions/`）
+- 8 个 wrapper stub（`broker/wrappers/ocw-*.sh`，仅验证 + echo，不执行 live 操作）
+- 8 对 request/result 测试 fixture + 1 negative test（`examples/broker/`）
+- schema / wrapper / fixture 交叉验证脚本（`scripts/validate-broker-schemas.sh`，192 checks pass）
+- wrapper stub 运行时测试脚本（`tests/test_broker_schemas.sh`，62 checks pass）
+- `workspace-main-template/control/host-ops-api.md` 已对齐 §5.6.2 请求契约
+- plugin skeleton 已升级为 phase2-prep 标记（`plugins/host-ops-tool/`）
+
+现网部署需要 Phase 2 正式启动后按进入门槛逐项执行。
 
 ### 进入门槛（Entry Gates）
 
@@ -1793,27 +1808,40 @@ Phase 1B 完成收口需要同时满足以下全部条件：
 
 ## 8.3 Phase 2 TODO
 
-- [ ] 创建 `broker/`
-- [ ] 实现 broker 主程序
-- [ ] 实现 Unix socket 权限
-- [ ] 实现 `ocw-gateway-health`
-- [ ] 实现 `ocw-list-snapshots`
-- [ ] 实现 `ocw-validate-openclaw-json`
-- [ ] 实现 `ocw-deploy-openclaw-json`
-- [ ] 实现 `ocw-gateway-restart`
-- [ ] 实现 `ocw-snapshot-pre`
-- [ ] 实现 `ocw-snapshot-post`
-- [ ] 实现 `ocw-vault-sync`
-- [ ] 创建 `plugins/host-ops-tool/`
-- [ ] 写 `openclaw.plugin.json`
-- [ ] 写 `package.json`
-- [ ] 写 `index.js`
+### 开发仓内准备工作（Phase 2 prep，仓库内落地，不涉及现网部署）
+
+- [x] 创建 `broker/`（目录结构、README）
+- [x] 创建 `broker/schemas/host-ops-request.schema.json`（请求 JSON Schema，8 个 action enum）
+- [x] 创建 `broker/schemas/host-ops-result.schema.json`（结果 JSON Schema，ok/error/denied）
+- [x] 创建 `broker/schemas/actions/*.schema.json`（8 个 per-action 输入 schema）
+- [x] 创建 `broker/wrappers/ocw-*.sh`（8 个 wrapper stub，仅验证 + echo，不执行）
+- [x] 创建 `examples/broker/`（8 对 request/result fixture + 1 negative test pair）
+- [x] 创建 `scripts/validate-broker-schemas.sh`（schema / wrapper / fixture 交叉验证，192 checks）
+- [x] 创建 `tests/test_broker_schemas.sh`（wrapper stub 运行时测试 + negative cases，62 checks）
+- [x] 创建 `plugins/host-ops-tool/`（skeleton index.js、package.json，phase2-prep 标记）
+- [x] 对齐 `workspace-main-template/control/host-ops-api.md` 与 `design-v3.md` §5.6.2 请求契约（消除 operation/parameters/approval_id 与 action/inputs/requested_by 漂移）
+- [x] 修正全仓 "Phase 1B+" / "Phase 0" 残留引用为准确阶段标号（routing-policy、approval-policy、broker SKILL、broker README、wrappers README）
+
+### 现网部署（需 Phase 2 正式启动后执行）
+
+- [ ] 实现 broker 主程序（Unix socket daemon / CLI）
+- [ ] 实现 Unix socket 权限边界
+- [ ] 将 wrapper stub 升级为 root-owned 生产版本
+- [ ] 实现 `ocw-gateway-health`（live execution）
+- [ ] 实现 `ocw-validate-openclaw-json`（live execution）
+- [ ] 实现 `ocw-deploy-openclaw-json`（live execution）
+- [ ] 实现 `ocw-gateway-restart`（live execution）
+- [ ] 实现 `ocw-snapshot-pre`（live execution）
+- [ ] 实现 `ocw-snapshot-post`（live execution）
+- [ ] 实现 `ocw-vault-sync`（live execution）
+- [ ] 实现 `ocw-rollback-prepare`（live execution）
+- [ ] 写 `openclaw.plugin.json`（正式 manifest）
 - [ ] 写部署脚本
-- [ ] 注册 plugin
+- [ ] 注册 plugin 到 `openclaw.json`
 - [ ] 变更前快照
 - [ ] 重启 gateway
-- [ ] 验证只读 host_ops
-- [ ] 验证写操作 schema 拒绝
+- [ ] 验证只读 host_ops（gateway_health）
+- [ ] 验证写操作 schema 拒绝（invalid action / bad path）
 - [ ] 变更后快照
 - [ ] Vault 入库
 

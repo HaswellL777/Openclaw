@@ -1,0 +1,14 @@
+{
+  "ok": true,
+  "action": "vault_sync",
+  "request_id": "req-20260311-146000-sample07",
+  "task_id": "task-sample-vault",
+  "status": "ok",
+  "message": "Snapshot synced to vault",
+  "artifacts": {
+    "snapshot_name": "root-pre-pre-config-deploy-20260311",
+    "incremental": true,
+    "vault_path": "/mnt/vault/snapshots/root-pre-pre-config-deploy-20260311"
+  },
+  "rollback_hint": "Vault sync is additive; remove from vault if needed"
+}

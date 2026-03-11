@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DeployOpenclawJsonInputs",
+  "description": "Input schema for deploy_openclaw_json_candidate action.",
+  "type": "object",
+  "required": ["candidate_path", "expected_sha256"],
+  "properties": {
+    "candidate_path": {
+      "type": "string",
+      "pattern": "^/var/lib/openclaw/approvals/candidates/",
+      "description": "Absolute path to validated candidate config file (must be under /var/lib/openclaw/approvals/candidates/)"
+    },
+    "expected_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "Expected SHA256 hash of candidate file (must match validation result)"
+    }
+  },
+  "additionalProperties": false
+}

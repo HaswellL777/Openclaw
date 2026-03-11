@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RollbackPrepareInputs",
+  "description": "Input schema for rollback_prepare action.",
+  "type": "object",
+  "required": ["target_snapshot", "reason"],
+  "properties": {
+    "target_snapshot": {
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9._-]+$",
+      "minLength": 1,
+      "maxLength": 128,
+      "description": "Name of snapshot to rollback to"
+    },
+    "reason": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Reason for rollback"
+    }
+  },
+  "additionalProperties": false
+}

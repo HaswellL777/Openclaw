@@ -1,0 +1,13 @@
+{
+  "ok": true,
+  "action": "gateway_restart",
+  "request_id": "req-20260311-141000-sample02",
+  "task_id": "task-sample-restart",
+  "status": "ok",
+  "message": "Gateway restarted successfully",
+  "artifacts": {
+    "reason": "Post config-deploy restart",
+    "service_active_after": true
+  },
+  "rollback_hint": "If gateway fails to start, check journalctl -u openclaw-gateway.service"
+}

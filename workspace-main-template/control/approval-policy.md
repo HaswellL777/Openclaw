@@ -56,7 +56,7 @@ Operations that:
 3. Write to control/state/pending-approvals.json with plan
 4. Present plan to human
 5. Wait for explicit approval
-6. If approved, route to host-ops broker (Phase 1B+)
+6. If approved, route to host-ops broker (Phase 2)
 7. Monitor execution and report results
 8. Update state files
 
@@ -145,11 +145,11 @@ Write to `control/state/pending-approvals.json`:
 }
 ```
 
-## Phase 1A limitations
+## Current limitations (Phase 1 complete, Phase 2 not started)
 
-- host-ops broker not yet available → Category 2 operations cannot be fully automated
-- task-runner not yet available → Some engineering tasks requiring approval cannot be delegated
-- Current workaround: Present plan, get approval, suggest manual execution or wait for Phase 1B
+- host-ops broker not yet available (Phase 2) → Category 2 operations cannot be fully automated
+- task-runner not yet available (Phase 3) → Some engineering tasks requiring approval cannot be delegated
+- Current workaround: Present plan, get approval, suggest manual execution following runbooks
 
 ## Approval examples
 
@@ -157,7 +157,7 @@ Write to `control/state/pending-approvals.json`:
 - **Category**: 1 (destructive)
 - **Approval required**: Yes
 - **Information needed**: Which snapshots, why, how to verify no data loss
-- **Workflow**: Request approval → Wait → If approved, route to broker (Phase 1B+)
+- **Workflow**: Request approval → Wait → If approved, route to broker (Phase 2)
 
 ### Example 2: Update OpenClaw config to add new agent
 - **Category**: 2 (alter /etc/openclaw/openclaw.json)

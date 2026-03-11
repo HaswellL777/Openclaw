@@ -1,0 +1,16 @@
+{
+  "ok": true,
+  "action": "validate_openclaw_json_candidate",
+  "request_id": "req-20260311-142000-sample03",
+  "task_id": "task-sample-validate",
+  "status": "ok",
+  "message": "Candidate config is valid",
+  "artifacts": {
+    "candidate_path": "/var/lib/openclaw/approvals/candidates/openclaw.json",
+    "expected_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "sha256_match": true,
+    "json_valid": true,
+    "schema_valid": true
+  },
+  "rollback_hint": "No rollback needed for validation (read-only)"
+}

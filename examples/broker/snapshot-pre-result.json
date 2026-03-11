@@ -1,0 +1,14 @@
+{
+  "ok": true,
+  "action": "snapshot_pre",
+  "request_id": "req-20260311-144000-sample05",
+  "task_id": "task-sample-snapshot",
+  "status": "ok",
+  "message": "Pre-change snapshot created",
+  "artifacts": {
+    "snapshot_name": "root-pre-pre-config-deploy-20260311",
+    "label": "pre-config-deploy-20260311",
+    "reason": "Pre-change snapshot before config deploy"
+  },
+  "rollback_hint": "Delete snapshot: btrfs subvolume delete /.snapshots/root-pre-pre-config-deploy-20260311"
+}

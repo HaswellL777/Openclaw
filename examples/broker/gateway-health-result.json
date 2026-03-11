@@ -1,0 +1,13 @@
+{
+  "ok": true,
+  "action": "gateway_health",
+  "request_id": "req-20260311-140000-sample01",
+  "task_id": "task-sample-health-check",
+  "status": "ok",
+  "message": "Gateway service is active and healthy",
+  "artifacts": {
+    "service_active": true,
+    "health_endpoint": "ok"
+  },
+  "rollback_hint": "No rollback needed for health check"
+}

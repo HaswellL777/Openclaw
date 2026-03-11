@@ -1,0 +1,10 @@
+{
+  "action": "snapshot_post",
+  "request_id": "req-20260311-145000-sample06",
+  "task_id": "task-sample-snapshot-post",
+  "requested_by": "agent:main",
+  "inputs": {
+    "label": "post-config-deploy-20260311",
+    "reason": "Post-change snapshot after config deploy"
+  }
+}

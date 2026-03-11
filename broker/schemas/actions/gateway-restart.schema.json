@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "GatewayRestartInputs",
+  "description": "Input schema for gateway_restart action.",
+  "type": "object",
+  "required": ["reason"],
+  "properties": {
+    "reason": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Reason for gateway restart"
+    }
+  },
+  "additionalProperties": false
+}

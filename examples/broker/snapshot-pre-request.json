@@ -1,0 +1,10 @@
+{
+  "action": "snapshot_pre",
+  "request_id": "req-20260311-144000-sample05",
+  "task_id": "task-sample-snapshot",
+  "requested_by": "agent:main",
+  "inputs": {
+    "label": "pre-config-deploy-20260311",
+    "reason": "Pre-change snapshot before config deploy"
+  }
+}

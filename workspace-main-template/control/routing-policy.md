@@ -10,8 +10,8 @@ This policy defines how main agent routes requests to appropriate execution cont
 - Read/write/edit files in workspace-main
 - Query control files
 - Update state files
-- Spawn subagents (Phase 1B+)
-- Call host-ops broker (Phase 1B+)
+- Spawn subagents (task-runner: Phase 3)
+- Call host-ops broker (Phase 2)
 
 **Use for**:
 - Control plane queries
@@ -26,7 +26,7 @@ This policy defines how main agent routes requests to appropriate execution cont
 - Direct host mutations
 - File operations outside workspace-main
 
-### 2. task-runner (Phase 1B+, not yet available)
+### 2. task-runner (Phase 3, not yet available)
 **Capabilities**:
 - Read/write/edit files in task workspace
 - Execute shell commands in sandbox
@@ -47,7 +47,7 @@ This policy defines how main agent routes requests to appropriate execution cont
 - Long-lived state management
 - Control plane decisions
 
-### 3. host-ops broker (Phase 1B+, not yet available)
+### 3. host-ops broker (Phase 2, not yet available)
 **Capabilities**:
 - Execute pre-approved host mutations
 - Follow snapshot → change → validate → snapshot → vault workflow
@@ -106,12 +106,12 @@ User request
   |    └─ YES → Handle in main agent
   |
   ├─ Does it require engineering work?
-  |    └─ YES → Route to task-runner (Phase 1B+)
+  |    └─ YES → Route to task-runner (Phase 3)
   |
   ├─ Does it require host mutation?
   |    ├─ Check approval-policy.md
   |    ├─ If approval required → Escalate to human
-  |    └─ If approved → Route to host-ops broker (Phase 1B+)
+  |    └─ If approved → Route to host-ops broker (Phase 2)
   |
   ├─ Is it development work in openclaw-dev?
   |    └─ YES → Suggest using Claude Code CLI
@@ -120,10 +120,10 @@ User request
        └─ Escalate to human
 ```
 
-## Phase 1A limitations
-- task-runner not yet available → Cannot route engineering tasks
-- host-ops broker not yet available → Cannot route host mutations
-- Current workaround: Explain limitation and suggest manual execution or wait for Phase 1B
+## Current limitations (Phase 1 complete, Phase 2 not started)
+- task-runner not yet available (Phase 3) → Cannot route engineering tasks
+- host-ops broker not yet available (Phase 2) → Cannot route host mutations
+- Current workaround: Explain limitation and suggest manual execution following runbooks
 
 ## Routing examples
 
@@ -139,13 +139,13 @@ User request
 
 ### Example 3: "Add a new plugin to OpenClaw"
 - **Context**: Engineering task requiring code + config change
-- **Route to**: task-runner for code (Phase 1B+), then host-ops broker for config (Phase 1B+)
-- **Action**: Phase 1A → Explain limitation, suggest manual workflow
+- **Route to**: task-runner for code (Phase 3), then host-ops broker for config (Phase 2)
+- **Action**: Currently → Explain limitation, suggest manual workflow
 
 ### Example 4: "Update /etc/openclaw/openclaw.json"
 - **Context**: Host mutation requiring approval
-- **Route to**: Human escalation → host-ops broker (Phase 1B+)
-- **Action**: Present plan, request approval, wait for Phase 1B
+- **Route to**: Human escalation → host-ops broker (Phase 2)
+- **Action**: Present plan, request approval, wait for Phase 2 broker deployment
 
 ### Example 5: "What's in the prohibited operations list?"
 - **Context**: Control plane query

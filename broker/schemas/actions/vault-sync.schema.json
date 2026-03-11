@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "VaultSyncInputs",
+  "description": "Input schema for vault_sync action.",
+  "type": "object",
+  "required": ["snapshot_name"],
+  "properties": {
+    "snapshot_name": {
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9._-]+$",
+      "minLength": 1,
+      "maxLength": 128,
+      "description": "Name of snapshot to sync to vault"
+    },
+    "incremental": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether to use incremental send (default: true)"
+    }
+  },
+  "additionalProperties": false
+}

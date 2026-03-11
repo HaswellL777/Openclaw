@@ -6,8 +6,8 @@
 - **Purpose**: Interface with host-ops broker for host state mutations
 
 ## Status
-**Phase 1B+**: This skill is planned but not yet implemented.
-The host-ops broker is not yet deployed.
+**Phase 2**: This skill is planned but not yet implemented.
+The host-ops broker is not yet deployed. Phase 2 has not started.
 
 ## What this skill does (planned)
 This skill provides the interface for calling host-ops broker to execute:
@@ -104,7 +104,7 @@ Prepare structured request with:
 
 ### Step 3: Call broker
 Send POST request to broker API.
-(Implementation details TBD in Phase 1B)
+(Implementation details TBD in Phase 2)
 
 ### Step 4: Monitor execution
 Poll for status or wait for callback.
@@ -117,9 +117,9 @@ When complete:
 - Update `control/state/last-sop-hash.txt` if SOP changed
 - Report results to human
 
-## Phase 1A workaround
+## Phase 1 workaround (current)
 
-Since broker is not yet implemented:
+Since broker is not yet implemented (Phase 2 not started):
 1. main agent prepares operation plan
 2. main agent requests approval
 3. Human executes manually following runbooks in `control/runbooks/`
@@ -154,7 +154,7 @@ The broker MUST NOT:
 - `control/runbooks/gateway-restart.md`: Manual procedure for gateway restart
 - `control/runbooks/rollback.md`: Manual procedure for system rollback
 
-## Phase 1B+ implementation
+## Phase 2 implementation
 
 When broker is deployed:
 - This skill becomes operational

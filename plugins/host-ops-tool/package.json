@@ -1,7 +1,7 @@
 {
   "name": "host-ops-tool",
   "private": true,
-  "version": "0.0.0-phase0",
-  "description": "Development-only skeleton for OpenClaw host ops plugin",
+  "version": "0.0.0-phase2prep",
+  "description": "Development skeleton for OpenClaw host ops plugin (Phase 2 prep: schemas and stubs in repo)",
   "type": "module"
 }

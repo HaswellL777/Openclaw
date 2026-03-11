@@ -1,0 +1,20 @@
+{
+  "ok": true,
+  "action": "rollback_prepare",
+  "request_id": "req-20260311-147000-sample08",
+  "task_id": "task-sample-rollback",
+  "status": "ok",
+  "message": "Rollback plan prepared",
+  "artifacts": {
+    "target_snapshot": "root-pre-pre-config-deploy-20260311",
+    "reason": "Config deploy caused gateway failure",
+    "rollback_steps": [
+      "1. Create safety snapshot of current state",
+      "2. Verify target snapshot integrity",
+      "3. Execute rollback: btrfs subvolume snapshot /.snapshots/root-pre-pre-config-deploy-20260311 /",
+      "4. Restart affected services",
+      "5. Validate system health"
+    ]
+  },
+  "rollback_hint": "Rollback preparation is read-only; no undo needed"
+}
