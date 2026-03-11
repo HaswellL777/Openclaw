@@ -1630,9 +1630,12 @@ Phase 1B 完成收口需要同时满足以下全部条件：
 - `workspace-main-template/control/host-ops-api.md` 已对齐 §5.6.2 请求契约
 - `workspace-main-template/skills/broker/SKILL.md` 已对齐当前协议契约（消除 operation/parameters/approval_id 漂移）
 - 错误分类规格文档（`docs/specs/error-taxonomy-v1.md`，定义 E_*/D_* 错误码与 error/denied 语义）
-- 9 组负面测试 fixture + 1 missing-file result（`examples/broker/negative/`，覆盖所有 §4 error/denied 类别）
-- 协议契约冻结测试（`tests/test_contract_freeze.sh`，109 checks pass，冻结 action enum / required fields / ok-status 不变量 / 跨层一致性）
+- 22 组负面测试 fixture + 1 missing-file result + 1 ok-status-mismatch result（`examples/broker/negative/`，覆盖所有 §4 error/denied 类别）
+- 协议契约冻结测试（`tests/test_contract_freeze.sh`，冻结 action enum / required fields / property types / ok-status invariant / 跨层一致性）
 - `host-ops-api.md` SHA256 示例修正（消除 abc123 占位符，添加 error/denied 区分文档）
+- 跨层契约矩阵（`docs/specs/contract-matrix-v1.md`，字段映射 / 镜像关系 / deprecated 名称索引）
+- result schema 强化（`additionalProperties: false`、`minLength`、`if/then/else` ok/status 不变量、reserved `error_code` 字段）
+- `SKILL.md` SHA256 占位符修正（`abc123...` → proper 64-char hex）
 
 现网部署需要 Phase 2 正式启动后按进入门槛逐项执行。
 
@@ -1849,6 +1852,12 @@ Phase 1B 完成收口需要同时满足以下全部条件：
 - [x] 冻结 wrapper stub 存在性（8 个 ocw-*.sh）
 - [x] 冻结 fixture 中无 deprecated field names
 - [x] 更新 error taxonomy negative fixture index 至完整 19 条
+- [x] 强化 result schema：`additionalProperties: false`、required string 字段 `minLength: 1`、`if/then/else` ok/status 不变量、reserved `error_code` 字段
+- [x] 创建 `docs/specs/contract-matrix-v1.md`（跨层契约矩阵：字段映射、镜像关系、deprecated 名称、共享校验规则）
+- [x] 扩充 negative fixture 至 22 组 + 2 特殊场景（extra-fields、null-action、null-inputs、array-inputs、numeric-action、ok-status-mismatch）
+- [x] 冻结 result envelope property types 与 minLength/invariant schema 约束
+- [x] 修正 `SKILL.md` SHA256 占位符（`abc123...` → proper 64-char hex）
+- [x] 更新 error taxonomy negative fixture index 至完整 25 条
 
 ### 现网部署（需 Phase 2 正式启动后执行）
 

@@ -98,6 +98,17 @@ export function validateRequest(request) {
   if (request.inputs && typeof request.inputs !== "object") {
     errors.push("inputs must be an object");
   }
+  if (request.inputs && Array.isArray(request.inputs)) {
+    errors.push("inputs must be an object, not an array");
+  }
+
+  // No extra top-level fields (mirrors additionalProperties: false)
+  const KNOWN_FIELDS = ["action", "request_id", "task_id", "requested_by", "inputs"];
+  for (const key of Object.keys(request)) {
+    if (!KNOWN_FIELDS.includes(key)) {
+      errors.push(`Unknown top-level field: ${key}`);
+    }
+  }
 
   // Action-specific input validation
   if (request.action && request.inputs && errors.length === 0) {

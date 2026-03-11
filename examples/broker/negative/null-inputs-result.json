@@ -1,0 +1,8 @@
+{
+  "ok": false,
+  "action": "gateway_health",
+  "request_id": "req-20260311-160300-neg022",
+  "task_id": "task-neg-null-inputs",
+  "status": "error",
+  "message": "inputs must be a non-null object"
+}

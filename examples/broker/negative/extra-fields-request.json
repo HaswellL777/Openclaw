@@ -1,0 +1,9 @@
+{
+  "action": "gateway_health",
+  "request_id": "req-20260311-160300-neg020",
+  "task_id": "task-neg-extra-fields",
+  "requested_by": "test:negative",
+  "inputs": {},
+  "extra_unknown_field": "should not be here",
+  "another_bogus": 42
+}

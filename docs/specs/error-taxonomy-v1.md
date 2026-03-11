@@ -117,6 +117,12 @@ Each error category has a corresponding negative fixture pair in `examples/broke
 | `E_WRONG_ACTION` | `wrong-wrapper-action-request.json` | `wrong-wrapper-action-result.json` |
 | `E_FILE_NOT_FOUND` | *(no request file)* | `missing-file-result.json` |
 | `D_PATH_WHITELIST` | `../bad-path-request.json` | `../bad-path-result.json` |
+| `E_SCHEMA_VALIDATION` (extra fields) | `extra-fields-request.json` | `extra-fields-result.json` |
+| `E_SCHEMA_VALIDATION` (null action) | `null-action-request.json` | `null-action-result.json` |
+| `E_SCHEMA_VALIDATION` (null inputs) | `null-inputs-request.json` | `null-inputs-result.json` |
+| `E_SCHEMA_VALIDATION` (array inputs) | `array-inputs-request.json` | `array-inputs-result.json` |
+| `E_SCHEMA_VALIDATION` (numeric action) | `numeric-action-request.json` | `numeric-action-result.json` |
+| *(invariant violation)* | *(N/A — result-only)* | `ok-status-mismatch-result.json` |
 
 ---
 

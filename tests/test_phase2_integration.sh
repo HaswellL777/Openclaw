@@ -515,6 +515,11 @@ NEGATIVE_CASES_WITH_REQUEST=(
   "missing-target-snapshot"
   "missing-label"
   "empty-action"
+  "extra-fields"
+  "null-action"
+  "null-inputs"
+  "array-inputs"
+  "numeric-action"
 )
 
 for case_name in "${NEGATIVE_CASES_WITH_REQUEST[@]}"; do

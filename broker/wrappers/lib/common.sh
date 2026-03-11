@@ -67,12 +67,27 @@ broker_validate_request_file() {
 
 # Parse common fields from request JSON
 # Sets: BROKER_ACTION, BROKER_REQUEST_ID, BROKER_TASK_ID
+# Also validates no extra top-level fields and inputs is an object
 # Usage: broker_parse_common "$REQUEST_FILE"
 broker_parse_common() {
   local req_file="$1"
   BROKER_ACTION=$(jq -r '.action // empty' "$req_file" 2>/dev/null || true)
   BROKER_REQUEST_ID=$(jq -r '.request_id // empty' "$req_file" 2>/dev/null || true)
   BROKER_TASK_ID=$(jq -r '.task_id // empty' "$req_file" 2>/dev/null || true)
+
+  # Reject extra top-level fields (mirrors additionalProperties: false)
+  local extra_fields
+  extra_fields=$(jq -r '[keys[] | select(. != "action" and . != "request_id" and . != "task_id" and . != "requested_by" and . != "inputs")] | .[]' "$req_file" 2>/dev/null || true)
+  if [ -n "$extra_fields" ]; then
+    broker_error "error" "Unknown top-level fields: $(echo "$extra_fields" | tr '\n' ', ' | sed 's/,$//')"
+  fi
+
+  # Reject non-object inputs (arrays, strings, numbers)
+  local inputs_type
+  inputs_type=$(jq -r '.inputs | type' "$req_file" 2>/dev/null || true)
+  if [ -n "$inputs_type" ] && [ "$inputs_type" != "object" ] && [ "$inputs_type" != "null" ]; then
+    broker_error "error" "inputs must be an object, got ${inputs_type}"
+  fi
 }
 
 # Validate action matches expected value

@@ -1,0 +1,7 @@
+{
+  "action": "gateway_health",
+  "request_id": "req-20260311-160300-neg023",
+  "task_id": "task-neg-array-inputs",
+  "requested_by": "test:negative",
+  "inputs": ["should", "not", "be", "array"]
+}

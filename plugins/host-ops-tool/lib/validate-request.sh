@@ -58,6 +58,21 @@ for field in action request_id task_id requested_by inputs; do
   fi
 done
 
+# --- No extra top-level fields (mirrors additionalProperties: false) ---
+KNOWN_FIELDS='["action","request_id","task_id","requested_by","inputs"]'
+EXTRA_FIELDS=$(jq -r --argjson known "$KNOWN_FIELDS" '[keys[] | select(. as $k | $known | index($k) | not)] | .[]' "$REQUEST_FILE" 2>/dev/null)
+if [ -n "$EXTRA_FIELDS" ]; then
+  for ef in $EXTRA_FIELDS; do
+    err "Unknown top-level field: $ef"
+  done
+fi
+
+# --- inputs must be an object (not array, string, number, etc.) ---
+INPUTS_TYPE=$(jq -r '.inputs | type' "$REQUEST_FILE" 2>/dev/null)
+if [ "$INPUTS_TYPE" != "object" ] && [ "$INPUTS_TYPE" != "null" ]; then
+  err "inputs must be an object, got $INPUTS_TYPE"
+fi
+
 # --- Action enum ---
 ACTION=$(jq -r '.action // empty' "$REQUEST_FILE")
 if [ -z "$ACTION" ]; then

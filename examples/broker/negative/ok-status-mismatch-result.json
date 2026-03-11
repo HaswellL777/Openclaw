@@ -1,0 +1,8 @@
+{
+  "ok": true,
+  "action": "gateway_health",
+  "request_id": "req-20260311-160300-neg025",
+  "task_id": "task-neg-mismatch",
+  "status": "error",
+  "message": "This result has ok=true but status=error — violates the ok/status invariant"
+}

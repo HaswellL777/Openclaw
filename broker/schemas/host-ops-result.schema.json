@@ -5,13 +5,17 @@
   "required": ["ok", "action", "request_id", "task_id", "status"],
   "properties": {
     "ok": { "type": "boolean" },
-    "action": { "type": "string" },
-    "request_id": { "type": "string" },
-    "task_id": { "type": "string" },
+    "action": { "type": "string", "minLength": 1 },
+    "request_id": { "type": "string", "minLength": 1 },
+    "task_id": { "type": "string", "minLength": 1 },
     "status": { "type": "string", "enum": ["ok", "error", "denied"] },
     "message": { "type": "string" },
     "artifacts": { "type": "object" },
-    "rollback_hint": { "type": "string" }
+    "rollback_hint": { "type": "string" },
+    "error_code": { "type": "string", "minLength": 1 }
   },
-  "additionalProperties": true
+  "additionalProperties": false,
+  "if": { "properties": { "ok": { "const": true } } },
+  "then": { "properties": { "status": { "const": "ok" } } },
+  "else": { "properties": { "status": { "enum": ["error", "denied"] } } }
 }

@@ -421,6 +421,11 @@ EXPECTED_NEGATIVES=(
   "missing-label"
   "type-error-reason"
   "empty-action"
+  "extra-fields"
+  "null-action"
+  "null-inputs"
+  "array-inputs"
+  "numeric-action"
 )
 
 for case_name in "${EXPECTED_NEGATIVES[@]}"; do
@@ -455,6 +460,20 @@ else
   fail "Missing or invalid: missing-file-result.json"
 fi
 
+# Special: ok-status-mismatch-result.json (result-only invariant violation demo)
+MISMATCH_RES="$NEGATIVE_DIR/ok-status-mismatch-result.json"
+if [ -f "$MISMATCH_RES" ] && jq empty "$MISMATCH_RES" 2>/dev/null; then
+  mm_ok=$(jq -r '.ok' "$MISMATCH_RES" 2>/dev/null)
+  mm_status=$(jq -r '.status' "$MISMATCH_RES" 2>/dev/null)
+  if [ "$mm_ok" = "true" ] && [ "$mm_status" != "ok" ]; then
+    pass "Negative fixture valid: ok-status-mismatch-result.json (invariant violation demo)"
+  else
+    fail "ok-status-mismatch fixture not shaped correctly"
+  fi
+else
+  fail "Missing or invalid: ok-status-mismatch-result.json"
+fi
+
 # Validate negative fixtures are rejected by the validator
 VALIDATE_REQUEST="$PLUGIN_DIR/lib/validate-request.sh"
 VALIDATOR_NEGATIVE_CASES=(
@@ -473,6 +492,11 @@ VALIDATOR_NEGATIVE_CASES=(
   "missing-target-snapshot"
   "missing-label"
   "empty-action"
+  "extra-fields"
+  "null-action"
+  "null-inputs"
+  "array-inputs"
+  "numeric-action"
 )
 
 for case_name in "${VALIDATOR_NEGATIVE_CASES[@]}"; do
@@ -509,6 +533,51 @@ for schema_stem in snapshot-pre snapshot-post vault-sync rollback-prepare; do
     done
   fi
 done
+
+echo ""
+
+# ========================================
+# Section 7c: Result schema hardening checks
+# ========================================
+echo "--- Section 7c: Result schema hardening ---"
+
+RES_SCHEMA="$REPO_ROOT/broker/schemas/host-ops-result.schema.json"
+if [ -f "$RES_SCHEMA" ]; then
+  # additionalProperties must be false
+  res_addl=$(jq -r '.additionalProperties' "$RES_SCHEMA" 2>/dev/null)
+  if [ "$res_addl" = "false" ]; then
+    pass "Result schema additionalProperties=false"
+  else
+    fail "Result schema additionalProperties should be false (got $res_addl)"
+  fi
+
+  # minLength on required string fields
+  for prop in action request_id task_id; do
+    min_len=$(jq -r ".properties.${prop}.minLength // empty" "$RES_SCHEMA" 2>/dev/null)
+    if [ "$min_len" = "1" ]; then
+      pass "Result schema minLength=1: $prop"
+    else
+      fail "Result schema missing minLength=1: $prop"
+    fi
+  done
+
+  # ok/status invariant enforcement
+  inv_if=$(jq -r '.if.properties.ok.const' "$RES_SCHEMA" 2>/dev/null)
+  inv_then=$(jq -r '.then.properties.status.const' "$RES_SCHEMA" 2>/dev/null)
+  if [ "$inv_if" = "true" ] && [ "$inv_then" = "ok" ]; then
+    pass "Result schema ok/status invariant enforced"
+  else
+    fail "Result schema ok/status invariant not enforced"
+  fi
+
+  # Reserved error_code field
+  ec_type=$(jq -r '.properties.error_code.type' "$RES_SCHEMA" 2>/dev/null)
+  if [ "$ec_type" = "string" ]; then
+    pass "Result schema has reserved error_code field"
+  else
+    fail "Result schema missing reserved error_code field"
+  fi
+fi
 
 echo ""
 

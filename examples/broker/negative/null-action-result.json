@@ -1,0 +1,8 @@
+{
+  "ok": false,
+  "action": "",
+  "request_id": "req-20260311-160300-neg021",
+  "task_id": "task-neg-null-action",
+  "status": "error",
+  "message": "action must be a non-null string"
+}

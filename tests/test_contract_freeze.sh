@@ -113,6 +113,14 @@ else
   echo "    Got:      $SCHEMA_STATUS_ENUM"
 fi
 
+# additionalProperties must be false
+RES_ADDL=$(jq -r '.additionalProperties' "$RES_SCHEMA" 2>/dev/null)
+if [ "$RES_ADDL" = "false" ]; then
+  pass "Result schema additionalProperties=false"
+else
+  fail "Result schema additionalProperties changed: expected false, got $RES_ADDL"
+fi
+
 echo ""
 
 # ========================================
@@ -223,6 +231,63 @@ done
 echo ""
 
 # ========================================
+# Frozen: Result envelope property types
+# ========================================
+echo "--- Frozen: Result envelope property types ---"
+
+RES_SCHEMA="$REPO_ROOT/broker/schemas/host-ops-result.schema.json"
+
+declare -A FROZEN_RES_PROP_TYPES
+FROZEN_RES_PROP_TYPES["ok"]="boolean"
+FROZEN_RES_PROP_TYPES["action"]="string"
+FROZEN_RES_PROP_TYPES["request_id"]="string"
+FROZEN_RES_PROP_TYPES["task_id"]="string"
+FROZEN_RES_PROP_TYPES["status"]="string"
+FROZEN_RES_PROP_TYPES["message"]="string"
+FROZEN_RES_PROP_TYPES["artifacts"]="object"
+FROZEN_RES_PROP_TYPES["rollback_hint"]="string"
+FROZEN_RES_PROP_TYPES["error_code"]="string"
+
+for prop in $(echo "${!FROZEN_RES_PROP_TYPES[@]}" | tr ' ' '\n' | sort); do
+  expected_type="${FROZEN_RES_PROP_TYPES[$prop]}"
+  actual_type=$(jq -r ".properties.${prop}.type" "$RES_SCHEMA" 2>/dev/null)
+  if [ "$actual_type" = "$expected_type" ]; then
+    pass "Result property type frozen: ${prop} = ${expected_type}"
+  else
+    fail "Result property type changed: ${prop} (expected ${expected_type}, got ${actual_type})"
+  fi
+done
+
+# Freeze minLength on required string fields
+for prop in action request_id task_id; do
+  min_len=$(jq -r ".properties.${prop}.minLength // empty" "$RES_SCHEMA" 2>/dev/null)
+  if [ "$min_len" = "1" ]; then
+    pass "Result minLength=1 frozen: ${prop}"
+  else
+    fail "Result minLength changed: ${prop} (expected 1, got ${min_len:-<none>})"
+  fi
+done
+
+# Freeze reserved error_code field
+ERROR_CODE_TYPE=$(jq -r '.properties.error_code.type' "$RES_SCHEMA" 2>/dev/null)
+if [ "$ERROR_CODE_TYPE" = "string" ]; then
+  pass "Reserved error_code field exists (type=string)"
+else
+  fail "Reserved error_code field missing or wrong type (expected string, got $ERROR_CODE_TYPE)"
+fi
+
+# Freeze ok/status invariant enforcement (if/then/else)
+INVARIANT_IF=$(jq -r '.if.properties.ok.const' "$RES_SCHEMA" 2>/dev/null)
+INVARIANT_THEN=$(jq -r '.then.properties.status.const' "$RES_SCHEMA" 2>/dev/null)
+if [ "$INVARIANT_IF" = "true" ] && [ "$INVARIANT_THEN" = "ok" ]; then
+  pass "ok/status invariant schema-enforced (if ok=true then status=ok)"
+else
+  fail "ok/status invariant not schema-enforced"
+fi
+
+echo ""
+
+# ========================================
 # Frozen: Wrapper stub existence
 # ========================================
 echo "--- Frozen: Wrapper stub existence ---"
@@ -281,6 +346,8 @@ done
 # All negative result fixtures must have ok=false AND status != ok
 for f in "$REPO_ROOT"/examples/broker/negative/*-result.json; do
   basename_f=$(basename "$f")
+  # Skip ok-status-mismatch which is an intentional invariant violation demo
+  case "$basename_f" in ok-status-mismatch-*) continue ;; esac
   ok_val=$(jq -r '.ok' "$f" 2>/dev/null)
   status_val=$(jq -r '.status' "$f" 2>/dev/null)
 
@@ -426,6 +493,11 @@ EXPECTED_NEGATIVE_FIXTURES=(
   "missing-label"
   "type-error-reason"
   "empty-action"
+  "extra-fields"
+  "null-action"
+  "null-inputs"
+  "array-inputs"
+  "numeric-action"
 )
 
 for case_name in "${EXPECTED_NEGATIVE_FIXTURES[@]}"; do
@@ -483,6 +555,26 @@ if [ -f "$MISSING_FILE_RES" ]; then
   fi
 else
   fail "Missing negative fixture: missing-file-result.json"
+fi
+
+# Special case: ok-status-mismatch is result-only (demonstrates invariant violation)
+MISMATCH_RES="$REPO_ROOT/examples/broker/negative/ok-status-mismatch-result.json"
+if [ -f "$MISMATCH_RES" ]; then
+  if jq empty "$MISMATCH_RES" 2>/dev/null; then
+    pass "ok-status-mismatch result exists and valid JSON"
+  else
+    fail "ok-status-mismatch result invalid JSON"
+  fi
+  # This fixture intentionally has ok=true + status=error (the violation)
+  mm_ok=$(jq -r '.ok' "$MISMATCH_RES" 2>/dev/null)
+  mm_status=$(jq -r '.status' "$MISMATCH_RES" 2>/dev/null)
+  if [ "$mm_ok" = "true" ] && [ "$mm_status" != "ok" ]; then
+    pass "ok-status-mismatch demonstrates invariant violation (ok=true, status=$mm_status)"
+  else
+    fail "ok-status-mismatch fixture not shaped as expected"
+  fi
+else
+  fail "Missing negative fixture: ok-status-mismatch-result.json"
 fi
 
 echo ""
