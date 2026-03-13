@@ -22,6 +22,7 @@ Environment:
   BROKER_LOG_FILE       Passed through to broker
 """
 
+import grp
 import json
 import os
 import pwd
@@ -307,6 +308,22 @@ def run_listener(socket_path, allowed_uid, broker_cmd):
         sock.bind(socket_path)
         # Set socket permissions: owner rw, group rw, other none (0660)
         os.chmod(socket_path, 0o660)
+        # Set socket group to openclaw so the openclaw user can connect.
+        # Mandatory when running as root (production); skipped in dev/test.
+        if os.geteuid() == 0:
+            try:
+                openclaw_gid = grp.getgrnam("openclaw").gr_gid
+            except KeyError:
+                log("FATAL: 'openclaw' group not found — cannot chown broker socket")
+                sys.exit(1)
+            try:
+                os.chown(socket_path, 0, openclaw_gid)
+            except OSError as e:
+                log(f"FATAL: Cannot chown socket to root:openclaw — {e}")
+                sys.exit(1)
+            log(f"Socket ownership set to root:openclaw (gid={openclaw_gid})")
+        else:
+            log(f"WARNING: Running as non-root (euid={os.geteuid()}), skipping socket chown — not suitable for production")
         sock.listen(LISTEN_BACKLOG)
         sock.settimeout(1.0)  # Allow periodic shutdown check
         log(f"Listening on {socket_path}")
