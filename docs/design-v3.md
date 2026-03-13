@@ -1613,9 +1613,9 @@ Phase 1B 完成收口需要同时满足以下全部条件：
 
 ## Phase 2：host-ops broker 正式落地
 
-### 当前状态（2026-03-11）
+### 当前状态（2026-03-13）
 
-**Phase 2 尚未正式启动。** 以下开发仓内准备工作已完成：
+**Phase 2 现网部署尚未启动。** 以下开发仓内准备工作已完成：
 
 - broker 请求/结果 JSON Schema（`broker/schemas/`）
 - 8 个 per-action 输入 schema（`broker/schemas/actions/`）
@@ -1643,6 +1643,13 @@ Phase 1B 完成收口需要同时满足以下全部条件：
   - 现场记录模板（`docs/templates/phase2-broker-deployment-record-template.md`）
   - 文档回写模板（`docs/templates/phase2-broker-deployment-syncback-template.md`）
   - 只读预检脚本（`scripts/preflight-phase2-broker-deployment.sh`）
+- **Phase 2 implementation slice 1 完成（2026-03-13，repo-only）**：
+  - broker daemon skeleton（`broker/openclaw-broker`，CLI dispatch 模式，dry-run 默认）
+  - 8 个 wrapper 从 stub 升级为 candidate 实现：dry-run 路径保留 [STUB] 标记，live 路径含真实 btrfs/systemctl/sha256sum 命令但受 `BROKER_DRY_RUN` + root guard 保护
+  - `common.sh` 增强：`broker_error` 支持 `error_code` 参数、`BROKER_DRY_RUN` 默认值、`broker_require_live_capable` root guard
+  - broker daemon 端到端集成测试（`tests/test_broker_daemon.sh`，134 checks pass）
+  - 全部 6 套测试 1038 PASS / 0 FAIL
+  - **无现网路径写入、无 sudo、无 systemd 操作、所有产物仅在开发仓内**
 
 现网部署需要 Phase 2 正式启动后按进入门槛逐项执行。部署设计包已就绪供操作员审阅与执行。
 

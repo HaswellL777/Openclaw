@@ -105,7 +105,7 @@ sudo mv /var/lib/openclaw/.openclaw/extensions/<plugin>.bak-* /var/lib/openclaw/
   - 以上均为开发仓库内的候选产物，**脚本化发布链已于 2026-03-11 首次用于 live target 并校验通过**（workspace-main 本身最初在 Phase 1A 手动部署，本次通过 publish 脚本完成首次脚本化覆写发布）。
 - 当前是 **Phase 1 完整态**（Phase 1A + 1B 均已完成）：
   - **Phase 1B 的现网发布、校验闭环已执行并通过**
-  - **更不是 Phase 2（正式 broker / wrapper 写入链）**
+  - **更不是 Phase 2（正式 broker / wrapper 写入链）**——但 Phase 2 implementation slice 1（broker daemon skeleton + 8 wrapper candidate 实现）已在开发仓内完成（2026-03-13），无现网写入
   - **Phase 1B 退出条件与 Phase 2 进入门槛见 `design-v3.md` §7**
 
 ### 0.3 `/var/lib/openclaw` 与根快照的边界

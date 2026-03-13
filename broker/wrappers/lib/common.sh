@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# common.sh — Shared validation and output helpers for broker wrapper stubs
+# common.sh — Shared validation and output helpers for broker wrappers
 #
-# Status: Phase 2 dev-repo prep — single source of truth for wrapper validation logic
+# Status: Phase 2 implementation slice 1 — single source of truth for wrapper validation logic
 # Sourced by each ocw-*.sh wrapper to eliminate duplication and prevent drift
 #
 # Usage: source "${SCRIPT_DIR}/lib/common.sh"
@@ -11,7 +11,8 @@
 #   Functions: broker_validate_request_file, broker_parse_common,
 #              broker_validate_action, broker_validate_required_fields,
 #              broker_validate_sha256, broker_validate_path,
-#              broker_validate_label, broker_error, broker_emit_result
+#              broker_validate_label, broker_error, broker_emit_result,
+#              broker_require_live_capable
 
 # --- Constants (single source of truth) ---
 
@@ -29,6 +30,12 @@ readonly BROKER_ACTIONS=(
 readonly CANDIDATE_PATH_PREFIX="/var/lib/openclaw/approvals/candidates/"
 readonly CONFIG_TARGET_PATH="/etc/openclaw/openclaw.json"
 
+# --- Execution mode ---
+# BROKER_DRY_RUN controls wrapper execution behavior.
+# "true" (default): wrappers echo intended actions but do not execute system commands
+# "false": wrappers execute real system commands (requires root, live deployment only)
+BROKER_DRY_RUN="${BROKER_DRY_RUN:-true}"
+
 # --- Internal state (set by broker_parse_common) ---
 
 BROKER_ACTION=""
@@ -38,12 +45,16 @@ BROKER_TASK_ID=""
 # --- Error output ---
 
 # Emit structured error JSON to stderr and exit 1
-# Usage: broker_error "status" "message"
+# Usage: broker_error "status" "message" ["error_code"]
 # Requires BROKER_ACTION, BROKER_REQUEST_ID, BROKER_TASK_ID to be set
 broker_error() {
-  local status="${1:-error}" msg="${2:-unknown error}"
+  local status="${1:-error}" msg="${2:-unknown error}" error_code="${3:-}"
+  local code_field=""
+  if [ -n "$error_code" ]; then
+    code_field="\"error_code\":\"${error_code}\","
+  fi
   cat >&2 <<EOF
-{"ok":false,"action":"${BROKER_ACTION}","request_id":"${BROKER_REQUEST_ID}","task_id":"${BROKER_TASK_ID}","status":"${status}","message":"${msg}"}
+{"ok":false,"action":"${BROKER_ACTION}","request_id":"${BROKER_REQUEST_ID}","task_id":"${BROKER_TASK_ID}","status":"${status}",${code_field}"message":"${msg}"}
 EOF
   exit 1
 }
@@ -149,6 +160,14 @@ broker_validate_label() {
 }
 
 # --- Output helpers ---
+
+# Guard: refuse to run live execution as non-root
+# Usage: broker_require_live_capable
+broker_require_live_capable() {
+  if [ "$(id -u)" -ne 0 ]; then
+    broker_error "error" "Live execution requires root (EUID=0)" "E_WRAPPER_FAILED"
+  fi
+}
 
 # Emit structured success result on stdout
 # Usage: broker_emit_result '{"key":"value"}' "message" "rollback_hint"

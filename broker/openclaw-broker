@@ -1,0 +1,319 @@
+#!/usr/bin/env bash
+# openclaw-broker — Host-ops broker daemon (dev-repo candidate)
+#
+# Status: Phase 2 implementation slice 1 — repo-only, dry-run transport
+# This is NOT a deployed production service. Phase 2 live deployment has NOT started.
+#
+# This broker candidate provides:
+#   --dispatch <file>  CLI dispatch mode: process one request from a JSON file
+#   --version          Print version
+#   --help             Show usage
+#
+# Transport modes:
+#   CLI dispatch (--dispatch): implemented in this slice. Read request JSON,
+#     validate envelope, dispatch to wrapper, collect result, output on stdout.
+#   Unix socket listener: NOT implemented. Reserved for Phase 2 live deployment.
+#
+# Fail-closed: unknown actions, invalid JSON, missing fields all produce
+#   structured error JSON on stdout and exit non-zero.
+#
+# Environment:
+#   BROKER_DRY_RUN=true   Force wrappers into dry-run mode (default)
+#   BROKER_WRAPPER_DIR    Override wrapper directory
+#   BROKER_LOG_FILE       Log to file instead of stderr
+
+set -euo pipefail
+
+readonly BROKER_VERSION="0.1.0-dev"
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+WRAPPER_DIR="${BROKER_WRAPPER_DIR:-${SCRIPT_DIR}/wrappers}"
+LOG_FILE="${BROKER_LOG_FILE:-}"
+
+# Default: dry-run in dev repo
+export BROKER_DRY_RUN="${BROKER_DRY_RUN:-true}"
+
+# Action → wrapper mapping. Must stay in sync with common.sh BROKER_ACTIONS
+# and broker/schemas/action-inventory.json.
+declare -A ACTION_WRAPPER_MAP=(
+  [gateway_health]="ocw-gateway-health.sh"
+  [gateway_restart]="ocw-gateway-restart.sh"
+  [validate_openclaw_json_candidate]="ocw-validate-openclaw-json.sh"
+  [deploy_openclaw_json_candidate]="ocw-deploy-openclaw-json.sh"
+  [snapshot_pre]="ocw-snapshot-pre.sh"
+  [snapshot_post]="ocw-snapshot-post.sh"
+  [vault_sync]="ocw-vault-sync.sh"
+  [rollback_prepare]="ocw-rollback-prepare.sh"
+)
+
+# Frozen action list for envelope validation
+readonly VALID_ACTIONS=(
+  gateway_health
+  gateway_restart
+  validate_openclaw_json_candidate
+  deploy_openclaw_json_candidate
+  snapshot_pre
+  snapshot_post
+  vault_sync
+  rollback_prepare
+)
+
+# ─── Logging ───────────────────────────────────────────────────────────────────
+
+broker_log() {
+  local ts
+  ts="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  local msg="[${ts}] [broker] $*"
+  if [ -n "$LOG_FILE" ]; then
+    echo "$msg" >> "$LOG_FILE"
+  else
+    echo "$msg" >&2
+  fi
+}
+
+# ─── Error output ──────────────────────────────────────────────────────────────
+
+# Emit broker-level error result on stdout and exit non-zero.
+# This is the broker's own error path (before or instead of wrapper dispatch).
+broker_fatal() {
+  local action="${1:-}" request_id="${2:-}" task_id="${3:-}"
+  local status="${4:-error}" error_code="${5:-}" message="${6:-unknown error}"
+
+  local code_field=""
+  if [ -n "$error_code" ]; then
+    code_field="\"error_code\":\"${error_code}\","
+  fi
+
+  cat <<EOF
+{"ok":false,"action":"${action}","request_id":"${request_id}","task_id":"${task_id}","status":"${status}",${code_field}"message":"${message}"}
+EOF
+  broker_log "REJECT action=${action} request_id=${request_id} error_code=${error_code} message=${message}"
+  exit 1
+}
+
+# ─── Usage ─────────────────────────────────────────────────────────────────────
+
+usage() {
+  cat >&2 <<'USAGE'
+Usage: openclaw-broker --dispatch <request-json-path> [options]
+
+Modes:
+  --dispatch <path>     Process a single request from a JSON file
+
+Options:
+  --wrapper-dir <path>  Override wrapper directory (default: ./wrappers/)
+  --log-file <path>     Log to file instead of stderr
+  --version             Print version and exit
+  --help                Print this help and exit
+
+Environment:
+  BROKER_DRY_RUN=true     Force wrappers to dry-run mode (default in dev repo)
+  BROKER_WRAPPER_DIR      Override wrapper directory
+  BROKER_LOG_FILE         Log to file instead of stderr
+
+Transport note:
+  CLI dispatch (--dispatch) is the only transport in this dev-repo version.
+  Unix socket listener is reserved for Phase 2 live deployment.
+USAGE
+  exit "${1:-0}"
+}
+
+# ─── Envelope validation ──────────────────────────────────────────────────────
+
+# Validate request JSON envelope (file existence, JSON validity, required fields, action enum).
+# Sets DISPATCH_ACTION, DISPATCH_REQUEST_ID, DISPATCH_TASK_ID on success.
+# Calls broker_fatal on any validation failure.
+validate_envelope() {
+  local req_file="$1"
+
+  # File existence
+  if [ ! -f "$req_file" ]; then
+    broker_fatal "" "" "" "error" "E_FILE_NOT_FOUND" "Request file not found: ${req_file}"
+  fi
+
+  # Valid JSON
+  if ! jq empty "$req_file" 2>/dev/null; then
+    broker_fatal "" "" "" "error" "E_INVALID_JSON" "Request file is not valid JSON"
+  fi
+
+  # Extract common fields
+  local action request_id task_id
+  action=$(jq -r '.action // empty' "$req_file" 2>/dev/null || true)
+  request_id=$(jq -r '.request_id // empty' "$req_file" 2>/dev/null || true)
+  task_id=$(jq -r '.task_id // empty' "$req_file" 2>/dev/null || true)
+
+  # Action must be non-empty
+  if [ -z "$action" ]; then
+    broker_fatal "" "$request_id" "$task_id" "error" "E_UNKNOWN_ACTION" "Missing or empty action field"
+  fi
+
+  # Action must be in the frozen enum
+  local action_valid=false
+  for valid_action in "${VALID_ACTIONS[@]}"; do
+    if [ "$action" = "$valid_action" ]; then
+      action_valid=true
+      break
+    fi
+  done
+  if [ "$action_valid" != "true" ]; then
+    broker_fatal "$action" "$request_id" "$task_id" "error" "E_UNKNOWN_ACTION" "Unknown action: ${action}"
+  fi
+
+  # Required fields
+  if [ -z "$request_id" ] || [ -z "$task_id" ]; then
+    broker_fatal "$action" "$request_id" "$task_id" "error" "E_MISSING_FIELD" "Missing required fields: request_id, task_id"
+  fi
+
+  # Export for dispatch
+  DISPATCH_ACTION="$action"
+  DISPATCH_REQUEST_ID="$request_id"
+  DISPATCH_TASK_ID="$task_id"
+}
+
+# ─── Dispatch ──────────────────────────────────────────────────────────────────
+
+# Dispatch validated request to the appropriate wrapper script.
+# Outputs the wrapper's result JSON on stdout.
+# On wrapper failure, extracts structured error JSON from wrapper stderr.
+dispatch_to_wrapper() {
+  local req_file="$1" action="$2" request_id="$3" task_id="$4"
+
+  # Resolve wrapper
+  local wrapper_name="${ACTION_WRAPPER_MAP[$action]:-}"
+  if [ -z "$wrapper_name" ]; then
+    broker_fatal "$action" "$request_id" "$task_id" "error" "E_UNKNOWN_ACTION" \
+      "No wrapper mapped for action: ${action}"
+  fi
+
+  local wrapper_path="${WRAPPER_DIR}/${wrapper_name}"
+  if [ ! -f "$wrapper_path" ]; then
+    broker_fatal "$action" "$request_id" "$task_id" "error" "E_WRAPPER_FAILED" \
+      "Wrapper not found: ${wrapper_path}"
+  fi
+  if [ ! -x "$wrapper_path" ]; then
+    broker_fatal "$action" "$request_id" "$task_id" "error" "E_WRAPPER_FAILED" \
+      "Wrapper not executable: ${wrapper_path}"
+  fi
+
+  broker_log "DISPATCH action=${action} request_id=${request_id} wrapper=${wrapper_name} dry_run=${BROKER_DRY_RUN}"
+
+  # Invoke wrapper. Capture stdout (result) separately from stderr (logs/errors).
+  local wrapper_stderr_file
+  wrapper_stderr_file=$(mktemp "${TMPDIR:-/tmp}/broker-stderr-XXXXXX")
+
+  local wrapper_stdout=""
+  local wrapper_exit=0
+  wrapper_stdout=$(bash "$wrapper_path" "$req_file" 2>"$wrapper_stderr_file") || wrapper_exit=$?
+
+  # Forward wrapper stderr [STUB] lines to broker log
+  if [ -f "$wrapper_stderr_file" ]; then
+    while IFS= read -r line; do
+      broker_log "WRAPPER_STDERR ${line}"
+    done < "$wrapper_stderr_file"
+  fi
+
+  if [ $wrapper_exit -eq 0 ]; then
+    # Success: validate result is JSON, then forward
+    if echo "$wrapper_stdout" | jq empty 2>/dev/null; then
+      broker_log "OK action=${action} request_id=${request_id}"
+      echo "$wrapper_stdout"
+    else
+      rm -f "$wrapper_stderr_file"
+      broker_fatal "$action" "$request_id" "$task_id" "error" "E_WRAPPER_FAILED" \
+        "Wrapper returned invalid JSON on stdout"
+    fi
+  else
+    # Failure: extract structured error from wrapper stderr
+    local error_json=""
+    if [ -f "$wrapper_stderr_file" ]; then
+      # Find the first line that looks like structured error JSON
+      error_json=$(grep -m1 '^{.*"ok".*false' "$wrapper_stderr_file" 2>/dev/null || true)
+    fi
+
+    if [ -n "$error_json" ] && echo "$error_json" | jq empty 2>/dev/null; then
+      broker_log "ERROR action=${action} request_id=${request_id} exit_code=${wrapper_exit}"
+      echo "$error_json"
+      rm -f "$wrapper_stderr_file"
+      exit 1
+    else
+      rm -f "$wrapper_stderr_file"
+      broker_fatal "$action" "$request_id" "$task_id" "error" "E_WRAPPER_FAILED" \
+        "Wrapper exited ${wrapper_exit} without structured error"
+    fi
+  fi
+
+  rm -f "$wrapper_stderr_file"
+}
+
+# ─── Main ──────────────────────────────────────────────────────────────────────
+
+main() {
+  local mode="" request_file=""
+
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --dispatch)
+        mode="dispatch"
+        if [ -z "${2:-}" ]; then
+          echo "Error: --dispatch requires a file path" >&2
+          exit 1
+        fi
+        request_file="$2"
+        shift 2
+        ;;
+      --wrapper-dir)
+        if [ -z "${2:-}" ]; then
+          echo "Error: --wrapper-dir requires a path" >&2
+          exit 1
+        fi
+        WRAPPER_DIR="$2"
+        shift 2
+        ;;
+      --log-file)
+        if [ -z "${2:-}" ]; then
+          echo "Error: --log-file requires a path" >&2
+          exit 1
+        fi
+        LOG_FILE="$2"
+        shift 2
+        ;;
+      --version)
+        echo "openclaw-broker ${BROKER_VERSION}"
+        exit 0
+        ;;
+      --help|-h)
+        usage 0
+        ;;
+      *)
+        echo "Error: unknown argument: $1" >&2
+        usage 1
+        ;;
+    esac
+  done
+
+  if [ -z "$mode" ]; then
+    echo "Error: no mode specified. Use --dispatch <request-json-path>" >&2
+    usage 1
+  fi
+
+  case "$mode" in
+    dispatch)
+      if [ -z "$request_file" ]; then
+        echo "Error: --dispatch requires a file path" >&2
+        exit 1
+      fi
+
+      # Validate envelope (pre-dispatch)
+      validate_envelope "$request_file"
+
+      # Dispatch to wrapper
+      dispatch_to_wrapper "$request_file" "$DISPATCH_ACTION" "$DISPATCH_REQUEST_ID" "$DISPATCH_TASK_ID"
+      ;;
+    *)
+      echo "Error: unknown mode: $mode" >&2
+      exit 1
+      ;;
+  esac
+}
+
+main "$@"
