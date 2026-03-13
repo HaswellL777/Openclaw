@@ -143,7 +143,8 @@ This specification defines the target filesystem layout for the host-ops broker 
 | Service type | `simple` | Broker does not require readiness notification |
 | User | `root` | Broker needs root to invoke wrappers that modify system state |
 | RuntimeDirectory | `openclaw` | Creates `/run/openclaw/` |
-| ExecStart | `/opt/openclaw/broker/openclaw-broker` | Main broker process |
+| ExecStart | `/opt/openclaw/broker/openclaw-broker --listen --log-file /var/log/openclaw/broker/broker.log` | Main broker process in socket listener mode |
+| Environment | `BROKER_DRY_RUN=false` | Wrappers default to dry-run; production must set false |
 
 ### Suggested unit file skeleton (design only, not installed)
 
@@ -155,11 +156,12 @@ Requires=openclaw-gateway.service
 
 [Service]
 Type=simple
-ExecStart=/opt/openclaw/broker/openclaw-broker
+ExecStart=/opt/openclaw/broker/openclaw-broker --listen --log-file /var/log/openclaw/broker/broker.log
 RuntimeDirectory=openclaw
 RuntimeDirectoryMode=0755
 User=root
 Group=root
+Environment=BROKER_DRY_RUN=false
 
 # Security hardening
 ProtectHome=yes
@@ -262,6 +264,7 @@ WantedBy=multi-user.target
 | 4 | Broker startup dependency ordering | After gateway | Whether broker can operate without gateway |
 | 5 | Log rotation policy | Match existing openclaw logrotate | Disk usage patterns |
 | 6 | Socket path alternatives | `/run/openclaw/broker.sock` | If `/run/openclaw/` conflicts with gateway |
+| 7 | Socket group ownership | Listener must `chown` socket to `root:openclaw` after creation | Code fix required in `socket-listener.py` before deployment |
 
 ---
 

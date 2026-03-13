@@ -94,16 +94,16 @@
 
 ## Wrapper Installation
 
-| Wrapper | Installed | bash -n | No STUB markers | Notes |
-|---------|-----------|---------|-----------------|-------|
-| `ocw-gateway-health.sh` | _yes / no_ | _OK / FAIL_ | _OK / FAIL_ | |
-| `ocw-gateway-restart.sh` | _yes / no_ | _OK / FAIL_ | _OK / FAIL_ | |
-| `ocw-validate-openclaw-json.sh` | _yes / no_ | _OK / FAIL_ | _OK / FAIL_ | |
-| `ocw-deploy-openclaw-json.sh` | _yes / no_ | _OK / FAIL_ | _OK / FAIL_ | |
-| `ocw-snapshot-pre.sh` | _yes / no_ | _OK / FAIL_ | _OK / FAIL_ | |
-| `ocw-snapshot-post.sh` | _yes / no_ | _OK / FAIL_ | _OK / FAIL_ | |
-| `ocw-vault-sync.sh` | _yes / no_ | _OK / FAIL_ | _OK / FAIL_ | |
-| `ocw-rollback-prepare.sh` | _yes / no_ | _OK / FAIL_ | _OK / FAIL_ | |
+| Wrapper | Installed | bash -n | Live path verified | Notes |
+|---------|-----------|---------|---------------------|-------|
+| `ocw-gateway-health.sh` | _yes / no_ | _OK / FAIL_ | _OK / FAIL_ | _dual-mode; [STUB] in dry-run path expected_ |
+| `ocw-gateway-restart.sh` | _yes / no_ | _OK / FAIL_ | _OK / FAIL_ | _dual-mode; [STUB] in dry-run path expected_ |
+| `ocw-validate-openclaw-json.sh` | _yes / no_ | _OK / FAIL_ | _OK / FAIL_ | _dual-mode; [STUB] in dry-run path expected_ |
+| `ocw-deploy-openclaw-json.sh` | _yes / no_ | _OK / FAIL_ | _OK / FAIL_ | _dual-mode; [STUB] in dry-run path expected_ |
+| `ocw-snapshot-pre.sh` | _yes / no_ | _OK / FAIL_ | _OK / FAIL_ | _dual-mode; [STUB] in dry-run path expected_ |
+| `ocw-snapshot-post.sh` | _yes / no_ | _OK / FAIL_ | _OK / FAIL_ | _dual-mode; [STUB] in dry-run path expected_ |
+| `ocw-vault-sync.sh` | _yes / no_ | _OK / FAIL_ | _OK / FAIL_ | _dual-mode; [STUB] in dry-run path expected_ |
+| `ocw-rollback-prepare.sh` | _yes / no_ | _OK / FAIL_ | _OK / FAIL_ | _dual-mode; [STUB] in dry-run path expected_ |
 
 ---
 

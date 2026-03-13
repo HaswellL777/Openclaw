@@ -64,6 +64,11 @@ sudo btrfs subvolume list /.snapshots | tail -5
 # Verify target directories do not already exist
 ls -la /opt/openclaw/broker/ 2>/dev/null && echo "WARNING: broker dir already exists" || echo "OK: broker dir does not exist"
 ls -la /etc/systemd/system/openclaw-broker.service 2>/dev/null && echo "WARNING: unit already exists" || echo "OK: unit does not exist"
+
+# Verify required tools
+command -v socat >/dev/null && echo "OK: socat available" || echo "WARNING: socat not installed (needed for broker socket testing)"
+command -v jq >/dev/null && echo "OK: jq available" || echo "FAIL: jq not installed"
+command -v python3 >/dev/null && echo "OK: python3 available" || echo "FAIL: python3 not installed (needed for socket listener)"
 ```
 
 **Confirm**: Gateway is active. Sufficient disk space. No pre-existing broker installation.
@@ -240,11 +245,12 @@ Requires=openclaw-gateway.service
 
 [Service]
 Type=simple
-ExecStart=/opt/openclaw/broker/openclaw-broker
+ExecStart=/opt/openclaw/broker/openclaw-broker --listen --log-file /var/log/openclaw/broker/broker.log
 RuntimeDirectory=openclaw
 RuntimeDirectoryMode=0755
 User=root
 Group=root
+Environment=BROKER_DRY_RUN=false
 ProtectHome=yes
 PrivateTmp=yes
 StandardOutput=journal
@@ -312,15 +318,17 @@ cat > "$TMPFILE" << 'EOF'
 }
 EOF
 
-# Send to broker (mechanism depends on broker implementation — socket client, CLI, etc.)
-# Example if broker has CLI mode:
-# sudo /opt/openclaw/broker/openclaw-broker --request "$TMPFILE"
-# Example if broker listens on socket:
-# sudo socat - UNIX-CONNECT:/run/openclaw/broker.sock < "$TMPFILE"
+# Method A: Send via Unix socket (production path)
+echo "Sending test request via socket..."
+RESPONSE=$(socat - UNIX-CONNECT:/run/openclaw/broker.sock < "$TMPFILE")
+echo "Response: $RESPONSE"
+echo "$RESPONSE" | jq .
 
-echo "Test request created at: $TMPFILE"
-echo "Execute broker invocation manually and verify response contains: ok=true, status=ok"
+# Method B (alternative): CLI dispatch mode for debugging
+# sudo /opt/openclaw/broker/openclaw-broker --dispatch "$TMPFILE"
+
 rm -f "$TMPFILE"
+echo "Verify response contains: ok=true, status=ok"
 ```
 
 **Confirm**: Broker returns `{"ok": true, "status": "ok", ...}` for gateway_health.
@@ -344,8 +352,10 @@ cat > "$TMPFILE" << 'EOF'
   "inputs": {}
 }
 EOF
-echo "Test 1: Send invalid action request — expect ok=false, status=error"
-# [Execute broker invocation manually]
+echo "Test 1: Invalid action — expect ok=false, status=error"
+RESPONSE=$(socat - UNIX-CONNECT:/run/openclaw/broker.sock < "$TMPFILE")
+echo "Response: $RESPONSE"
+echo "$RESPONSE" | jq .
 rm -f "$TMPFILE"
 
 # Test 2: Path traversal
@@ -362,8 +372,10 @@ cat > "$TMPFILE" << 'EOF'
   }
 }
 EOF
-echo "Test 2: Send path traversal request — expect ok=false, status=denied"
-# [Execute broker invocation manually]
+echo "Test 2: Path traversal — expect ok=false, status=denied"
+RESPONSE=$(socat - UNIX-CONNECT:/run/openclaw/broker.sock < "$TMPFILE")
+echo "Response: $RESPONSE"
+echo "$RESPONSE" | jq .
 rm -f "$TMPFILE"
 ```
 
