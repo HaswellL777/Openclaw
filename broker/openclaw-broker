@@ -1,30 +1,34 @@
 #!/usr/bin/env bash
 # openclaw-broker — Host-ops broker daemon (dev-repo candidate)
 #
-# Status: Phase 2 implementation slice 1 — repo-only, dry-run transport
+# Status: Phase 2 implementation slice 2 — repo-only, dual transport
 # This is NOT a deployed production service. Phase 2 live deployment has NOT started.
 #
 # This broker candidate provides:
 #   --dispatch <file>  CLI dispatch mode: process one request from a JSON file
+#   --listen           Socket listener mode: Unix socket with SO_PEERCRED auth
 #   --version          Print version
 #   --help             Show usage
 #
 # Transport modes:
-#   CLI dispatch (--dispatch): implemented in this slice. Read request JSON,
-#     validate envelope, dispatch to wrapper, collect result, output on stdout.
-#   Unix socket listener: NOT implemented. Reserved for Phase 2 live deployment.
+#   CLI dispatch (--dispatch): process a single request from a JSON file.
+#   Unix socket listener (--listen): listen on a Unix socket, authenticate
+#     callers via SO_PEERCRED, delegate to --dispatch for each request.
 #
 # Fail-closed: unknown actions, invalid JSON, missing fields all produce
 #   structured error JSON on stdout and exit non-zero.
 #
 # Environment:
-#   BROKER_DRY_RUN=true   Force wrappers into dry-run mode (default)
-#   BROKER_WRAPPER_DIR    Override wrapper directory
-#   BROKER_LOG_FILE       Log to file instead of stderr
+#   BROKER_DRY_RUN=true      Force wrappers into dry-run mode (default)
+#   BROKER_WRAPPER_DIR       Override wrapper directory
+#   BROKER_LOG_FILE          Log to file instead of stderr
+#   BROKER_SOCKET_PATH       Socket path for --listen mode (default: /run/openclaw/broker.sock)
+#   BROKER_ALLOWED_UID       Override allowed service UID for testing
+#   BROKER_DISPATCH_CMD      Override broker dispatch command (used by listener)
 
 set -euo pipefail
 
-readonly BROKER_VERSION="0.1.0-dev"
+readonly BROKER_VERSION="0.2.0-dev"
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 WRAPPER_DIR="${BROKER_WRAPPER_DIR:-${SCRIPT_DIR}/wrappers}"
@@ -95,25 +99,26 @@ EOF
 
 usage() {
   cat >&2 <<'USAGE'
-Usage: openclaw-broker --dispatch <request-json-path> [options]
+Usage: openclaw-broker <mode> [options]
 
 Modes:
   --dispatch <path>     Process a single request from a JSON file
+  --listen              Start Unix socket listener (SO_PEERCRED auth)
 
 Options:
   --wrapper-dir <path>  Override wrapper directory (default: ./wrappers/)
+  --socket-path <path>  Socket path for --listen mode (default: /run/openclaw/broker.sock)
   --log-file <path>     Log to file instead of stderr
   --version             Print version and exit
   --help                Print this help and exit
 
 Environment:
-  BROKER_DRY_RUN=true     Force wrappers to dry-run mode (default in dev repo)
-  BROKER_WRAPPER_DIR      Override wrapper directory
-  BROKER_LOG_FILE         Log to file instead of stderr
-
-Transport note:
-  CLI dispatch (--dispatch) is the only transport in this dev-repo version.
-  Unix socket listener is reserved for Phase 2 live deployment.
+  BROKER_DRY_RUN=true       Force wrappers to dry-run mode (default in dev repo)
+  BROKER_WRAPPER_DIR        Override wrapper directory
+  BROKER_LOG_FILE           Log to file instead of stderr
+  BROKER_SOCKET_PATH        Socket path for --listen mode
+  BROKER_ALLOWED_UID        Override allowed service UID for testing
+  BROKER_DISPATCH_CMD       Override broker dispatch command (used by listener)
 USAGE
   exit "${1:-0}"
 }
@@ -248,7 +253,7 @@ dispatch_to_wrapper() {
 # ─── Main ──────────────────────────────────────────────────────────────────────
 
 main() {
-  local mode="" request_file=""
+  local mode="" request_file="" socket_path=""
 
   while [ $# -gt 0 ]; do
     case "$1" in
@@ -261,12 +266,24 @@ main() {
         request_file="$2"
         shift 2
         ;;
+      --listen)
+        mode="listen"
+        shift
+        ;;
       --wrapper-dir)
         if [ -z "${2:-}" ]; then
           echo "Error: --wrapper-dir requires a path" >&2
           exit 1
         fi
         WRAPPER_DIR="$2"
+        shift 2
+        ;;
+      --socket-path)
+        if [ -z "${2:-}" ]; then
+          echo "Error: --socket-path requires a path" >&2
+          exit 1
+        fi
+        socket_path="$2"
         shift 2
         ;;
       --log-file)
@@ -292,7 +309,7 @@ main() {
   done
 
   if [ -z "$mode" ]; then
-    echo "Error: no mode specified. Use --dispatch <request-json-path>" >&2
+    echo "Error: no mode specified. Use --dispatch <request-json-path> or --listen" >&2
     usage 1
   fi
 
@@ -308,6 +325,26 @@ main() {
 
       # Dispatch to wrapper
       dispatch_to_wrapper "$request_file" "$DISPATCH_ACTION" "$DISPATCH_REQUEST_ID" "$DISPATCH_TASK_ID"
+      ;;
+    listen)
+      # Launch Python socket listener
+      local listener_script="${SCRIPT_DIR}/lib/socket-listener.py"
+      if [ ! -f "$listener_script" ]; then
+        echo "Error: socket listener not found: $listener_script" >&2
+        exit 1
+      fi
+
+      # Set socket path via env if specified on command line
+      if [ -n "$socket_path" ]; then
+        export BROKER_SOCKET_PATH="$socket_path"
+      fi
+
+      # Set broker dispatch command to this script
+      export BROKER_DISPATCH_CMD="${BROKER_DISPATCH_CMD:-$(readlink -f "$0")}"
+
+      broker_log "Starting socket listener (socket=${BROKER_SOCKET_PATH:-/run/openclaw/broker.sock}, dry_run=${BROKER_DRY_RUN})"
+
+      exec python3 "$listener_script"
       ;;
     *)
       echo "Error: unknown mode: $mode" >&2

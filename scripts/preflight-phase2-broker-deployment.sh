@@ -157,6 +157,9 @@ REQUIRED_FILES=(
     "broker/schemas/host-ops-request.schema.json"
     "broker/schemas/host-ops-result.schema.json"
     "broker/schemas/action-inventory.json"
+    # Broker daemon
+    "broker/openclaw-broker"
+    "broker/lib/socket-listener.py"
     # Wrapper stubs
     "broker/wrappers/lib/common.sh"
     "broker/wrappers/ocw-gateway-health.sh"
@@ -313,6 +316,7 @@ echo ""
 echo "--- 5. Shell script syntax ---"
 
 SHELL_FILES=(
+    "broker/openclaw-broker"
     "broker/wrappers/lib/common.sh"
     "broker/wrappers/ocw-gateway-health.sh"
     "broker/wrappers/ocw-gateway-restart.sh"
@@ -330,6 +334,7 @@ SHELL_FILES=(
     "tests/test_contract_freeze.sh"
     "tests/test_phase2_integration.sh"
     "tests/test_broker_schemas.sh"
+    "tests/test_broker_listen.sh"
 )
 
 for sf in "${SHELL_FILES[@]}"; do
@@ -608,9 +613,11 @@ else
         echo "  $WARN_COUNT warning(s) noted but not blocking."
         echo ""
     fi
-    echo "  Development repo artifacts are ready for Phase 2 broker deployment."
+    echo "  Repo-side blocker closure complete."
+    echo "  Ready for deployment review / pre-deployment verification."
+    echo "  Phase 2 live deployment has NOT started."
     echo ""
-    echo "  IMPORTANT: This preflight only verified dev-repo-side readiness."
+    echo "  IMPORTANT: This preflight only verified dev-repo-side artifacts."
     echo "  Before executing deployment, the operator MUST still manually verify:"
     echo "    1. Live gateway health (runbook §4.2)"
     echo "    2. Disk space on /opt/openclaw, /var/log/openclaw, /var/lib/openclaw"

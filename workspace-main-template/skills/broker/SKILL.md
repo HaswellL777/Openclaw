@@ -34,7 +34,7 @@ This skill should:
 ## Broker API (planned)
 
 ### Transport
-Unix socket or root-owned local IPC (exact path TBD at Phase 2 deployment).
+Unix domain socket at `/run/openclaw/broker.sock`.
 
 ### Request format
 Per `docs/specs/host-ops-broker-protocol-v1.md` §2 and `broker/schemas/host-ops-request.schema.json`:

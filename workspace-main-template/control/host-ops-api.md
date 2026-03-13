@@ -19,7 +19,7 @@ The broker is the **sole host mutation entry point**. It accepts only structured
 
 ## Transport
 
-Unix socket or root-owned local IPC (exact path TBD at Phase 2 deployment).
+Unix domain socket at `/run/openclaw/broker.sock`.
 
 ## Actions
 

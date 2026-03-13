@@ -1,7 +1,11 @@
-// host-ops-tool plugin skeleton
-// Status: Phase 2 dev-repo prep — not for live deployment
-// This module provides request building and validation functions
-// for the host-ops broker protocol. It has no live dependencies.
+// host-ops-tool plugin
+// Status: Phase 2 implementation slice 2 — repo-only, not deployed
+// This module provides request building, validation, and Unix socket
+// transport functions for the host-ops broker protocol.
+// Transport: Unix domain socket client (Node.js net module).
+// No HTTP, no network listening.
+
+import { createConnection } from "node:net";
 
 const ACTIONS = [
   "gateway_health",
@@ -244,6 +248,111 @@ export function hostOpsToolSkeleton() {
     actions: ACTIONS,
     schemas: SCHEMA_PATHS,
   };
+}
+
+// --- Transport: Unix socket client ---
+
+const DEFAULT_SOCKET_PATH = "/run/openclaw/broker.sock";
+const CONNECT_TIMEOUT_MS = 5000;
+const READ_TIMEOUT_MS = 30000;
+
+/**
+ * Send a request to the broker via Unix domain socket.
+ * Fail-closed: any transport error rejects with a structured error.
+ *
+ * @param {object} request - A validated broker request object
+ * @param {string} [socketPath] - Unix socket path (default: BROKER_SOCKET_PATH env or /run/openclaw/broker.sock)
+ * @param {object} [options] - Optional overrides: { connectTimeout, readTimeout }
+ * @returns {Promise<object>} Parsed result object from broker
+ */
+export function sendRequest(request, socketPath, options) {
+  const resolvedPath =
+    socketPath ||
+    (typeof process !== "undefined" && process.env && process.env.BROKER_SOCKET_PATH) ||
+    DEFAULT_SOCKET_PATH;
+  const connectTimeout = (options && options.connectTimeout) || CONNECT_TIMEOUT_MS;
+  const readTimeout = (options && options.readTimeout) || READ_TIMEOUT_MS;
+
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    let connectTimerId = null;
+    let readTimerId = null;
+    let settled = false;
+
+    function settle(fn, value) {
+      if (settled) return;
+      settled = true;
+      clearTimeout(connectTimerId);
+      clearTimeout(readTimerId);
+      fn(value);
+    }
+
+    // Connect timeout
+    connectTimerId = setTimeout(() => {
+      settle(reject, new Error(`Connect timeout after ${connectTimeout}ms to ${resolvedPath}`));
+      try {
+        conn.destroy();
+      } catch (_) {
+        /* ignore */
+      }
+    }, connectTimeout);
+
+    let conn;
+    try {
+      conn = createConnection({ path: resolvedPath });
+    } catch (err) {
+      settle(reject, new Error(`Failed to create connection to ${resolvedPath}: ${err.message}`));
+      return;
+    }
+
+    conn.on("connect", () => {
+      clearTimeout(connectTimerId);
+
+      // Start read timeout
+      readTimerId = setTimeout(() => {
+        settle(reject, new Error(`Read timeout after ${readTimeout}ms`));
+        try {
+          conn.destroy();
+        } catch (_) {
+          /* ignore */
+        }
+      }, readTimeout);
+
+      // Send request and half-close
+      const payload = JSON.stringify(request);
+      conn.end(payload);
+    });
+
+    conn.on("data", (chunk) => {
+      chunks.push(chunk);
+    });
+
+    conn.on("end", () => {
+      const raw = Buffer.concat(chunks).toString("utf-8").trim();
+      if (!raw) {
+        settle(reject, new Error("Broker returned empty response"));
+        return;
+      }
+      try {
+        const result = JSON.parse(raw);
+        settle(resolve, result);
+      } catch (err) {
+        settle(reject, new Error(`Broker returned non-JSON response: ${raw.slice(0, 200)}`));
+      }
+    });
+
+    conn.on("error", (err) => {
+      if (err.code === "ENOENT") {
+        settle(reject, new Error(`Broker unavailable: socket not found at ${resolvedPath}`));
+      } else if (err.code === "ECONNREFUSED") {
+        settle(reject, new Error(`Broker unavailable: connection refused at ${resolvedPath}`));
+      } else if (err.code === "EACCES") {
+        settle(reject, new Error(`Broker socket permission denied: ${resolvedPath}`));
+      } else {
+        settle(reject, new Error(`Broker connection error: ${err.message}`));
+      }
+    });
+  });
 }
 
 export { ACTIONS, SCHEMA_PATHS, STATUS_VALUES };

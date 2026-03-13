@@ -192,11 +192,11 @@ for action in "${ACTIONS[@]}"; do
   fi
 done
 
-# Check no live socket references
-if grep -qiE '(connect|socket|ws://|http://|localhost|127\.0\.0\.1)' "$PLUGIN_DIR/index.js"; then
-  fail "index.js appears to reference live connections"
+# Check no HTTP/WebSocket/localhost references (Unix socket transport is expected)
+if grep -qiE '(ws://|http://|localhost|127\.0\.0\.1)' "$PLUGIN_DIR/index.js"; then
+  fail "index.js appears to reference HTTP/WebSocket/network connections"
 else
-  pass "index.js has no live connection references"
+  pass "index.js has no HTTP/WebSocket/network connection references"
 fi
 
 echo ""
