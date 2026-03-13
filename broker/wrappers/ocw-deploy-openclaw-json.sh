@@ -64,7 +64,7 @@ else
   fi
 
   # Step 3: Backup current config
-  local backup_path="${CONFIG_TARGET_PATH}.bak"
+  backup_path="${CONFIG_TARGET_PATH}.bak"
   if [ -f "$CONFIG_TARGET_PATH" ]; then
     cp "$CONFIG_TARGET_PATH" "$backup_path"
     echo "[LIVE] Backed up: $CONFIG_TARGET_PATH -> $backup_path" >&2

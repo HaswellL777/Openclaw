@@ -48,7 +48,7 @@ OPTIONS:
 WHAT IT CHECKS:
     1. Repository state (git repo, clean worktree)
     2. Required repo files exist (schemas, wrappers, docs, scripts, tests)
-    3. Wrapper stub inventory (all 8 stubs + common.sh present)
+    3. Wrapper inventory (all 8 dual-mode wrappers + common.sh present)
     4. Schema validation (jq syntax, required fields)
     5. Shell script syntax (bash -n on all .sh files)
     6. Action inventory consistency (8 frozen actions)
@@ -64,7 +64,7 @@ WHAT IT CANNOT CHECK (operator must verify manually at deployment time):
     - Root snapshot creation
     - Vault availability
     - Actual sudo access
-    - Broker daemon implementation readiness (stubs vs production logic)
+    - BROKER_DRY_RUN=false is set in production environment
 
 OUTPUT:
     PASS   Check passed
@@ -160,7 +160,7 @@ REQUIRED_FILES=(
     # Broker daemon
     "broker/openclaw-broker"
     "broker/lib/socket-listener.py"
-    # Wrapper stubs
+    # Wrappers (dual-mode: dry-run + live)
     "broker/wrappers/lib/common.sh"
     "broker/wrappers/ocw-gateway-health.sh"
     "broker/wrappers/ocw-gateway-restart.sh"
@@ -205,7 +205,7 @@ echo ""
 # ============================================================
 # Section 3: Wrapper Stub Inventory
 # ============================================================
-echo "--- 3. Wrapper stub inventory ---"
+echo "--- 3. Wrapper inventory ---"
 
 EXPECTED_WRAPPERS=(
     ocw-gateway-health.sh
@@ -224,21 +224,21 @@ WRAPPER_COUNT=0
 for wrapper in "${EXPECTED_WRAPPERS[@]}"; do
     if [[ -f "$WRAPPER_DIR/$wrapper" ]]; then
         WRAPPER_COUNT=$((WRAPPER_COUNT + 1))
-        # Check for STUB marker (expected in dev-repo stubs)
+        # Check for STUB marker (expected in dry-run code path of dual-mode wrappers)
         if grep -q '\[STUB\]' "$WRAPPER_DIR/$wrapper" 2>/dev/null; then
-            log_pass "Stub wrapper: $wrapper (has [STUB] marker — expected in dev-repo)"
+            log_pass "Dual-mode wrapper: $wrapper (has [STUB] in dry-run path — expected)"
         else
-            log_warn "Wrapper $wrapper missing [STUB] marker (may already have production logic)"
+            log_warn "Wrapper $wrapper missing [STUB] marker (verify dual-mode structure)"
         fi
     else
-        log_fail "Missing wrapper stub: $wrapper"
+        log_fail "Missing wrapper: $wrapper"
     fi
 done
 
 if [[ $WRAPPER_COUNT -eq 8 ]]; then
-    log_pass "All 8 wrapper stubs present"
+    log_pass "All 8 wrappers present (dual-mode: dry-run + live)"
 else
-    log_fail "Expected 8 wrapper stubs, found $WRAPPER_COUNT"
+    log_fail "Expected 8 wrappers, found $WRAPPER_COUNT"
 fi
 
 # Check common.sh
@@ -602,7 +602,7 @@ if [[ $FAIL_COUNT -gt 0 ]]; then
     echo "    - No pre-existing broker installation"
     echo "    - Pre-change root snapshot capability"
     echo "    - Vault availability for post-deployment sync"
-    echo "    - Broker daemon implementation readiness (stubs vs production)"
+    echo "    - Broker daemon implementation readiness (BROKER_DRY_RUN=false for production)"
     exit 1
 else
     echo "  +--------------------+"
@@ -625,8 +625,7 @@ else
     echo "    4. No pre-existing openclaw-broker.service systemd unit"
     echo "    5. Pre-change root snapshot creation capability"
     echo "    6. Vault available for post-deployment sync"
-    echo "    7. Wrapper stubs have been upgraded to production logic (no [STUB] markers)"
-    echo "    8. Broker daemon has been implemented"
-    echo "    9. Interactive TTY available for deployment"
+    echo "    7. BROKER_DRY_RUN=false is set in production environment (systemd unit or broker config)"
+    echo "    8. Interactive TTY available for deployment"
     exit 0
 fi

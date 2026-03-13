@@ -244,7 +244,7 @@ export function validateResult(result) {
 export function hostOpsToolSkeleton() {
   return {
     status: "phase2-dev-repo-prep",
-    note: "Schemas, wrapper stubs, and protocol spec in repo; broker not yet deployed",
+    note: "Schemas, dual-mode wrappers, and protocol spec in repo; broker not yet deployed",
     actions: ACTIONS,
     schemas: SCHEMA_PATHS,
   };

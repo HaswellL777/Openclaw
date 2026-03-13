@@ -31,7 +31,8 @@ This specification defines the target filesystem layout for the host-ops broker 
 | Binary/script | `/opt/openclaw/broker/openclaw-broker` | Root-owned, not writable by openclaw user |
 | Owner | `root:root` | Consistent with `/opt/openclaw` ownership model |
 | Mode | `0755` | Executable by all, writable only by root |
-| Type | Shell script or compiled binary (TBD) | Initial implementation likely bash; future may be Go/Rust |
+| Type | Bash script (socket listener: Python 3) | Main daemon is bash; socket listener is Python for SO_PEERCRED |
+| Socket listener | `/opt/openclaw/broker/lib/socket-listener.py` | Python 3, launched by broker `--listen` mode |
 | Parent directory | `/opt/openclaw/broker/` | New subdirectory under existing `/opt/openclaw` |
 
 **Rationale**: `/opt/openclaw` is already `root:root 755` per host-sop. Placing the broker under `/opt/openclaw/broker/` maintains the existing ownership model and ensures the openclaw user cannot modify broker code.
@@ -139,7 +140,7 @@ This specification defines the target filesystem layout for the host-ops broker 
 | Attribute | Value | Notes |
 |-----------|-------|-------|
 | Unit file | `/etc/systemd/system/openclaw-broker.service` | System-level service |
-| Service type | `simple` or `notify` | TBD at implementation |
+| Service type | `simple` | Broker does not require readiness notification |
 | User | `root` | Broker needs root to invoke wrappers that modify system state |
 | RuntimeDirectory | `openclaw` | Creates `/run/openclaw/` |
 | ExecStart | `/opt/openclaw/broker/openclaw-broker` | Main broker process |
@@ -198,7 +199,9 @@ WantedBy=multi-user.target
 
 ```
 /opt/openclaw/broker/                          # root:root 755
-  openclaw-broker                              # root:root 755 — broker daemon
+  openclaw-broker                              # root:root 755 — broker daemon (bash)
+  lib/                                         # root:root 755
+    socket-listener.py                         # root:root 755 — Unix socket listener (Python 3)
   wrappers/                                    # root:root 755
     lib/common.sh                              # root:root 755 — shared validation
     ocw-gateway-health.sh                      # root:root 755
@@ -253,8 +256,8 @@ WantedBy=multi-user.target
 
 | # | Question | Current assumption | Resolution trigger |
 |---|----------|-------------------|-------------------|
-| 1 | Broker implementation language | Bash script initially | Performance/complexity requirements |
-| 2 | Service type (simple vs notify) | `simple` | Whether broker needs readiness notification |
+| 1 | ~~Broker implementation language~~ | Bash script (socket listener: Python 3) | Resolved in Phase 2 impl slice 2 |
+| 2 | ~~Service type (simple vs notify)~~ | `simple` | Resolved; broker does not need readiness notification |
 | 3 | Schema validation approach | Embedded in wrappers (via common.sh) | Whether broker does pre-dispatch validation |
 | 4 | Broker startup dependency ordering | After gateway | Whether broker can operate without gateway |
 | 5 | Log rotation policy | Match existing openclaw logrotate | Disk usage patterns |

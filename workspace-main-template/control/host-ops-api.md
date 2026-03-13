@@ -288,5 +288,5 @@ Since broker is not yet deployed:
 - `broker/schemas/host-ops-request.schema.json` — Request JSON Schema
 - `broker/schemas/host-ops-result.schema.json` — Result JSON Schema
 - `broker/schemas/actions/*.schema.json` — Per-action input schemas
-- `broker/wrappers/` — Wrapper script stubs
+- `broker/wrappers/` — Wrapper scripts (dual-mode: dry-run + live)
 - `control/approval-policy.md` — When approval is required

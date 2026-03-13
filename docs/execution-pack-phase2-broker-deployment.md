@@ -35,6 +35,7 @@ git status
 bash scripts/validate-phase2-prep.sh
 bash tests/test_contract_freeze.sh
 bash tests/test_phase2_integration.sh
+bash scripts/validate-broker-schemas.sh
 bash tests/test_broker_schemas.sh
 
 # Run preflight script
@@ -150,7 +151,7 @@ sudo bash -n /opt/openclaw/broker/wrappers/lib/common.sh && echo "OK: syntax val
 
 ## Step 5: Install wrapper scripts (requires sudo)
 
-**What**: Install all 8 wrapper scripts. **CRITICAL: Before installing, the stub logic must be replaced with real execution logic.** The dev-repo versions are stubs only.
+**What**: Install all 8 wrapper scripts. Dev-repo wrappers are dual-mode: they contain both dry-run (`[STUB]`) and live execution paths. The live code path is already implemented. At deployment, ensure `BROKER_DRY_RUN=false` is set in the production environment.
 
 ```bash
 # List of wrappers to install
@@ -165,10 +166,10 @@ WRAPPERS=(
   ocw-rollback-prepare.sh
 )
 
-# IMPORTANT: The production wrapper files must have been prepared
-# with real execution logic BEFORE this step.
-# Dev-repo stubs contain [STUB] markers and echo-only logic.
-# Production wrappers must NOT contain [STUB] markers.
+# IMPORTANT: Dev-repo wrappers are dual-mode (dry-run + live).
+# The live code path (BROKER_DRY_RUN=false) already contains real execution logic.
+# [STUB] markers exist only in the dry-run code path and are expected.
+# Production wrappers are installed directly from dev-repo; no rewriting needed.
 
 for wrapper in "${WRAPPERS[@]}"; do
   # Copy production version from dev-repo (wrappers have dual-mode: dry-run + live)
@@ -181,7 +182,7 @@ for wrapper in "${WRAPPERS[@]}"; do
 
   # Verify no STUB-only markers remain in live execution paths.
   # Note: Wrappers are dual-mode (dry-run + live). [STUB] markers in the dry-run
-  # code path are expected. Verify the live code path has real execution logic.
+  # code path are expected and harmless. Verify the live code path has real execution logic.
   if grep -q '\[STUB\]' "/opt/openclaw/broker/wrappers/${wrapper}"; then
     echo "NOTE: ${wrapper} contains [STUB] markers (expected in dry-run path for dual-mode wrappers)"
   else
@@ -190,8 +191,8 @@ for wrapper in "${WRAPPERS[@]}"; do
 done
 ```
 
-**Confirm**: All 8 wrappers installed, syntax valid, no STUB markers.
-**Blocker**: Any wrapper has syntax errors or still contains STUB markers.
+**Confirm**: All 8 wrappers installed, syntax valid. [STUB] markers in dry-run paths are expected for dual-mode wrappers.
+**Blocker**: Any wrapper has syntax errors. Verify live code path (BROKER_DRY_RUN=false branch) has real execution logic.
 
 ---
 

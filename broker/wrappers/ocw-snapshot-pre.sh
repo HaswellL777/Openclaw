@@ -49,7 +49,7 @@ else
   # [LIVE] Production execution — requires root
   broker_require_live_capable
 
-  local snapshot_path="/.snapshots/${SNAPSHOT_NAME}"
+  snapshot_path="/.snapshots/${SNAPSHOT_NAME}"
 
   # Check snapshot doesn't already exist
   if [ -d "$snapshot_path" ]; then

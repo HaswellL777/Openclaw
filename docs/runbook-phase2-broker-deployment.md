@@ -111,11 +111,12 @@ The deployment is divided into ordered stages. Each stage has a human confirmati
 
 1. Copy wrapper scripts from dev repo to `/opt/openclaw/broker/wrappers/`
 2. Copy `lib/common.sh` to `/opt/openclaw/broker/wrappers/lib/`
-3. **Critical**: Replace `[STUB]` echo-only logic with real execution logic
-4. Set ownership: `root:root`
-5. Set mode: `0755`
-6. Verify each wrapper passes `bash -n` syntax check
-7. **Human confirmation**: all 8 wrappers + common.sh installed, no STUB markers remain
+3. **Note**: Dev-repo wrappers are dual-mode (dry-run + live). They contain real execution logic in their `BROKER_DRY_RUN=false` code path. The `[STUB]` markers in the dry-run code path are expected and harmless.
+4. Set `BROKER_DRY_RUN=false` in the production environment (systemd unit or broker config)
+5. Set ownership: `root:root`
+6. Set mode: `0755`
+7. Verify each wrapper passes `bash -n` syntax check
+8. **Human confirmation**: all 8 wrappers + common.sh installed, live code path has real execution logic
 
 ### Stage 4: Install broker daemon
 
