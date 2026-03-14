@@ -5,7 +5,15 @@ This document defines the API contract for the host-ops broker.
 The authoritative protocol definition is `docs/design-v3.md` §5.6.
 
 ## Status
-**Phase 2**: This API is designed and schemas exist in the dev repo, but broker is not yet deployed.
+**Phase 2 — broker backend deployed (2026-03-14)**:
+- Broker daemon running (`openclaw-broker.service`, active + enabled)
+- Unix socket available (`/run/openclaw/broker.sock`, `root:openclaw 660`)
+- 8 wrappers installed (production logic, `BROKER_DRY_RUN=false`)
+- Plugin registered in `openclaw.json` (gateway accepted, healthy)
+- **Pending**: `index.js` register/activate export (plugin lifecycle activation)
+- **Pending**: agent-facing `host_ops` tool access (`tools.allow` update)
+
+Until plugin activation is complete, the Phase 1 workaround (Section "Phase 1 workaround") remains the operational path.
 
 ## Overview
 
@@ -272,9 +280,9 @@ If an operation fails:
 
 See `docs/specs/error-taxonomy-v1.md` for the full error code taxonomy.
 
-## Phase 1 workaround (current)
+## Phase 1 workaround (current — until plugin activation is complete)
 
-Since broker is not yet deployed:
+Since broker backend is deployed but agent-facing `host_ops` tool is not yet active:
 1. main agent prepares operation plan
 2. main agent requests approval via approval-policy.md workflow
 3. Human executes manually following runbooks in `control/runbooks/`

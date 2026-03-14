@@ -1,4 +1,4 @@
-# OpenClaw Host 状态记录（2026-03-11 Phase 1B 退出条件全部满足）
+# OpenClaw Host 状态记录（2026-03-14 Phase 2 broker deployment 完成）
 
 > 适用范围：Ubuntu 24.04 LTS 宿主机裸机安装 OpenClaw（非 Docker），Btrfs 根（subvolid=5），使用 `/.snapshots` + 离线 Vault（`/mnt/vault`, `noauto`）做增量 `send/receive`；OpenClaw 以 systemd **system-level** 服务运行（`User=openclaw`），并严格遵循目录边界：
 >
@@ -7,7 +7,7 @@
 > - 数据：`/var/lib/openclaw`（btrfs 独立子卷，`openclaw:openclaw`，`700`）
 > - 日志：`/var/log/openclaw`（`openclaw:openclaw`）
 >
-> 当前宿主机状态不再是纯 Phase 0，而是 **Phase 1（Phase 1A + Phase 1B）已完成**：`main` agent 已上线、`workspace-main` 已发布、工具集 fix-forward 已完成、默认主模型已切换为 `motchat-gpt-max/gpt-5.4`；**Phase 1B 控制面收口已完成**（2026-03-11 首次现网脚本化发布通过，`check-workspace-main.sh` 校验通过）；但 **只读 `host_ops` / broker、正式 `task-runner`、Docker 执行面与 `/var/lib/openclaw` 独立控制面备份链仍未落地**。**Phase 2 尚未开始。**
+> 当前宿主机状态不再是纯 Phase 0，而是 **Phase 1（Phase 1A + Phase 1B）已完成**：`main` agent 已上线、`workspace-main` 已发布、工具集 fix-forward 已完成、默认主模型已切换为 `motchat-gpt-max/gpt-5.4`；**Phase 1B 控制面收口已完成**（2026-03-11 首次现网脚本化发布通过，`check-workspace-main.sh` 校验通过）；**Phase 2 broker deployment 已完成**（2026-03-14）：broker daemon 运行中、8 个 wrapper 已安装（production 逻辑）、host-ops-tool plugin 已注册进 openclaw.json 并被 gateway 接受；但 **plugin activation（register/activate export）和 agent-facing host_ops tool access 仍 pending**；正式 `task-runner`、Docker 执行面与 `/var/lib/openclaw` 独立控制面备份链仍未落地。
 
 ## ⛔ 禁止操作清单（优先阅读）
 
@@ -87,7 +87,7 @@ sudo mv /var/lib/openclaw/.openclaw/extensions/<plugin>.bak-* /var/lib/openclaw/
 
 ### 0.1 当前时间与主机
 - 时区：CST (+0800)
-- 日期：2026-03-11（Phase 1B 退出条件全部满足）
+- 日期：2026-03-14（Phase 2 broker deployment 完成）
 - 主机：`nick-MS-7D73`（管理用户：`nick`，服务用户：`openclaw`）
 
 ### 0.2 当前阶段定位
@@ -103,9 +103,17 @@ sudo mv /var/lib/openclaw/.openclaw/extensions/<plugin>.bak-* /var/lib/openclaw/
   - `scripts/publish-workspace-main.sh`、`scripts/publish-sop.sh`、`scripts/check-workspace-main.sh` 已实现并提交；
   - `docs/runtime-allowlist-backup-draft.md` 已升级为设计定稿候选（design candidate）——分类模型、恢复语义、恢复优先级、实施约束已结构化，但尚未转化为可执行脚本，也未在生产中启用；
   - 以上均为开发仓库内的候选产物，**脚本化发布链已于 2026-03-11 首次用于 live target 并校验通过**（workspace-main 本身最初在 Phase 1A 手动部署，本次通过 publish 脚本完成首次脚本化覆写发布）。
-- 当前是 **Phase 1 完整态**（Phase 1A + 1B 均已完成）：
-  - **Phase 1B 的现网发布、校验闭环已执行并通过**
-  - **更不是 Phase 2（正式 broker / wrapper 写入链）**——但 Phase 2 implementation slice 1（broker daemon skeleton + 8 wrapper candidate 实现）已在开发仓内完成（2026-03-13），无现网写入
+- **Phase 2 broker deployment 已完成（2026-03-14）**：
+  - host-ops broker daemon 运行中（`openclaw-broker.service`，active + enabled）；
+  - 8 个 wrapper 已安装（production 逻辑，`BROKER_DRY_RUN=false`）；
+  - Unix socket `/run/openclaw/broker.sock`（`root:openclaw 660`）；
+  - host-ops-tool plugin 已注册进 `openclaw.json`，gateway 已接受该配置并健康运行；
+  - **但 plugin activation 仍 pending**：`index.js` 缺少 `register/activate` export，gateway 日志有对应 warning（非阻塞）；
+  - **agent-facing host_ops tool access 仍 pending**：`tools.allow` 中尚未启用 `host_ops`；
+  - **Phase 2 的后续工作（task-runner、Docker 隔离等）尚未开始**。
+- 当前是 **Phase 2 broker deployment 完成态**：
+  - **broker backend 已部署并通过验收**
+  - **plugin activation 和 agent-side tool access 仍是独立后续工作项**
   - **Phase 1B 退出条件与 Phase 2 进入门槛见 `design-v3.md` §7**
 
 ### 0.3 `/var/lib/openclaw` 与根快照的边界
@@ -131,9 +139,12 @@ sudo mv /var/lib/openclaw/.openclaw/extensions/<plugin>.bak-* /var/lib/openclaw/
 2. **`session-memory` 日志路径显示为 `~/.openclaw/workspace-main/memory/...`。**
    - 这说明日志展示层存在 `~` 形式路径；
    - 后续仍需核实其实际解析路径是否仍指向 `/var/lib/openclaw/.openclaw/...`，并确认不会引回 `nick` 用户空间。
-3. **只读 `host_ops` 仍未部署。**
-   - 设计文档里原先把只读 `host_ops` 放在 Phase 1；
-   - 但本机实际状态尚未达到该子阶段。
+3. **只读 `host_ops` 仍未对 agent 开放。**
+   - broker backend 已于 2026-03-14 部署完成（`openclaw-broker.service` active + enabled）；
+   - host-ops-tool plugin 已注册进 `openclaw.json`；
+   - 但 `index.js` 缺少 `register/activate` export（gateway 日志有 warning，非阻塞）；
+   - `tools.allow` 中尚未启用 `host_ops`；
+   - agent-facing tool access 仍是后续独立工作项。
 4. ~~Phase 1B 发布 / 校验脚本已在开发仓就绪，但尚未在现网执行首次正式发布。~~ ✅ 已完成（2026-03-11）。
 
 ## 1. 磁盘与分区布局（lsblk 摘要）
@@ -221,6 +232,8 @@ sudo mv /var/lib/openclaw/.openclaw/extensions/<plugin>.bak-* /var/lib/openclaw/
   - system/root-auto-2026-03-07-1804（Phase 1A `main` bootstrap 前入库）
   - system/root-auto-2026-03-07-1830（工具集 fix-forward 前入库）
   - system/root-auto-2026-03-07-1911（Phase 1A 收尾入库）
+  - system/root-auto-2026-03-11-1324（Phase 1B 发布后入库）
+  - system/root-auto-2026-03-14-1454（Phase 2 broker deployment 后入库，parent: root-auto-2026-03-14-0340）
 
 ## 4. 离线挂载策略（/etc/fstab）
 已追加一条（仅一条）：
@@ -244,7 +257,7 @@ sudo mv /var/lib/openclaw/.openclaw/extensions/<plugin>.bak-* /var/lib/openclaw/
 
 ### 5.2 状态文件
 - `/var/lib/openclaw/backup/last_sent`
-  - 当前值：`root-auto-2026-03-07-1911`
+  - 当前值：`root-auto-2026-03-14-1454`
 
 ## 6. systemd 定时器（Vault 备份）
 - Service:
@@ -259,16 +272,25 @@ sudo mv /var/lib/openclaw/.openclaw/extensions/<plugin>.bak-* /var/lib/openclaw/
 ## 7. OpenClaw 目录与权限基线（宿主机）
 - 程序目录：
   - `/opt/openclaw`  owner root:root, mode 755（所有用户可读/进入，仅 root 可写）
+  - `/opt/openclaw/broker/`  owner root:root, mode 755（broker daemon + wrappers，2026-03-14 部署）
+  - `/opt/openclaw/broker/wrappers/`  owner root:root, mode 755（8 个 action wrapper）
+  - `/opt/openclaw/broker/wrappers/lib/`  owner root:root, mode 755（共享验证库 common.sh）
+  - `/opt/openclaw/broker/lib/`  owner root:root, mode 755（socket-listener.py）
 - 配置目录：
   - `/etc/openclaw`  owner root:openclaw, mode 750
   - `/etc/openclaw/openclaw.json`  owner root:openclaw, mode 640
   - `/etc/openclaw/openclaw.env`  owner root:openclaw, mode 640（强制）
 - 数据目录（已为子卷）：
   - `/var/lib/openclaw` owner openclaw:openclaw, mode 700（仅服务账号读写）
+  - `/var/lib/openclaw/broker/`  owner root:openclaw, mode 750（broker 状态，minimal）
+  - `/var/lib/openclaw/approvals/candidates/`  owner openclaw:openclaw, mode 700（config candidate 暂存区）
 - 日志目录：
   - `/var/log/openclaw` owner openclaw:openclaw
+  - `/var/log/openclaw/broker/`  owner root:openclaw, mode 750（broker 审计日志）
 - 插件目录：
   - `/var/lib/openclaw/.openclaw/extensions` owner openclaw:openclaw, mode 700
+- 运行时：
+  - `/run/openclaw/broker.sock`  owner root:openclaw, mode 660（broker Unix socket，systemd RuntimeDirectory）
 
 ## 8. OpenClaw 运行账号
 - 用户：openclaw（system user）
@@ -445,13 +467,18 @@ xfconf-query -c xfwm4 -p /general/use_compositing -s false
 ### 11.3 当前阶段标签
 - **Phase 1A / main bootstrap only — 已完成落地**
 - **Phase 1B / 控制面收口 — 已完成（2026-03-11 首次现网脚本化发布通过）**
+- **Phase 2 / broker deployment — 已完成（2026-03-14）**
 - `main` agent 已正式上线；
 - `workspace-main` 已落地；
 - `main` 的 file tools 已修正；
 - 默认主模型已切到 `motchat-gpt-max/gpt-5.4`；
 - 开发仓已提交 `workspace-main-template/` 目录与 publish/check 脚本；
 - `docs/runtime-allowlist-backup-draft.md` 已升级为设计定稿候选（design candidate）；
-- `host_ops` broker / `task-runner` / Docker 执行面仍未进入生产落地。
+- host-ops broker daemon 已部署（`openclaw-broker.service`，active + enabled）；
+- 8 个 wrapper 已安装（production 逻辑，`BROKER_DRY_RUN=false`）；
+- host-ops-tool plugin 已注册进 `openclaw.json`（gateway 接受，健康运行）；
+- **plugin activation（register/activate export）和 agent-facing host_ops tool access 仍 pending**；
+- `task-runner` / Docker 执行面仍未进入生产落地。
 
 #### 11.3.1 Phase 1B 退出条件（摘要）
 
@@ -464,6 +491,22 @@ Phase 1B 完成收口需要满足以下剩余条件：
 
 完整退出条件、阶段交付物与 Phase 2 进入门槛见 `docs/design-v3.md` §7 Phase 1B / Phase 2。
 
+#### 11.3.2 Phase 2 broker deployment 退出条件（摘要）
+
+Phase 2 broker deployment 于 2026-03-14 完成，退出条件满足情况：
+
+1. ~~broker daemon 部署并运行（`openclaw-broker.service` active + enabled）~~ ✅
+2. ~~Unix socket 已创建且权限正确（`/run/openclaw/broker.sock`，`root:openclaw 660`）~~ ✅
+3. ~~8 个 wrapper 安装为 production 版本（`BROKER_DRY_RUN=false`）~~ ✅
+4. ~~`gateway_health` 正向测试通过~~ ✅
+5. ~~negative cases 测试通过（invalid action → error，bad path → denied，path traversal → denied）~~ ✅
+6. ~~host-ops-tool plugin 注册进 `openclaw.json`，gateway 健康接受~~ ✅
+7. ~~pre/post change snapshot + Vault 入库~~ ✅
+8. plugin activation（`index.js` register/activate export）— **pending**
+9. agent-facing `host_ops` tool access（`tools.allow` 更新）— **pending**
+
+详细现场记录见 `docs/records/phase2-broker-deployment-2026-03-14.md`。
+
 ### 11.4 里程碑快照与入库（已执行）
 - 最近关键本地只读里程碑快照：
   - `/.snapshots/root-post-openclaw-working-2026-03-04-1624`
@@ -472,6 +515,8 @@ Phase 1B 完成收口需要满足以下剩余条件：
   - `/.snapshots/root-post-phase1a-2026-03-07-1911`
   - `/.snapshots/root-pre-phase1b-publish-2026-03-11-1308`（Phase 1B 首次现网发布前）
   - `/.snapshots/root-post-phase1b-publish-2026-03-11-1319`（Phase 1B 首次现网发布后）
+  - `/.snapshots/root-pre-phase2-broker-20260314`（ID 309，Phase 2 broker 部署前）
+  - `/.snapshots/root-post-phase2-broker-20260314`（ID 310，Phase 2 broker 部署后）
 - 最近自动备份快照（由 `vault-backup-root-btrfs` 生成）：
   - `/.snapshots/root-auto-2026-03-06-2031`
   - `/.snapshots/root-auto-2026-03-06-2051`
@@ -480,6 +525,7 @@ Phase 1B 完成收口需要满足以下剩余条件：
   - `/.snapshots/root-auto-2026-03-07-1830`
   - `/.snapshots/root-auto-2026-03-07-1911`
   - `/.snapshots/root-auto-2026-03-11-1324`（Phase 1B 发布后 Vault 入库时自动创建）
+  - `/.snapshots/root-auto-2026-03-14-1454`（Phase 2 broker 部署后 Vault 入库时自动创建）
 - Vault 已接收（`/mnt/vault/recv/system`）的最新条目：
   - `system/root-auto-2026-03-06-2031`
   - `system/root-auto-2026-03-06-2051`
@@ -488,7 +534,8 @@ Phase 1B 完成收口需要满足以下剩余条件：
   - `system/root-auto-2026-03-07-1830`
   - `system/root-auto-2026-03-07-1911`
   - `system/root-auto-2026-03-11-1324`（parent: `root-auto-2026-03-11-0340`）
-- `last_sent`：`/var/lib/openclaw/backup/last_sent = root-auto-2026-03-11-1324`
+  - `system/root-auto-2026-03-14-1454`（parent: `root-auto-2026-03-14-0340`）
+- `last_sent`：`/var/lib/openclaw/backup/last_sent = root-auto-2026-03-14-1454`
 - Vault 备份后状态：Vault 不常驻挂载（`findmnt /mnt/vault -> unmounted`）
 
 ### 11.5 审计记录（已生成）
@@ -676,7 +723,37 @@ UMask=0077
 > - `~/.openclaw/openclaw.json missing`
 > - `systemctl --user unavailable`
 >
-> 这是预期行为，**不要使用 `openclaw doctor --repair` 去“修复”**，否则会引入 user-level daemon，破坏当前目录边界策略。
+> 这是预期行为，**不要使用 `openclaw doctor --repair` 去”修复”**，否则会引入 user-level daemon，破坏当前目录边界策略。
+
+### 12.6 Broker systemd unit（`/etc/systemd/system/openclaw-broker.service`）
+
+> 2026-03-14 Phase 2 broker deployment 落地。
+
+```ini
+[Unit]
+Description=OpenClaw Host-Ops Broker
+After=network.target openclaw-gateway.service
+Requires=openclaw-gateway.service
+
+[Service]
+Type=simple
+ExecStart=/opt/openclaw/broker/openclaw-broker --listen --log-file /var/log/openclaw/broker/broker.log
+RuntimeDirectory=openclaw
+RuntimeDirectoryMode=0755
+User=root
+Group=root
+Environment=BROKER_DRY_RUN=false
+ProtectHome=yes
+PrivateTmp=yes
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=openclaw-broker
+
+[Install]
+WantedBy=multi-user.target
+```
+
+**运行时注意**：因 `Requires=openclaw-gateway.service`，当 gateway 被重启时 broker 也会被 SIGTERM 并由 systemd 重启。通过 broker 发送 `gateway_restart` 请求时，broker 自身的请求返回值可能为 `E_BROKER_INTERNAL`，此时应以 gateway + broker 的 post-restart 状态作为成功判据，而非 broker 请求返回值。
 
 ## 13. 运维 SOP（日常 / 变更 / 备份 / 回滚 / 排障 / 发布）
 
@@ -1773,3 +1850,4 @@ Phase 1A 完成后，已执行 post-change 里程碑快照与 Vault 入库：
 | 2026-03-11 | Phase 2 开发仓准备第五轮（不涉及现网部署）：强化 result schema（`additionalProperties: false` / required string `minLength: 1` / `if/then/else` ok-status 不变量 / reserved `error_code` 字段）；创建跨层契约矩阵（`docs/specs/contract-matrix-v1.md`）；扩充负面 fixture 至 22 组 + 2 特殊场景（extra-fields / null-action / null-inputs / array-inputs / numeric-action / ok-status-mismatch）；三层同步 extra-fields 拒绝和 inputs type 校验（common.sh / validate-request.sh / index.js 新增 additionalProperties 对等检查）；冻结 result envelope property types / minLength / invariant 约束；修正 SKILL.md SHA256 占位符；更新 error taxonomy fixture index 至 25 条——**所有产物仅在开发仓内，Phase 2 现网部署尚未启动** |
 | 2026-03-11 | Phase 2 开发仓准备第六轮——收口型加固（不涉及现网部署）：创建单一来源 action inventory（`broker/schemas/action-inventory.json`，frozen=true，映射 schema/wrapper/fixture/required_inputs）；创建 fixture registry（`examples/broker/fixture-registry.json`，24 negative + 8 happy-path + 1 special，含 action/error_type/expected_status）；创建 prep 入口门控文档（`docs/specs/phase2-repo-prep-gate.md`，定义 21 条退出标准、10 条明确 deferred 事项、3 条残留低优先级项）；在 host-ops-api.md 补充 error_code 可选字段文档；在 contract-matrix-v1.md §7 添加验证脚本实现状态与单一来源引用；增强 test_contract_freeze.sh（action inventory 冻结验证 + fixture registry 一致性验证）；增强 validate-phase2-prep.sh（新增 §12-15：inventory / registry / gate / validator parity freeze）——**所有产物仅在开发仓内，Phase 2 现网部署尚未启动** |
 | 2026-03-11 | Phase 2 部署设计包（不涉及现网部署）：创建部署布局规格文档（`docs/specs/phase2-broker-deployment-layout.md`，定义 broker daemon / socket / wrappers / logs / state / systemd unit 的目标路径、权限与归属模型）；创建部署 runbook（`docs/runbook-phase2-broker-deployment.md`，含 10 项进入条件、7 项禁止条件、Go/No-Go checklist、10 阶段部署序列、8 项最终验证、回滚规程与快照纪律）；创建分步执行包（`docs/execution-pack-phase2-broker-deployment.md`，15 步命令块 + 人工确认点 + 回退速查卡）；创建现场记录模板（`docs/templates/phase2-broker-deployment-record-template.md`）；创建文档回写模板（`docs/templates/phase2-broker-deployment-syncback-template.md`）；创建只读预检脚本（`scripts/preflight-phase2-broker-deployment.sh`，10 段验证 + GO/NO-GO 结论，不访问 live path）；更新 design-v3 §7 Phase 2 状态与 §8.3 TODO——**所有产物均为部署设计材料，broker 未部署，Phase 2 现网部署尚未启动** |
+| 2026-03-14 | Phase 2 broker live deployment（现网部署）：operator-led 手动执行，按 runbook 全流程完成；broker daemon 部署到 `/opt/openclaw/broker/openclaw-broker`（bash + Python3 socket listener）；8 个 wrapper 安装为 production 版本（`BROKER_DRY_RUN=false`）；systemd unit `openclaw-broker.service` 安装并 enabled；Unix socket `/run/openclaw/broker.sock`（`root:openclaw 660`）已创建；`gateway_health` 正向测试通过；invalid action、bad path、path traversal 三类负面测试通过；host-ops-tool plugin 安装到 extensions 目录并注册进 `openclaw.json`（`plugins.allow` + `plugins.entries`）；gateway 重启后健康；pre snapshot `root-pre-phase2-broker-20260314`（ID 309），post snapshot `root-post-phase2-broker-20260314`（ID 310），Vault 入库完成（auto snapshot `root-auto-2026-03-14-1454`，parent `root-auto-2026-03-14-0340`）；`last_sent` 更新为 `root-auto-2026-03-14-1454`；**部署结论：PASS**；plugin activation（`index.js` register/activate export）和 agent-facing `host_ops` tool access 仍 pending；详见 `docs/records/phase2-broker-deployment-2026-03-14.md` |

@@ -6,8 +6,15 @@
 - **Purpose**: Interface with host-ops broker for host state mutations
 
 ## Status
-**Phase 2 planned**: This skill is designed but not yet implemented.
-The host-ops broker is not yet deployed. Phase 2 has not started.
+**Phase 2 — broker backend deployed (2026-03-14)**:
+- Broker daemon running (`openclaw-broker.service`, active + enabled)
+- Unix socket available (`/run/openclaw/broker.sock`)
+- 8 wrappers installed with production logic
+- Plugin registered in `openclaw.json` (gateway accepted, healthy)
+- **Pending**: `index.js` register/activate export (gateway logs `missing register/activate export` — non-blocking)
+- **Pending**: agent-facing `host_ops` tool access (`tools.allow` update)
+
+This skill is not yet operational. Until plugin activation is complete, use the Phase 1 workaround below.
 
 ## What this skill does (planned)
 This skill provides the interface for calling host-ops broker to execute:
@@ -129,9 +136,9 @@ When complete:
 - Update `control/state/last-sop-hash.txt` if SOP changed
 - Report results to human
 
-## Phase 1 workaround (current)
+## Phase 1 workaround (current — until plugin activation is complete)
 
-Since broker is not yet implemented (Phase 2 not started):
+Since broker backend is deployed but agent-facing tool is not yet active:
 1. main agent prepares operation plan
 2. main agent requests approval
 3. Human executes manually following runbooks in `control/runbooks/`

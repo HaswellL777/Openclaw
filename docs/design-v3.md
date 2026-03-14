@@ -1,7 +1,7 @@
 # OpenClaw 多 Agent + Claude Code 协作体系设计稿 v3.1
 
 > 初版编写日期：2026-03-07
-> 本次修订日期：2026-03-11（Phase 1B 退出条件全部满足）
+> 本次修订日期：2026-03-14（Phase 2 broker deployment 完成）
 > 适用宿主机：当前单机 Ubuntu 24.04 LTS / Btrfs / systemd / OpenClaw 2026.3.2 基线
 > 上游输入：`openclaw-host-sop-2026-03-06.md`、`1.md`、`openclaw-design-v2-2026-03-07.md`、本轮 Phase 1A 实际落地结果、Phase 1B 开发仓候选产物
 > 文档定位：**可实施规格稿 + 落地状态稿**，用于后续继续开发、验证、回滚、审计与发布
@@ -10,16 +10,16 @@
 
 ## 0. 文档结论先行
 
-截至 2026-03-11，本设计稿 v3.1 的状态应表述为：
+截至 2026-03-14，本设计稿 v3.1 的状态应表述为：
 
-1. **当前真实落地阶段是 Phase 1（Phase 1A + Phase 1B 均已完成），Phase 2 尚未开始。**
+1. **当前真实落地阶段是 Phase 1（Phase 1A + Phase 1B 均已完成）+ Phase 2 broker deployment 已完成，Phase 2 plugin activation 仍 pending。**
 2. **主控制面仍在宿主机，不容器化。**
 3. **`main` agent 已在现网落地（落地起点属于 Phase 1A：main bootstrap only；当前宿主机整体阶段已到 Phase 1 完成）。**
 4. **`workspace-main` 已实际发布到 `/var/lib/openclaw/.openclaw/workspace-main/`，并已成为 `main` 的 runtime workspace。**
 5. **`main` 当前已经具备 `read / write / edit / sessions_*` 基础控制面工具，但仍无 `exec`、无 `elevated`、无 direct host mutation。**
 6. **`main` 的 per-agent allowlist 与全局 `tools.profile` 不可并存；当使用 per-agent allow/deny 时，不再保留全局 `tools.profile`。**
 7. **Claude Code CLI 已正式纳入体系，但当前只完成了角色 A：`nick` 用户开发工具这一侧的实际可用落地。**
-8. **task-runner / Docker sandbox / host-ops broker 仍是后续阶段目标，尚未进入生产执行链。**
+8. **host-ops broker daemon 已部署并运行（`openclaw-broker.service`，active + enabled，2026-03-14）；8 个 wrapper 已安装为 production 版本（`BROKER_DRY_RUN=false`）；host-ops-tool plugin 已注册进 `openclaw.json` 并被 gateway 接受。但 plugin activation（`index.js` register/activate export）和 agent-facing `host_ops` tool access（`tools.allow` 更新）仍 pending。task-runner / Docker sandbox 仍是后续阶段目标，尚未进入生产执行链。**
 9. **任何宿主机副作用仍必须坚持“快照 → 变更 → 健康检查 → post 快照 → Vault 入库”的纪律。**
 10. **`/var/lib/openclaw` 已是独立 Btrfs 子卷，因此不在 root snapshot 保护范围内；`workspace-main` 必须被视为可重复发布产物，而不是依赖 root snapshot 恢复的长期真相源。**
 11. **本轮实际落地过程中，曾出现 `main` 工具集被顶层 `tools.profile = messaging` 覆盖的问题；该问题已通过移除顶层 `tools.profile` 修复。**
@@ -27,7 +27,8 @@
 13. **Claude Code 容器内执行链、只读 `host_ops`、正式 broker 与 wrapper 仍属于后续阶段目标；除非特别注明”已验证”，否则不得写成当前事实。**
 14. **Phase 1B 控制面收口已完成（2026-03-11）：`workspace-main-template/` 已建立并提交；`scripts/publish-workspace-main.sh`、`scripts/publish-sop.sh`、`scripts/check-workspace-main.sh` 已实现；`docs/runtime-allowlist-backup-draft.md` 已升级为设计定稿候选（design candidate）；脚本化发布链已于 2026-03-11 首次用于 live target 并校验通过。**
 15. **Phase 1B 退出条件与 Phase 2 进入门槛已正式定义（2026-03-10，见 §7）；控制面备份脚本实现从 Phase 1B 重新归入 Phase 6。**
-16. **Phase 1B 退出条件已于 2026-03-11 全部满足：首次现网脚本化发布已完成并校验通过。Phase 2 尚未开始。**
+16. **Phase 1B 退出条件已于 2026-03-11 全部满足：首次现网脚本化发布已完成并校验通过。Phase 2 broker deployment 已于 2026-03-14 完成（详见 `docs/records/phase2-broker-deployment-2026-03-14.md`）。**
+17. **Phase 2 broker deployment 现场发现：(a) Vault receive 路径为 `/mnt/vault/recv/system`（非 `/mnt/vault/snapshots/`）；(b) `gateway_restart` 经由 broker 发送时，因 `Requires=` 依赖 broker 被 SIGTERM，请求返回值不可靠，需以 post-restart 服务状态为准；(c) 部署前 `/etc/openclaw/openclaw.json` 为 JSON5 格式不可被 jq 解析，candidate 必须为 strict JSON，部署后若已被 strict JSON candidate 替换则 jq 可用；(d) gateway 日志中 `host-ops-tool missing register/activate export` 警告为非阻塞，根因是 `index.js` 尚未实现 register/activate export。**
 
 ---
 
@@ -843,6 +844,8 @@ OpenClaw 外层工具调用看不到 Claude Code 内部所有真实待执行 pay
 ---
 
 ## 5.6 host-ops broker（宿主机副作用代理）
+
+> **部署状态（2026-03-14）**：broker daemon 已部署并运行（`openclaw-broker.service`，active + enabled）；8 个 wrapper 已安装为 production 版本；host-ops-tool plugin 已注册进 `openclaw.json`。plugin activation（register/activate export）和 agent-facing tool access 仍 pending。详见 `docs/records/phase2-broker-deployment-2026-03-14.md`。
 
 ### 5.6.1 角色定位
 
@@ -1888,26 +1891,28 @@ Phase 1B 完成收口需要同时满足以下全部条件：
 
 ### 现网部署（需 Phase 2 正式启动后执行）
 
-- [ ] 实现 broker 主程序（Unix socket daemon / CLI）
-- [ ] 实现 Unix socket 权限边界
-- [ ] 将 wrapper stub 升级为 root-owned 生产版本
-- [ ] 实现 `ocw-gateway-health`（live execution）
-- [ ] 实现 `ocw-validate-openclaw-json`（live execution）
-- [ ] 实现 `ocw-deploy-openclaw-json`（live execution）
-- [ ] 实现 `ocw-gateway-restart`（live execution）
-- [ ] 实现 `ocw-snapshot-pre`（live execution）
-- [ ] 实现 `ocw-snapshot-post`（live execution）
-- [ ] 实现 `ocw-vault-sync`（live execution）
-- [ ] 实现 `ocw-rollback-prepare`（live execution）
-- [ ] 写 `openclaw.plugin.json`（正式 manifest）
-- [ ] 写部署脚本
-- [ ] 注册 plugin 到 `openclaw.json`
-- [ ] 变更前快照
-- [ ] 重启 gateway
-- [ ] 验证只读 host_ops（gateway_health）
-- [ ] 验证写操作 schema 拒绝（invalid action / bad path）
-- [ ] 变更后快照
-- [ ] Vault 入库
+> 2026-03-14 operator-led 手动部署完成，部署结论 PASS。详见 `docs/records/phase2-broker-deployment-2026-03-14.md`。
+
+- [x] 实现 broker 主程序（Unix socket daemon / CLI）
+- [x] 实现 Unix socket 权限边界
+- [x] 将 wrapper stub 升级为 root-owned 生产版本
+- [x] 实现 `ocw-gateway-health`（live execution）
+- [x] 实现 `ocw-validate-openclaw-json`（live execution）
+- [x] 实现 `ocw-deploy-openclaw-json`（live execution）
+- [x] 实现 `ocw-gateway-restart`（live execution）
+- [x] 实现 `ocw-snapshot-pre`（live execution）
+- [x] 实现 `ocw-snapshot-post`（live execution）
+- [x] 实现 `ocw-vault-sync`（live execution）
+- [ ] 实现 `ocw-rollback-prepare`（live execution）——wrapper 已部署，但本次部署未实际行使，不计为 live execution 完成
+- [ ] 实现 `index.js` register/activate export（plugin lifecycle activation）——gateway 警告 `missing register/activate export`，非阻塞但 agent-facing 不可用
+- [ ] 写部署脚本——本次为 operator-led 手动执行
+- [x] 注册 plugin 到 `openclaw.json`
+- [x] 变更前快照
+- [x] 重启 gateway
+- [x] 验证只读 host_ops（gateway_health）
+- [x] 验证写操作 schema 拒绝（invalid action / bad path / path traversal）
+- [x] 变更后快照
+- [x] Vault 入库
 
 ---
 
