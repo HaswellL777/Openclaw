@@ -452,12 +452,15 @@ sudo mount /mnt/vault
 # Verify vault is mounted
 mountpoint /mnt/vault
 
-# Sync pre-change snapshot
-# sudo btrfs send /.snapshots/root-pre-phase2-broker-YYYYMMDD | sudo btrfs receive /mnt/vault/snapshots/
-# (or incremental send if parent exists)
+# PREFERRED: Use the unified backup script (handles auto snapshot, incremental
+# detection, last_sent update, mount/unmount automatically):
+# sudo /usr/local/sbin/vault-backup-root-btrfs
 
-# Sync post-change snapshot
-# sudo btrfs send -p /.snapshots/root-pre-phase2-broker-YYYYMMDD /.snapshots/root-post-phase2-broker-YYYYMMDD | sudo btrfs receive /mnt/vault/snapshots/
+# MANUAL ALTERNATIVE (only if script is unavailable):
+# Note: Vault receive path is /mnt/vault/recv/system (NOT /mnt/vault/snapshots/)
+# sudo btrfs send /.snapshots/root-pre-phase2-broker-YYYYMMDD | sudo btrfs receive /mnt/vault/recv/system
+# (or incremental send if parent exists)
+# sudo btrfs send -p /.snapshots/root-pre-phase2-broker-YYYYMMDD /.snapshots/root-post-phase2-broker-YYYYMMDD | sudo btrfs receive /mnt/vault/recv/system
 
 # Unmount vault
 sudo umount /mnt/vault

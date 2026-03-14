@@ -159,6 +159,7 @@ The deployment is divided into ordered stages. Each stage has a human confirmati
 5. Validate candidate via broker: `validate_openclaw_json_candidate`
 6. Deploy candidate via broker: `deploy_openclaw_json_candidate`
 7. Restart gateway via broker: `gateway_restart`
+   - **Operational note (from 2026-03-14 deployment)**: The broker request for `gateway_restart` may itself return `E_BROKER_INTERNAL` because the broker unit has `Requires=openclaw-gateway.service` — when gateway restarts, broker is SIGTERM'd by systemd and then restarted. **The broker request return value is not the sole success criterion.** After issuing `gateway_restart`, verify success by: (1) `systemctl is-active openclaw-gateway.service` → active; (2) `systemctl is-active openclaw-broker.service` → active; (3) `gateway_health` via broker → ok; (4) journal shows clean restart sequence.
 8. Verify gateway health via broker: `gateway_health`
 9. **Human confirmation**: plugin installed, config deployed, gateway healthy
 
@@ -206,7 +207,7 @@ After Stage 10, verify end-to-end:
 | 5 | Broker rejects invalid action | `ok: false, status: error` |
 | 6 | Broker rejects path traversal | `ok: false, status: denied` |
 | 7 | Broker logs contain recent entries | Timestamped log lines in `/var/log/openclaw/broker/broker.log` |
-| 8 | Plugin registered in openclaw.json | `jq '.plugins' /etc/openclaw/openclaw.json` shows host-ops-tool |
+| 8 | Plugin registered in openclaw.json | Verify `host-ops-tool` appears in plugins config. **Note**: Pre-deploy live config may be JS-style / JSON5-like and cannot be parsed by `jq` directly. Candidate files in `/var/lib/openclaw/approvals/candidates/` are strict JSON and can be validated with `jq`. Post-deploy, if the live config has been replaced by a strict JSON candidate, `jq` will work on the live file. |
 
 ---
 

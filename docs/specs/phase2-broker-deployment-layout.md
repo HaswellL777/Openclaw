@@ -260,11 +260,25 @@ WantedBy=multi-user.target
 |---|----------|-------------------|-------------------|
 | 1 | ~~Broker implementation language~~ | Bash script (socket listener: Python 3) | Resolved in Phase 2 impl slice 2 |
 | 2 | ~~Service type (simple vs notify)~~ | `simple` | Resolved; broker does not need readiness notification |
-| 3 | Schema validation approach | Embedded in wrappers (via common.sh) | Whether broker does pre-dispatch validation |
-| 4 | Broker startup dependency ordering | After gateway | Whether broker can operate without gateway |
+| 3 | ~~Schema validation approach~~ | Embedded in wrappers (via common.sh) | Resolved: wrappers validate via common.sh; broker does action-level dispatch validation |
+| 4 | ~~Broker startup dependency ordering~~ | After gateway (`Requires=openclaw-gateway.service`) | Resolved: broker requires gateway; see `gateway_restart` caveat in deployment record §6.3 |
 | 5 | Log rotation policy | Match existing openclaw logrotate | Disk usage patterns |
-| 6 | Socket path alternatives | `/run/openclaw/broker.sock` | If `/run/openclaw/` conflicts with gateway |
-| 7 | Socket group ownership | Listener must `chown` socket to `root:openclaw` after creation | Code fix required in `socket-listener.py` before deployment |
+| 6 | ~~Socket path alternatives~~ | `/run/openclaw/broker.sock` | Resolved: no conflict with gateway observed |
+| 7 | ~~Socket group ownership~~ | Listener `chown` socket to `root:openclaw` after creation | Resolved: implemented in `socket-listener.py`, verified in deployment |
+
+---
+
+## 12A. Implementation status note
+
+> Added 2026-03-14 after successful deployment.
+
+The broker has been deployed to this host per the layout defined in this specification on **2026-03-14**.
+All paths, ownership, permissions, and systemd unit attributes match this spec.
+
+For the complete deployment field record (including validation results, snapshot IDs, and operational findings), see:
+**`docs/records/phase2-broker-deployment-2026-03-14.md`**
+
+This note does not alter the specification itself. The spec remains the authoritative layout reference for future reinstallation or audit.
 
 ---
 
