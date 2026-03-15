@@ -19,12 +19,12 @@
 5. **`main` 当前已经具备 `read / write / edit / sessions_*` 基础控制面工具，但仍无 `exec`、无 `elevated`、无 direct host mutation。**
 6. **`main` 的 per-agent allowlist 与全局 `tools.profile` 不可并存；当使用 per-agent allow/deny 时，不再保留全局 `tools.profile`。**
 7. **Claude Code CLI 已正式纳入体系，但当前只完成了角色 A：`nick` 用户开发工具这一侧的实际可用落地。**
-8. **host-ops broker daemon 已部署并运行（`openclaw-broker.service`，active + enabled，2026-03-14）；8 个 wrapper 已安装为 production 版本（`BROKER_DRY_RUN=false`）；host-ops-tool plugin 已注册进 `openclaw.json` 并被 gateway 接受。plugin activation 已完成（2026-03-15），registerTool 版 plugin 已部署到 live，`main.tools.allow` 已包含 `host_ops`。agent-facing 已逐项完成两个只读切片：`gateway_health` E2E 成功（2026-03-15）、`validate_openclaw_json_candidate` E2E 成功含正例与负例（2026-03-15）。其余 action 仍需逐项开放与验收。task-runner / Docker sandbox 仍是后续阶段目标，尚未进入生产执行链。**
+8. **host-ops broker daemon 已部署并运行（`openclaw-broker.service`，active + enabled，2026-03-14）；8 个 wrapper 已安装为 production 版本（`BROKER_DRY_RUN=false`）；host-ops-tool plugin 已注册进 `openclaw.json` 并被 gateway 接受。plugin activation 已完成（2026-03-15），registerTool 版 plugin 已部署到 live，`main.tools.allow` 已包含 `host_ops`。agent-facing 已完成三个切片：`gateway_health` E2E 成功（2026-03-15）、`validate_openclaw_json_candidate` E2E 成功含正例与负例（2026-03-15）、`deploy_openclaw_json_candidate` live E2E verified（Route C，2026-03-15）。`snapshot_pre` repo-side ready（2026-03-15，待 live activation）。其余 4 个 action（`gateway_restart`, `snapshot_post`, `vault_sync`, `rollback_prepare`）仍需逐项开放与验收。task-runner / Docker sandbox 仍是后续阶段目标，尚未进入生产执行链。**
 9. **任何宿主机副作用仍必须坚持“快照 → 变更 → 健康检查 → post 快照 → Vault 入库”的纪律。**
 10. **`/var/lib/openclaw` 已是独立 Btrfs 子卷，因此不在 root snapshot 保护范围内；`workspace-main` 必须被视为可重复发布产物，而不是依赖 root snapshot 恢复的长期真相源。**
 11. **本轮实际落地过程中，曾出现 `main` 工具集被顶层 `tools.profile = messaging` 覆盖的问题；该问题已通过移除顶层 `tools.profile` 修复。**
 12. **默认主模型已从 `motchat-claude-4-6/claude-opus-4-6` 切换到 `motchat-gpt-max/gpt-5.4`；当前把 g54 视为更稳妥的主控制面默认值，但不把“Claude 4.6 一定是卡顿根因”写成已证事实。**
-13. **Claude Code 容器内执行链仍属于后续阶段目标；agent-facing `host_ops` 初始只读切片（`gateway_health`）已完成（2026-03-15），其余 action 仍需逐项验证开放；除非特别注明”已验证”，否则不得写成当前事实。**
+13. **Claude Code 容器内执行链仍属于后续阶段目标；agent-facing `host_ops` 已完成三个切片（`gateway_health` + `validate_openclaw_json_candidate` + `deploy_openclaw_json_candidate`，2026-03-15），`snapshot_pre` repo-side ready（2026-03-15），其余 4 个 action 仍需逐项验证开放；除非特别注明”已验证”，否则不得写成当前事实。**
 14. **Phase 1B 控制面收口已完成（2026-03-11）：`workspace-main-template/` 已建立并提交；`scripts/publish-workspace-main.sh`、`scripts/publish-sop.sh`、`scripts/check-workspace-main.sh` 已实现；`docs/runtime-allowlist-backup-draft.md` 已升级为设计定稿候选（design candidate）；脚本化发布链已于 2026-03-11 首次用于 live target 并校验通过。**
 15. **Phase 1B 退出条件与 Phase 2 进入门槛已正式定义（2026-03-10，见 §7）；控制面备份脚本实现从 Phase 1B 重新归入 Phase 6。**
 16. **Phase 1B 退出条件已于 2026-03-11 全部满足：首次现网脚本化发布已完成并校验通过。Phase 2 broker deployment 已于 2026-03-14 完成（详见 `docs/records/phase2-broker-deployment-2026-03-14.md`）。**
