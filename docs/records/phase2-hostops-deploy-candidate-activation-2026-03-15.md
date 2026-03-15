@@ -4,7 +4,7 @@
 > Dev-repo branch: `feat/phase1b-workspace-foundation`
 > Preceding record: `docs/records/phase2-hostops-validate-candidate-activation-2026-03-15.md`
 > Route: **Route C**（deploy + operator-mediated checklist）
-> Status: **scaffold — repo-side ready，待 live 实施**
+> Status: **live verified — deploy E2E 完成（正例 + 负例含 wrapper 侧 + 回归通过）**
 
 ---
 
@@ -18,7 +18,7 @@
 | Tool registration (live) | **complete** — `api.registerTool(hostOpsTool, {optional:true})` |
 | Agent-facing `gateway_health` | **complete** — E2E 成功 |
 | Agent-facing `validate_openclaw_json_candidate` | **complete** — live E2E verified（正例 + 负例） |
-| Agent-facing `deploy_openclaw_json_candidate` | **repo-side ready — 待 live 实施** |
+| Agent-facing `deploy_openclaw_json_candidate` | **complete** — live E2E verified（正例 + 负例含 wrapper 侧 + 回归通过，2026-03-15） |
 | 其余 action | **未开放** — `gateway_restart`, `snapshot_pre`, `snapshot_post`, `vault_sync`, `rollback_prepare` |
 
 ---
@@ -63,7 +63,7 @@
 
 ---
 
-## 4. Live plugin sync 步骤（待执行）
+## 4. Live plugin sync 步骤（已执行，2026-03-15 15:54）
 
 ### 4.1 备份当前 live plugin
 
@@ -71,6 +71,8 @@
 sudo cp /var/lib/openclaw/.openclaw/extensions/host-ops-tool/index.js \
         /var/lib/openclaw/host-ops-tool-backups/index.js.bak-pre-deploy-slice
 ```
+
+> 备份已创建（19375 bytes，对应 validate slice 版本）。
 
 ### 4.2 复制新版 index.js 到 live
 
@@ -81,18 +83,24 @@ sudo chown openclaw:openclaw /var/lib/openclaw/.openclaw/extensions/host-ops-too
 sudo chmod 644 /var/lib/openclaw/.openclaw/extensions/host-ops-tool/index.js
 ```
 
+> 文件大小 19606 bytes，与 repo 完全一致。
+
 ### 4.3 重启 gateway
 
 ```bash
 sudo systemctl restart openclaw-gateway.service
 ```
 
-### 4.4 验证（待执行）
+### 4.4 验证（已通过）
 
-- [ ] `systemctl is-active openclaw-gateway.service` → `active`
-- [ ] `systemctl is-active openclaw-broker.service` → `active`
-- [ ] gateway journal 无 plugin/tool 注册错误
-- [ ] agent `/reset` 或新 session 后可见 deploy action 在 schema enum 中
+- [x] `systemctl is-active openclaw-gateway.service` → `active`
+- [x] `systemctl is-active openclaw-broker.service` → `active`
+- [x] gateway journal 无 plugin/tool 注册错误
+- [x] agent 新 session 后可见 deploy action 在 schema enum 中
+
+### 4.5 Pre-change snapshot
+
+> `/.snapshots/root-pre-deploy-20260315-1552`（在 plugin sync 前创建）
 
 ---
 
@@ -105,35 +113,48 @@ sudo systemctl restart openclaw-gateway.service
 
 ---
 
-## 6. E2E 验收计划（待执行）
+## 6. E2E 验收结果（2026-03-15 执行完成）
 
-### 6.1 正例：合法 deploy 请求
+### 6.1 正例：合法 deploy 请求（已通过）
 
 ```
 host_ops(action: "deploy_openclaw_json_candidate", inputs: {
-  candidate_path: "/var/lib/openclaw/approvals/candidates/<test-candidate>.json",
-  expected_sha256: "<actual sha256>"
+  candidate_path: "/var/lib/openclaw/approvals/candidates/openclaw.validate-smoke.json",
+  expected_sha256: "f4b1bf6d431f642b0cec07408b0d7acd3d06c78f08a626dc893b341da305d302"
 })
 ```
 
-验收标准：
-- 返回 `ok: true`, `status: "ok"`
-- `artifacts` 包含 `deployed_path`, `deployed_sha256`, `backup_path`
-- `/etc/openclaw/openclaw.json` 内容已更新
-- `.bak` 文件已创建
+验收结果：
+- 返回 `ok: true`, `status: "ok"` ✓
+- `artifacts` 包含 `deployed_path`, `deployed_sha256`, `backup_path` ✓
+- `/etc/openclaw/openclaw.json` SHA256 与候选文件一致 ✓
+- `/etc/openclaw/openclaw.json.bak` 已创建 ✓
+- 注：本次候选文件内容与旧 config 相同（SHA256 一致），验证的是 deploy 机制的端到端可用性
 
-### 6.2 负例（复用 validate 的负例框架）
+### 6.2 三层状态确认（Route C 纪律）
 
-- 白名单外路径：拒绝
-- 路径穿越：拒绝
-- SHA256 格式错误：拒绝
-- 候选文件不存在：拒绝（wrapper 侧）
-- SHA256 不匹配：拒绝（wrapper 侧）
+| 层次 | 状态 | 确认方式 |
+|------|------|----------|
+| Deploy 写入成功 | **是** | wrapper 返回 ok:true, post-deploy SHA256 验证通过, .bak 已创建 |
+| 配置生效成功 | **是** | operator 手动 restart gateway 后, gateway_health 返回 ok:true |
+| 变更窗口关闭 | **是** | post-snapshot `root-post-deploy-20260315-1615` + vault sync 完成 |
 
-### 6.3 回归：gateway_health + validate 仍正常
+### 6.3 负例（已通过）
 
-- `gateway_health` 返回 `ok: true`
-- `validate_openclaw_json_candidate` 正例仍返回 `ok: true`
+| 负例 | 拒绝层 | 错误信息 | 结果 |
+|------|--------|----------|------|
+| 路径白名单外 (`/tmp/evil.json`) | plugin 侧 `validateActionInputs` | `candidate_path must start with /var/lib/openclaw/approvals/candidates/` | ✓ 拒绝 |
+| 路径穿越 (`../../../etc/shadow`) | plugin 侧 `validateActionInputs` | `candidate_path must not contain path traversal (..)` | ✓ 拒绝 |
+| 候选文件不存在 (`nonexistent-file.json`) | **wrapper 侧**（请求到达 broker） | `Candidate file not found` + `E_FILE_NOT_FOUND` | ✓ 拒绝 |
+
+未覆盖的设计负例（可选后续补充）：
+- SHA256 格式错误（plugin 侧拒绝）
+- SHA256 不匹配（wrapper 侧拒绝）
+
+### 6.4 回归：gateway_health + validate 仍正常（已通过）
+
+- `gateway_health` 返回 `ok: true` ✓
+- `validate_openclaw_json_candidate` 正例仍返回 `ok: true` ✓
 
 ---
 
@@ -162,8 +183,16 @@ sudo systemctl restart openclaw-gateway.service
 
 - **已完成（live verified）**：`gateway_health` agent-facing E2E
 - **已完成（live verified）**：`validate_openclaw_json_candidate` agent-facing E2E（正例 + 负例）
-- **repo-side ready（待 live）**：`deploy_openclaw_json_candidate`
+- **已完成（live verified）**：`deploy_openclaw_json_candidate` agent-facing E2E（正例 + 负例含 wrapper 侧 + 回归通过）
 - **未开放**：`gateway_restart`, `snapshot_pre`, `snapshot_post`, `vault_sync`, `rollback_prepare`
-- 不得将 deploy 的 repo-side ready 写成 live done
-- 不得将 deploy 的文件写入成功类推为配置生效成功
+- 不得将 deploy 的成功类推为其余 5 个 action 已安全开放
+- 不得将 deploy 的文件写入成功类推为配置生效成功（本轮已区分验证，但纪律约束不变）
 - deploy 后的 restart / health / snapshot / vault 仍属于 operator-mediated checklist 范围
+
+## 9. Snapshots
+
+| 类型 | 路径 | 时间 |
+|------|------|------|
+| Pre-change | `/.snapshots/root-pre-deploy-20260315-1552` | 15:52 |
+| Post-change | `/.snapshots/root-post-deploy-20260315-1615` | 16:15 |
+| Vault sync | `root-auto-2026-03-15-1615` (incremental from `root-auto-2026-03-15-0340`) | 16:15 |

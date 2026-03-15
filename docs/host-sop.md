@@ -7,7 +7,7 @@
 > - 数据：`/var/lib/openclaw`（btrfs 独立子卷，`openclaw:openclaw`，`700`）
 > - 日志：`/var/log/openclaw`（`openclaw:openclaw`）
 >
-> 当前宿主机状态不再是纯 Phase 0，而是 **Phase 1（Phase 1A + Phase 1B）已完成**：`main` agent 已上线、`workspace-main` 已发布、工具集 fix-forward 已完成、默认主模型已切换为 `motchat-gpt-max/gpt-5.4`；**Phase 1B 控制面收口已完成**（2026-03-11 首次现网脚本化发布通过，`check-workspace-main.sh` 校验通过）；**Phase 2 broker deployment 已完成**（2026-03-14）：broker daemon 运行中、8 个 wrapper 已安装（production 逻辑）、host-ops-tool plugin 已注册进 openclaw.json 并被 gateway 接受；但 **plugin lifecycle activation 已完成（2026-03-15）**，**agent-facing host_ops 逐项切片推进中（2026-03-15）**（registerTool 版 plugin 已部署、`main.tools.allow` 已追加 `host_ops`、`gateway_health` agent-facing E2E 成功、`validate_openclaw_json_candidate` agent-facing E2E 成功含正例与负例；其余 action 仍需逐项启用和验收）；正式 `task-runner`、Docker 执行面与 `/var/lib/openclaw` 独立控制面备份链仍未落地。
+> 当前宿主机状态不再是纯 Phase 0，而是 **Phase 1（Phase 1A + Phase 1B）已完成**：`main` agent 已上线、`workspace-main` 已发布、工具集 fix-forward 已完成、默认主模型已切换为 `motchat-gpt-max/gpt-5.4`；**Phase 1B 控制面收口已完成**（2026-03-11 首次现网脚本化发布通过，`check-workspace-main.sh` 校验通过）；**Phase 2 broker deployment 已完成**（2026-03-14）：broker daemon 运行中、8 个 wrapper 已安装（production 逻辑）、host-ops-tool plugin 已注册进 openclaw.json 并被 gateway 接受；但 **plugin lifecycle activation 已完成（2026-03-15）**，**agent-facing host_ops 逐项切片推进中（2026-03-15）**（registerTool 版 plugin 已部署、`main.tools.allow` 已追加 `host_ops`、`gateway_health` agent-facing E2E 成功、`validate_openclaw_json_candidate` agent-facing E2E 成功含正例与负例、`deploy_openclaw_json_candidate` live E2E verified 含正例 + 负例含 wrapper 侧 + 回归通过（Route C，2026-03-15）；其余 5 个 action 仍需逐项启用和验收）；正式 `task-runner`、Docker 执行面与 `/var/lib/openclaw` 独立控制面备份链仍未落地。
 
 ## ⛔ 禁止操作清单（优先阅读）
 
@@ -113,13 +113,13 @@ sudo mv /var/lib/openclaw/.openclaw/extensions/<plugin>.bak-* /var/lib/openclaw/
   - **`main.tools.allow` 已包含 `host_ops`（2026-03-15）**，agent 可见 `host_ops` 工具；
   - **agent-facing 只读切片已完成两项**：`gateway_health` + `validate_openclaw_json_candidate`（含正例与负例 E2E）；其余 action 仍需逐项启用和验收；
   - **Phase 2 的后续工作（task-runner、Docker 隔离等）尚未开始**。
-- 当前是 **Phase 2 agent-facing 切片推进中**（两项只读已验收，一项写操作 repo-side ready）：
+- 当前是 **Phase 2 agent-facing 切片推进中**（两项只读 + 一项写操作已验收，其余仍未开放）：
   - **broker backend 已部署并通过验收**
   - **plugin lifecycle activation 已完成**
   - **registerTool 版 plugin 已部署到 live，`gateway_health` + `validate_openclaw_json_candidate` agent-facing E2E 成功**
-  - **`deploy_openclaw_json_candidate` repo-side ready（Route C：agent 可发出 deploy 请求，但 restart/snapshot/health 仍由 operator-mediated checklist 承担）**
-  - **其余 action 仍需逐项 agent-facing 开放与验收**
-  - **deploy repo-side ready ≠ live done；deploy 写入成功 ≠ 配置生效成功**
+  - **`deploy_openclaw_json_candidate` live E2E verified（Route C，2026-03-15：正例 + 负例含 wrapper 侧 + 回归通过；restart/snapshot/health 仍由 operator-mediated checklist 承担）**
+  - **其余 5 个 action 仍需逐项 agent-facing 开放与验收**
+  - **deploy 的成功不代表其余 action 已安全开放；deploy 写入成功 ≠ 配置生效成功（纪律约束不变）**
 
 ### 0.3 `/var/lib/openclaw` 与根快照的边界
 - `/var/lib/openclaw` 是独立 btrfs 子卷；
@@ -152,8 +152,8 @@ sudo mv /var/lib/openclaw/.openclaw/extensions/<plugin>.bak-* /var/lib/openclaw/
    - `main.tools.allow` 已包含 `host_ops`（2026-03-15）；
    - `gateway_health` agent-facing E2E 成功；
    - `validate_openclaw_json_candidate` agent-facing E2E 成功（正例 + 负例）；
-   - `deploy_openclaw_json_candidate` repo-side ready（Route C，待 live 实施，见 `docs/planning/deploy-candidate-slice-design-2026-03-15.md`）；
-   - 其余 action 仍需逐项开放与验收。
+   - `deploy_openclaw_json_candidate` live E2E verified（Route C，2026-03-15：正例 + 负例含 wrapper 侧 + 回归通过，见 `docs/records/phase2-hostops-deploy-candidate-activation-2026-03-15.md`）；
+   - 其余 5 个 action 仍需逐项开放与验收。
 4. ~~Phase 1B 发布 / 校验脚本已在开发仓就绪，但尚未在现网执行首次正式发布。~~ ✅ 已完成（2026-03-11）。
 
 ## 1. 磁盘与分区布局（lsblk 摘要）
