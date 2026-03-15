@@ -126,9 +126,9 @@ host_ops(action: "deploy_openclaw_json_candidate", inputs: {
 
 验收结果：
 - 返回 `ok: true`, `status: "ok"` ✓
-- `artifacts` 包含 `deployed_path`, `deployed_sha256`, `backup_path` ✓
-- `/etc/openclaw/openclaw.json` SHA256 与候选文件一致 ✓
-- `/etc/openclaw/openclaw.json.bak` 已创建 ✓
+- agent 报告 deployed_path / deployed_sha256 / backup 信息（未直接贴出 structured payload，以下由 operator 侧独立复核确认）
+- operator 侧复核：`/etc/openclaw/openclaw.json` SHA256 与候选文件一致（`f4b1bf6d...d302`）✓
+- operator 侧复核：`/etc/openclaw/openclaw.json.bak` 已创建且 SHA256 与旧 config 一致 ✓
 - 注：本次候选文件内容与旧 config 相同（SHA256 一致），验证的是 deploy 机制的端到端可用性
 
 ### 6.2 三层状态确认（Route C 纪律）

@@ -1,12 +1,17 @@
 # deploy_openclaw_json_candidate — 下一阶段实施设计
 
-> 文档类型：**设计 / planning note（非实施事实）**
+> 文档类型：**设计 / planning note**
 > 创建日期：2026-03-15
 > 路线裁决日期：2026-03-15
 > 作者：nick + ClaudeCode
 > 前置完成：`gateway_health` E2E live verified, `validate_openclaw_json_candidate` E2E live verified
 > 目标：为 `deploy_openclaw_json_candidate` 的 agent-facing 开放建立严谨的实施方案
-> 状态：**repo-side 实施完成（plugin 代码已提交，docs/checklist/scaffold 已同步）— 待 live 实施**
+> 状态：**repo-side 实施完成 + live-side 实施完成（2026-03-15）**
+>
+> - repo-side：plugin 代码已提交，docs/checklist/scaffold 已同步
+> - live-side：plugin sync 完成，gateway restart 成功，deploy 正例 E2E 通过，负例 3 例通过（含 1 个 wrapper 侧 E_FILE_NOT_FOUND），gateway_health + validate 回归通过，变更窗口已关闭（pre/post snapshot + vault sync）
+> - 其余 5 个 action（`gateway_restart`, `snapshot_pre`, `snapshot_post`, `vault_sync`, `rollback_prepare`）仍未 agent-facing 开放
+> - deploy 的成功不代表 host_ops 全量可用
 
 ---
 
