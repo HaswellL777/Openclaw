@@ -1,10 +1,9 @@
 # Phase 2 Broker Deployment Runbook
 
-> Status: **Dev-repo deployment design** — repo-only artifact
+> Status: **Broker backend deployed (2026-03-14)** — this runbook was used for the initial deployment. Plugin activation and agent-facing enablement are pending. See `docs/records/phase2-broker-deployment-2026-03-14.md` for deployment field record.
 > Created: 2026-03-11
 > Purpose: Structured runbook for human-led Phase 2 broker deployment
 > Authority: `docs/design-v3.md` SS5.6, `docs/host-sop.md`, `docs/specs/phase2-broker-deployment-layout.md`
-> This document is a deployment design artifact. The broker is NOT yet deployed. Phase 2 has NOT started.
 
 ---
 

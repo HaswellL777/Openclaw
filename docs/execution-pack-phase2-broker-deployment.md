@@ -1,11 +1,9 @@
 # Phase 2 Broker Deployment Execution Pack
 
-> Status: **Dev-repo deployment design** — repo-only artifact
+> Status: **Broker backend deployed (2026-03-14)** — this execution pack was used for the initial deployment. Plugin activation and agent-facing enablement are pending. See `docs/records/phase2-broker-deployment-2026-03-14.md` for deployment field record.
 > Created: 2026-03-11
 > Purpose: Step-by-step command blocks for human-led Phase 2 broker deployment
 > Authority: `docs/runbook-phase2-broker-deployment.md`, `docs/specs/phase2-broker-deployment-layout.md`
-> This document is an execution pack. The broker is NOT yet deployed. Phase 2 has NOT started.
-> **DO NOT execute these commands.** This pack is for future human-led deployment only.
 
 ---
 

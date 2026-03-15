@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# openclaw-broker — Host-ops broker daemon (dev-repo candidate)
+# openclaw-broker — Host-ops broker daemon (dev-repo source)
 #
-# Status: Phase 2 implementation slice 2 — repo-only, dual transport
-# This is NOT a deployed production service. Phase 2 live deployment has NOT started.
+# Status: Broker backend deployed (2026-03-14). Plugin activation pending.
+# Dev-repo copy is the source for future updates; live copy at /opt/openclaw/broker/openclaw-broker.
 #
 # This broker candidate provides:
 #   --dispatch <file>  CLI dispatch mode: process one request from a JSON file

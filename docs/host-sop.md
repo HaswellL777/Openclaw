@@ -7,7 +7,7 @@
 > - 数据：`/var/lib/openclaw`（btrfs 独立子卷，`openclaw:openclaw`，`700`）
 > - 日志：`/var/log/openclaw`（`openclaw:openclaw`）
 >
-> 当前宿主机状态不再是纯 Phase 0，而是 **Phase 1（Phase 1A + Phase 1B）已完成**：`main` agent 已上线、`workspace-main` 已发布、工具集 fix-forward 已完成、默认主模型已切换为 `motchat-gpt-max/gpt-5.4`；**Phase 1B 控制面收口已完成**（2026-03-11 首次现网脚本化发布通过，`check-workspace-main.sh` 校验通过）；**Phase 2 broker deployment 已完成**（2026-03-14）：broker daemon 运行中、8 个 wrapper 已安装（production 逻辑）、host-ops-tool plugin 已注册进 openclaw.json 并被 gateway 接受；但 **plugin activation（register/activate export）和 agent-facing host_ops tool access 仍 pending**；正式 `task-runner`、Docker 执行面与 `/var/lib/openclaw` 独立控制面备份链仍未落地。
+> 当前宿主机状态不再是纯 Phase 0，而是 **Phase 1（Phase 1A + Phase 1B）已完成**：`main` agent 已上线、`workspace-main` 已发布、工具集 fix-forward 已完成、默认主模型已切换为 `motchat-gpt-max/gpt-5.4`；**Phase 1B 控制面收口已完成**（2026-03-11 首次现网脚本化发布通过，`check-workspace-main.sh` 校验通过）；**Phase 2 broker deployment 已完成**（2026-03-14）：broker daemon 运行中、8 个 wrapper 已安装（production 逻辑）、host-ops-tool plugin 已注册进 openclaw.json 并被 gateway 接受；但 **plugin lifecycle activation 已完成（2026-03-15）**，**agent-facing host_ops tool access 仍 pending**（registerTool 版 plugin 尚未部署到 live，`main.tools.allow` 尚未更新）；正式 `task-runner`、Docker 执行面与 `/var/lib/openclaw` 独立控制面备份链仍未落地。
 
 ## ⛔ 禁止操作清单（优先阅读）
 
@@ -108,12 +108,15 @@ sudo mv /var/lib/openclaw/.openclaw/extensions/<plugin>.bak-* /var/lib/openclaw/
   - 8 个 wrapper 已安装（production 逻辑，`BROKER_DRY_RUN=false`）；
   - Unix socket `/run/openclaw/broker.sock`（`root:openclaw 660`）；
   - host-ops-tool plugin 已注册进 `openclaw.json`，gateway 已接受该配置并健康运行；
-  - **但 plugin activation 仍 pending**：`index.js` 缺少 `register/activate` export，gateway 日志有对应 warning（非阻塞）；
+  - **plugin lifecycle activation 已完成（2026-03-15）**：`register(api)` export 已部署，gateway 无 warning；
+  - **live SDK 源码确认存在 `api.registerTool(...)`**（v2026.3.2），但 registerTool 版 `index.js` 尚未部署到 live；
   - **agent-facing host_ops tool access 仍 pending**：`tools.allow` 中尚未启用 `host_ops`；
   - **Phase 2 的后续工作（task-runner、Docker 隔离等）尚未开始**。
 - 当前是 **Phase 2 broker deployment 完成态**：
   - **broker backend 已部署并通过验收**
-  - **plugin activation 和 agent-side tool access 仍是独立后续工作项**
+  - **plugin lifecycle activation 已完成**
+  - **registerTool 版 plugin 实现已在 dev-repo 完成，尚未部署到 live**
+  - **agent-side tool access 仍是独立后续工作项**
   - **Phase 1B 退出条件与 Phase 2 进入门槛见 `design-v3.md` §7**
 
 ### 0.3 `/var/lib/openclaw` 与根快照的边界
@@ -142,7 +145,8 @@ sudo mv /var/lib/openclaw/.openclaw/extensions/<plugin>.bak-* /var/lib/openclaw/
 3. **只读 `host_ops` 仍未对 agent 开放。**
    - broker backend 已于 2026-03-14 部署完成（`openclaw-broker.service` active + enabled）；
    - host-ops-tool plugin 已注册进 `openclaw.json`；
-   - 但 `index.js` 缺少 `register/activate` export（gateway 日志有 warning，非阻塞）；
+   - plugin lifecycle activation 已完成（2026-03-15，`register(api)` export 部署，warning 消失）；
+   - live SDK 源码确认 `api.registerTool(...)` 存在（v2026.3.2），registerTool 版 `index.js` 已在 dev-repo 实现但尚未部署到 live；
    - `tools.allow` 中尚未启用 `host_ops`；
    - agent-facing tool access 仍是后续独立工作项。
 4. ~~Phase 1B 发布 / 校验脚本已在开发仓就绪，但尚未在现网执行首次正式发布。~~ ✅ 已完成（2026-03-11）。
@@ -477,7 +481,7 @@ xfconf-query -c xfwm4 -p /general/use_compositing -s false
 - host-ops broker daemon 已部署（`openclaw-broker.service`，active + enabled）；
 - 8 个 wrapper 已安装（production 逻辑，`BROKER_DRY_RUN=false`）；
 - host-ops-tool plugin 已注册进 `openclaw.json`（gateway 接受，健康运行）；
-- **plugin activation（register/activate export）和 agent-facing host_ops tool access 仍 pending**；
+- **plugin lifecycle activation 已完成（2026-03-15）**；registerTool 版 plugin 实现已在 dev-repo 完成，**尚未部署到 live**；**agent-facing host_ops tool access 仍 pending**；
 - `task-runner` / Docker 执行面仍未进入生产落地。
 
 #### 11.3.1 Phase 1B 退出条件（摘要）
@@ -502,8 +506,8 @@ Phase 2 broker deployment 于 2026-03-14 完成，退出条件满足情况：
 5. ~~negative cases 测试通过（invalid action → error，bad path → denied，path traversal → denied）~~ ✅
 6. ~~host-ops-tool plugin 注册进 `openclaw.json`，gateway 健康接受~~ ✅
 7. ~~pre/post change snapshot + Vault 入库~~ ✅
-8. plugin activation（`index.js` register/activate export）— **pending**
-9. agent-facing `host_ops` tool access（`tools.allow` 更新）— **pending**
+8. ~~plugin activation（`index.js` register/activate export）~~ ✅ 已完成（2026-03-15）
+9. agent-facing `host_ops` tool access（registerTool 版 plugin 部署 + `main.tools.allow` 更新）— **pending**
 
 详细现场记录见 `docs/records/phase2-broker-deployment-2026-03-14.md`。
 

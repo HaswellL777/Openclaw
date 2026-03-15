@@ -6,15 +6,18 @@
 - **Purpose**: Interface with host-ops broker for host state mutations
 
 ## Status
-**Phase 2 — broker backend deployed (2026-03-14)**:
-- Broker daemon running (`openclaw-broker.service`, active + enabled)
-- Unix socket available (`/run/openclaw/broker.sock`)
-- 8 wrappers installed with production logic
-- Plugin registered in `openclaw.json` (gateway accepted, healthy)
-- **Pending**: `index.js` register/activate export (gateway logs `missing register/activate export` — non-blocking)
-- **Pending**: agent-facing `host_ops` tool access (`tools.allow` update)
 
-This skill is not yet operational. Until plugin activation is complete, use the Phase 1 workaround below.
+### Deployment state (2026-03-15)
+
+| Layer | Status |
+|-------|--------|
+| Broker backend | **deployed** — daemon running, socket available, 8 wrappers installed |
+| Plugin config registration | **complete** — gateway accepted, healthy |
+| Plugin lifecycle activation | **complete** — `register(api)` export active on live gateway |
+| Tool registration (repo) | **complete** — `api.registerTool(hostOpsTool, {optional:true})` implemented, gateway_health only |
+| Agent-facing `host_ops` tool | **pending** — requires `host_ops` in `main.tools.allow` + deploy of updated plugin |
+
+**Current blocker**: The registerTool-based `index.js` is implemented in dev-repo but not yet deployed to live. After deployment, `host_ops` must be added to `tools.allow` for the agent to see it. Until then, use the Phase 1 workaround below.
 
 ## What this skill does (planned)
 This skill provides the interface for calling host-ops broker to execute:

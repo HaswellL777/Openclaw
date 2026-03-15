@@ -2,8 +2,8 @@
 """
 socket-listener.py — Unix socket listener for openclaw-broker
 
-Status: Phase 2 implementation slice 2 — repo-only, not deployed
-This is NOT a deployed production service. Phase 2 live deployment has NOT started.
+Status: Broker backend deployed (2026-03-14). Plugin activation pending.
+Dev-repo copy is the source for future updates; live copy at /opt/openclaw/broker/lib/socket-listener.py.
 
 Provides:
   - Unix domain socket listener at BROKER_SOCKET_PATH

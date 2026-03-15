@@ -5,15 +5,27 @@ This document defines the API contract for the host-ops broker.
 The authoritative protocol definition is `docs/design-v3.md` §5.6.
 
 ## Status
-**Phase 2 — broker backend deployed (2026-03-14)**:
-- Broker daemon running (`openclaw-broker.service`, active + enabled)
-- Unix socket available (`/run/openclaw/broker.sock`, `root:openclaw 660`)
-- 8 wrappers installed (production logic, `BROKER_DRY_RUN=false`)
-- Plugin registered in `openclaw.json` (gateway accepted, healthy)
-- **Pending**: `index.js` register/activate export (plugin lifecycle activation)
-- **Pending**: agent-facing `host_ops` tool access (`tools.allow` update)
 
-Until plugin activation is complete, the Phase 1 workaround (Section "Phase 1 workaround") remains the operational path.
+### Deployment state (2026-03-15)
+
+| Layer | Status |
+|-------|--------|
+| Broker backend | **deployed** — `openclaw-broker.service` active + enabled, socket at `/run/openclaw/broker.sock` (`root:openclaw 660`), 8 wrappers installed (production, `BROKER_DRY_RUN=false`) |
+| Plugin config registration | **complete** — `host-ops-tool` in `plugins.allow`, `plugins.entries["host-ops-tool"].enabled = true`, gateway accepted + healthy |
+| Plugin lifecycle activation | **complete** — `register(api)` export active on live gateway, no lifecycle warnings |
+| Tool registration (repo) | **complete** — `register(api)` calls `api.registerTool(hostOpsTool, {optional:true})`, gateway_health-only, fail-closed |
+| Agent-facing `host_ops` tool | **pending** — tool is `optional:true` so requires `host_ops` in `main.tools.allow` to become visible to agent |
+
+### Activation sequence
+
+1. **Step 1 — Plugin lifecycle activation**: Complete. `register(api)` export deployed and accepted by gateway.
+2. **Step 2 — Tool registration implementation**: Complete (repo-side). `register(api)` now calls `api.registerTool()` with the `host_ops` tool object (`optional: true`, gateway_health only). Not yet deployed to live.
+3. **Step 3 — Deploy registerTool version**: Deploy updated `index.js` to `/var/lib/openclaw/.openclaw/extensions/host-ops-tool/`. Gateway restart required. After this step, the tool is registered in the plugin registry but still invisible to the agent (because `optional: true` requires allowlist).
+4. **Step 4 — Agent-facing enablement**: Add `host_ops` to `main.tools.allow` in `/etc/openclaw/openclaw.json` via candidate workflow. Per-agent allowlist is preferred over global `tools.alsoAllow` for a high-risk host mutation tool. After this step, the agent can invoke `host_ops(action: "gateway_health")`.
+
+### Current operational path
+
+Until Step 4 (agent-facing enablement) is complete, the Phase 1 workaround (Section "Phase 1 workaround") remains the operational path.
 
 ## Overview
 

@@ -1,10 +1,9 @@
 # Phase 2 Broker Deployment Layout Specification
 
-> Status: **Dev-repo deployment design** — repo-only artifact
+> Status: **Broker backend deployed (2026-03-14)** — this layout spec was followed for deployment. See §12A and `docs/records/phase2-broker-deployment-2026-03-14.md`.
 > Created: 2026-03-11
 > Purpose: Define exact filesystem layout, ownership, permissions, and systemd unit names for Phase 2 broker deployment
 > Authority: `docs/design-v3.md` SS5.6, `docs/host-sop.md`
-> This document is a deployment design artifact. The broker is NOT yet deployed. Phase 2 has NOT started.
 
 ---
 
@@ -20,7 +19,7 @@ This specification defines the target filesystem layout for the host-ops broker 
 - Ownership and permission model
 - Relationship to existing host-sop directory boundaries
 
-**This is a design document only.** Nothing described here has been installed or deployed.
+**This is a design document only.** The broker has been deployed per this layout on 2026-03-14 (see §12A).
 
 ---
 
