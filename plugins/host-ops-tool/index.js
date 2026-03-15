@@ -1,6 +1,6 @@
 // host-ops-tool plugin
 // Status: Phase 2 — broker backend deployed, plugin lifecycle active,
-//         registerTool-based tool registration implemented (gateway_health + validate_openclaw_json_candidate + deploy_openclaw_json_candidate)
+//         registerTool-based tool registration implemented (gateway_health + validate_openclaw_json_candidate + deploy_openclaw_json_candidate + snapshot_pre)
 // This module provides:
 //   1. register(api) export that calls api.registerTool() to register the
 //      "host_ops" agent-facing tool (optional: true — requires tools.allow)
@@ -19,7 +19,7 @@
 //       .../extensions/llm-task/index.ts — api.registerTool(tool, { optional: true })
 //
 // Fail-closed policy:
-//   - Only ENABLED_ACTIONS are permitted (currently: gateway_health, validate_openclaw_json_candidate, deploy_openclaw_json_candidate)
+//   - Only ENABLED_ACTIONS are permitted (currently: gateway_health, validate_openclaw_json_candidate, deploy_openclaw_json_candidate, snapshot_pre)
 //   - All other actions are rejected at execute time
 //   - Tool is optional: true — invisible to agent unless tools.allow includes it
 
@@ -46,7 +46,7 @@ const STATUS_VALUES = ["ok", "error", "denied"];
 
 // Fail-closed: only these actions are permitted in the current version.
 // Expand this list deliberately as each action is validated for live use.
-const ENABLED_ACTIONS = ["gateway_health", "validate_openclaw_json_candidate", "deploy_openclaw_json_candidate"];
+const ENABLED_ACTIONS = ["gateway_health", "validate_openclaw_json_candidate", "deploy_openclaw_json_candidate", "snapshot_pre"];
 
 /**
  * Build a schema-conformant broker request object.
@@ -266,7 +266,7 @@ export function validateResult(result) {
 export function hostOpsToolSkeleton() {
   return {
     status: "phase2-registerTool-implemented",
-    note: "register(api) calls api.registerTool with optional:true. Tool supports gateway_health, validate_openclaw_json_candidate, and deploy_openclaw_json_candidate. Agent-facing activation requires tools.allow to include host_ops.",
+    note: "register(api) calls api.registerTool with optional:true. Tool supports gateway_health, validate_openclaw_json_candidate, deploy_openclaw_json_candidate, and snapshot_pre. Agent-facing activation requires tools.allow to include host_ops.",
     enabledActions: ENABLED_ACTIONS,
     allActions: ACTIONS,
     schemas: SCHEMA_PATHS,
@@ -290,7 +290,7 @@ function createHostOpsTool() {
       "Execute host operations via the host-ops broker daemon. " +
       "Sends a structured JSON request over Unix socket to the broker, " +
       "which delegates to root-owned wrapper scripts. " +
-      "Currently supported actions: gateway_health, validate_openclaw_json_candidate, deploy_openclaw_json_candidate.",
+      "Currently supported actions: gateway_health, validate_openclaw_json_candidate, deploy_openclaw_json_candidate, snapshot_pre.",
     parameters: {
       type: "object",
       properties: {
@@ -299,13 +299,13 @@ function createHostOpsTool() {
           enum: ENABLED_ACTIONS,
           description:
             "Host operation action to execute. " +
-            "Currently supported: gateway_health, validate_openclaw_json_candidate, deploy_openclaw_json_candidate.",
+            "Currently supported: gateway_health, validate_openclaw_json_candidate, deploy_openclaw_json_candidate, snapshot_pre.",
         },
         inputs: {
           type: "object",
           description:
             "Action-specific input object. Required for validate_openclaw_json_candidate and deploy_openclaw_json_candidate " +
-            "(needs candidate_path, expected_sha256). Not needed for gateway_health.",
+            "(needs candidate_path, expected_sha256). Required for snapshot_pre (needs label, reason). Not needed for gateway_health.",
         },
       },
       required: ["action"],
