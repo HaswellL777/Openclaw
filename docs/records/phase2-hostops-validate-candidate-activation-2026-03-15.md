@@ -48,11 +48,12 @@
 ### 4.1 备份当前 live plugin
 
 ```bash
+sudo mkdir -p /var/lib/openclaw/host-ops-tool-backups
 sudo cp /var/lib/openclaw/.openclaw/extensions/host-ops-tool/index.js \
-        /var/lib/openclaw/.openclaw/extensions/host-ops-tool/index.js.bak-pre-validate-slice
+        /var/lib/openclaw/host-ops-tool-backups/index.js.bak-pre-validate-slice
 ```
 
-> 注意：plugin 文件位于 `/var/lib/openclaw`（独立 btrfs 子卷），**不在** root snapshot 保护范围内。因此 plugin 文件级备份是首要 rollback anchor，而非根快照。
+> 注意：备份放在 extensions 目录之外（`/var/lib/openclaw/host-ops-tool-backups/`），避免 extensions 目录清理或重装时备份丢失。plugin 文件位于 `/var/lib/openclaw`（独立 btrfs 子卷），**不在** root snapshot 保护范围内。因此 plugin 文件级备份是首要 rollback anchor，而非根快照。
 
 ### 4.2 复制新版 index.js 到 live
 
@@ -198,7 +199,7 @@ host_ops(action: "deploy_openclaw_json_candidate", inputs: {...})
 ### 8.1 首要 rollback：恢复 plugin 文件
 
 ```bash
-sudo cp /var/lib/openclaw/.openclaw/extensions/host-ops-tool/index.js.bak-pre-validate-slice \
+sudo cp /var/lib/openclaw/host-ops-tool-backups/index.js.bak-pre-validate-slice \
         /var/lib/openclaw/.openclaw/extensions/host-ops-tool/index.js
 sudo systemctl restart openclaw-gateway.service
 ```

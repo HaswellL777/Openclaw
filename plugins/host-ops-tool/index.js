@@ -313,6 +313,28 @@ function createHostOpsTool() {
     },
 
     async execute(toolCallId, params) {
+      // Fail-closed: reject unknown top-level parameters (defense-in-depth
+      // beyond schema additionalProperties:false which depends on runtime)
+      const ALLOWED_PARAMS = ["action", "inputs"];
+      if (params && typeof params === "object") {
+        const extraKeys = Object.keys(params).filter(k => !ALLOWED_PARAMS.includes(k));
+        if (extraKeys.length > 0) {
+          return {
+            content: [
+              {
+                type: "text",
+                text: JSON.stringify({
+                  ok: false,
+                  status: "error",
+                  message: `Unknown parameter(s): ${extraKeys.join(", ")}. Only action and inputs are accepted.`,
+                }),
+              },
+            ],
+            details: { unknownParams: extraKeys },
+          };
+        }
+      }
+
       const action =
         params && typeof params.action === "string" ? params.action : "";
 
