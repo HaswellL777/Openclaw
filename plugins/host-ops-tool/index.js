@@ -1,6 +1,6 @@
 // host-ops-tool plugin
 // Status: Phase 2 — broker backend deployed, plugin lifecycle active,
-//         registerTool-based tool registration implemented (gateway_health only)
+//         registerTool-based tool registration implemented (gateway_health + validate_openclaw_json_candidate)
 // This module provides:
 //   1. register(api) export that calls api.registerTool() to register the
 //      "host_ops" agent-facing tool (optional: true — requires tools.allow)
@@ -19,7 +19,7 @@
 //       .../extensions/llm-task/index.ts — api.registerTool(tool, { optional: true })
 //
 // Fail-closed policy:
-//   - Only ENABLED_ACTIONS are permitted (currently: gateway_health)
+//   - Only ENABLED_ACTIONS are permitted (currently: gateway_health, validate_openclaw_json_candidate)
 //   - All other actions are rejected at execute time
 //   - Tool is optional: true — invisible to agent unless tools.allow includes it
 
@@ -46,7 +46,7 @@ const STATUS_VALUES = ["ok", "error", "denied"];
 
 // Fail-closed: only these actions are permitted in the current version.
 // Expand this list deliberately as each action is validated for live use.
-const ENABLED_ACTIONS = ["gateway_health"];
+const ENABLED_ACTIONS = ["gateway_health", "validate_openclaw_json_candidate"];
 
 /**
  * Build a schema-conformant broker request object.
@@ -266,7 +266,7 @@ export function validateResult(result) {
 export function hostOpsToolSkeleton() {
   return {
     status: "phase2-registerTool-implemented",
-    note: "register(api) calls api.registerTool with optional:true. Tool is gateway_health-only. Agent-facing activation requires tools.allow update (not yet done).",
+    note: "register(api) calls api.registerTool with optional:true. Tool supports gateway_health and validate_openclaw_json_candidate. Agent-facing activation requires tools.allow to include host_ops.",
     enabledActions: ENABLED_ACTIONS,
     allActions: ACTIONS,
     schemas: SCHEMA_PATHS,
@@ -290,7 +290,7 @@ function createHostOpsTool() {
       "Execute host operations via the host-ops broker daemon. " +
       "Sends a structured JSON request over Unix socket to the broker, " +
       "which delegates to root-owned wrapper scripts. " +
-      "Currently only the gateway_health action is enabled.",
+      "Currently supported actions: gateway_health, validate_openclaw_json_candidate.",
     parameters: {
       type: "object",
       properties: {
@@ -299,10 +299,17 @@ function createHostOpsTool() {
           enum: ENABLED_ACTIONS,
           description:
             "Host operation action to execute. " +
-            "Currently only 'gateway_health' is supported.",
+            "Currently supported: gateway_health, validate_openclaw_json_candidate.",
+        },
+        inputs: {
+          type: "object",
+          description:
+            "Action-specific input object. Required for validate_openclaw_json_candidate " +
+            "(needs candidate_path, expected_sha256). Not needed for gateway_health.",
         },
       },
       required: ["action"],
+      additionalProperties: false,
     },
 
     async execute(toolCallId, params) {
@@ -326,10 +333,28 @@ function createHostOpsTool() {
         };
       }
 
+      // Read and validate inputs — fail-closed on non-object
+      const rawInputs = params && params.inputs !== undefined ? params.inputs : {};
+      if (rawInputs === null || typeof rawInputs !== "object" || Array.isArray(rawInputs)) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify({
+                ok: false,
+                status: "error",
+                message: "inputs must be a plain object",
+              }),
+            },
+          ],
+          details: { inputsError: true },
+        };
+      }
+
       // Build request using existing helper
       const { request, errors: buildErrors } = buildRequest(
         action,
-        {},
+        rawInputs,
         "agent:main",
       );
       if (buildErrors.length > 0) {
