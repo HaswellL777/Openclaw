@@ -55,8 +55,9 @@
 
 | Commit | Message | Files |
 |--------|---------|-------|
-| (待填写) | `feat(host-ops-tool): enable deploy_openclaw_json_candidate agent slice` | `plugins/host-ops-tool/index.js` |
-| (待填写) | `docs: add route-c deploy checklist, scaffold record, and sync repo-ready boundary` | 多个 docs 文件 |
+| `dd6eef3` | `feat(host-ops-tool): enable deploy_openclaw_json_candidate agent slice` | `plugins/host-ops-tool/index.js` |
+| `ecaca17` | `docs: add route-c deploy checklist, scaffold record, and sync repo-ready boundary` | 多个 docs 文件 |
+| `9ddff00` | `docs: fix host-ops api state drift and fill deploy record commits` | `workspace-main-template/control/host-ops-api.md`, 本文件 |
 
 ---
 

@@ -13,13 +13,13 @@ The authoritative protocol definition is `docs/design-v3.md` §5.6.
 | Broker backend | **deployed** — `openclaw-broker.service` active + enabled, socket at `/run/openclaw/broker.sock` (`root:openclaw 660`), 8 wrappers installed (production, `BROKER_DRY_RUN=false`) |
 | Plugin config registration | **complete** — `host-ops-tool` in `plugins.allow`, `plugins.entries["host-ops-tool"].enabled = true`, gateway accepted + healthy |
 | Plugin lifecycle activation | **complete** — `register(api)` export active on live gateway, no lifecycle warnings |
-| Tool registration (repo) | **complete** — `register(api)` calls `api.registerTool(hostOpsTool, {optional:true})`, gateway_health-only, fail-closed |
+| Tool registration (repo) | **complete** — `register(api)` calls `api.registerTool(hostOpsTool, {optional:true})`, fail-closed via ENABLED_ACTIONS (currently: gateway_health, validate_openclaw_json_candidate, deploy_openclaw_json_candidate) |
 | Agent-facing `host_ops` tool | **逐项切片推进中（2026-03-15）** — `host_ops` 已加入 `main.tools.allow`；`gateway_health` agent-facing E2E 成功；`validate_openclaw_json_candidate` agent-facing E2E 成功（含正例 + 负例，live verified）；`deploy_openclaw_json_candidate` repo-side ready（Route C，待 live 实施）；其余 action 仍需逐项启用和验收 |
 
 ### Activation sequence
 
 1. **Step 1 — Plugin lifecycle activation**: Complete (2026-03-15). `register(api)` export deployed and accepted by gateway.
-2. **Step 2 — Tool registration implementation**: Complete (2026-03-15). `register(api)` now calls `api.registerTool()` with the `host_ops` tool object (`optional: true`, gateway_health only).
+2. **Step 2 — Tool registration implementation**: Complete (2026-03-15). `register(api)` now calls `api.registerTool()` with the `host_ops` tool object (`optional: true`, fail-closed via ENABLED_ACTIONS).
 3. **Step 3 — Deploy registerTool version**: Complete (2026-03-15). Updated `index.js` deployed to live, gateway restarted, no registration errors.
 4. **Step 4 — Agent-facing enablement (gateway_health)**: Complete (2026-03-15). `host_ops` added to `main.tools.allow` via candidate workflow. Agent successfully invoked `host_ops(action: "gateway_health")`, broker returned `ok: true`.
 
@@ -292,9 +292,9 @@ If an operation fails:
 
 See `docs/specs/error-taxonomy-v1.md` for the full error code taxonomy.
 
-## Phase 1 workaround (current — until plugin activation is complete)
+## Phase 1 workaround (for remaining non-enabled actions)
 
-Since broker backend is deployed but agent-facing `host_ops` tool is not yet active:
+For the 5 actions not yet in ENABLED_ACTIONS (`gateway_restart`, `snapshot_pre`, `snapshot_post`, `vault_sync`, `rollback_prepare`):
 1. main agent prepares operation plan
 2. main agent requests approval via approval-policy.md workflow
 3. Human executes manually following runbooks in `control/runbooks/`
