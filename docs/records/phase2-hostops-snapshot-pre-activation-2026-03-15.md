@@ -55,10 +55,10 @@
 
 | Commit | Message | Files |
 |--------|---------|-------|
-| `(pending)` | `docs(planning): add snapshot_pre slice design` | `docs/planning/snapshot-pre-slice-design-2026-03-15.md` |
-| `(pending)` | `feat(host-ops-tool): enable snapshot_pre agent slice` | `plugins/host-ops-tool/index.js` |
-| `(pending)` | `docs(records): add snapshot_pre activation scaffold` | 本文件 |
-| `(pending)` | `docs: sync snapshot_pre boundary across authority docs` | `docs/host-sop.md`, `docs/design-v3.md`, `workspace-main-template/control/host-ops-api.md` |
+| `f990c4b` | `docs(planning): add snapshot_pre slice design and pre-implementation boundary` | `docs/planning/snapshot-pre-slice-design-2026-03-15.md` |
+| `ee935f4` | `feat(host-ops-tool): enable snapshot_pre agent slice` | `plugins/host-ops-tool/index.js` |
+| `3886d83` | `docs(records): add snapshot_pre activation scaffold` | 本文件 |
+| `6517413` | `docs: sync snapshot_pre boundary across authority docs` | `docs/host-sop.md`, `docs/design-v3.md`, `workspace-main-template/control/host-ops-api.md` |
 
 ---
 
