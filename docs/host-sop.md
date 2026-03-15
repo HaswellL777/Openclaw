@@ -109,14 +109,15 @@ sudo mv /var/lib/openclaw/.openclaw/extensions/<plugin>.bak-* /var/lib/openclaw/
   - Unix socket `/run/openclaw/broker.sock`（`root:openclaw 660`）；
   - host-ops-tool plugin 已注册进 `openclaw.json`，gateway 已接受该配置并健康运行；
   - **plugin lifecycle activation 已完成（2026-03-15）**：`register(api)` export 已部署，gateway 无 warning；
-  - **live SDK 源码确认存在 `api.registerTool(...)`**（v2026.3.2），但 registerTool 版 `index.js` 尚未部署到 live；
-  - **agent-facing host_ops tool access 仍 pending**：`tools.allow` 中尚未启用 `host_ops`；
+  - **registerTool 版 `index.js` 已部署到 live（2026-03-15）**，agent-facing `gateway_health` E2E 成功；
+  - **`main.tools.allow` 已包含 `host_ops`（2026-03-15）**，agent 可见 `host_ops` 工具；
+  - **agent-facing 初始只读切片已完成**：仅 `gateway_health`；其余 action 仍需逐项启用和验收；
   - **Phase 2 的后续工作（task-runner、Docker 隔离等）尚未开始**。
-- 当前是 **Phase 2 broker deployment 完成态**：
+- 当前是 **Phase 2 agent-facing 初始只读切片完成态**：
   - **broker backend 已部署并通过验收**
   - **plugin lifecycle activation 已完成**
-  - **registerTool 版 plugin 实现已在 dev-repo 完成，尚未部署到 live**
-  - **agent-side tool access 仍是独立后续工作项**
+  - **registerTool 版 plugin 已部署到 live，`gateway_health` agent-facing E2E 成功**
+  - **其余 action 仍需逐项 agent-facing 开放与验收**
   - **Phase 1B 退出条件与 Phase 2 进入门槛见 `design-v3.md` §7**
 
 ### 0.3 `/var/lib/openclaw` 与根快照的边界
@@ -142,13 +143,14 @@ sudo mv /var/lib/openclaw/.openclaw/extensions/<plugin>.bak-* /var/lib/openclaw/
 2. **`session-memory` 日志路径显示为 `~/.openclaw/workspace-main/memory/...`。**
    - 这说明日志展示层存在 `~` 形式路径；
    - 后续仍需核实其实际解析路径是否仍指向 `/var/lib/openclaw/.openclaw/...`，并确认不会引回 `nick` 用户空间。
-3. **只读 `host_ops` 仍未对 agent 开放。**
+3. **agent-facing `host_ops` 初始只读切片（`gateway_health`）已完成（2026-03-15）。**
    - broker backend 已于 2026-03-14 部署完成（`openclaw-broker.service` active + enabled）；
    - host-ops-tool plugin 已注册进 `openclaw.json`；
    - plugin lifecycle activation 已完成（2026-03-15，`register(api)` export 部署，warning 消失）；
-   - live SDK 源码确认 `api.registerTool(...)` 存在（v2026.3.2），registerTool 版 `index.js` 已在 dev-repo 实现但尚未部署到 live；
-   - `tools.allow` 中尚未启用 `host_ops`；
-   - agent-facing tool access 仍是后续独立工作项。
+   - registerTool 版 `index.js` 已部署到 live（2026-03-15）；
+   - `main.tools.allow` 已包含 `host_ops`（2026-03-15）；
+   - `gateway_health` agent-facing E2E 成功；
+   - 其余 action 仍需逐项开放与验收。
 4. ~~Phase 1B 发布 / 校验脚本已在开发仓就绪，但尚未在现网执行首次正式发布。~~ ✅ 已完成（2026-03-11）。
 
 ## 1. 磁盘与分区布局（lsblk 摘要）
@@ -481,7 +483,7 @@ xfconf-query -c xfwm4 -p /general/use_compositing -s false
 - host-ops broker daemon 已部署（`openclaw-broker.service`，active + enabled）；
 - 8 个 wrapper 已安装（production 逻辑，`BROKER_DRY_RUN=false`）；
 - host-ops-tool plugin 已注册进 `openclaw.json`（gateway 接受，健康运行）；
-- **plugin lifecycle activation 已完成（2026-03-15）**；registerTool 版 plugin 实现已在 dev-repo 完成，**尚未部署到 live**；**agent-facing host_ops tool access 仍 pending**；
+- **plugin lifecycle activation 已完成（2026-03-15）**；registerTool 版 plugin 已部署到 live（2026-03-15）；**agent-facing 初始只读切片（`gateway_health`）已完成**；其余 action 仍需逐项开放与验收；
 - `task-runner` / Docker 执行面仍未进入生产落地。
 
 #### 11.3.1 Phase 1B 退出条件（摘要）
@@ -507,7 +509,7 @@ Phase 2 broker deployment 于 2026-03-14 完成，退出条件满足情况：
 6. ~~host-ops-tool plugin 注册进 `openclaw.json`，gateway 健康接受~~ ✅
 7. ~~pre/post change snapshot + Vault 入库~~ ✅
 8. ~~plugin activation（`index.js` register/activate export）~~ ✅ 已完成（2026-03-15）
-9. agent-facing `host_ops` tool access（registerTool 版 plugin 部署 + `main.tools.allow` 更新）— **pending**
+9. ~~agent-facing `host_ops` tool access（registerTool 版 plugin 部署 + `main.tools.allow` 更新）~~ ✅ 初始只读切片（`gateway_health`）已完成（2026-03-15）；其余 action 仍需逐项开放
 
 详细现场记录见 `docs/records/phase2-broker-deployment-2026-03-14.md`。
 
