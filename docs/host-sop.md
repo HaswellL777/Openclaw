@@ -113,12 +113,13 @@ sudo mv /var/lib/openclaw/.openclaw/extensions/<plugin>.bak-* /var/lib/openclaw/
   - **`main.tools.allow` 已包含 `host_ops`（2026-03-15）**，agent 可见 `host_ops` 工具；
   - **agent-facing 只读切片已完成两项**：`gateway_health` + `validate_openclaw_json_candidate`（含正例与负例 E2E）；其余 action 仍需逐项启用和验收；
   - **Phase 2 的后续工作（task-runner、Docker 隔离等）尚未开始**。
-- 当前是 **Phase 2 agent-facing 只读切片完成态**（两项已验收）：
+- 当前是 **Phase 2 agent-facing 切片推进中**（两项只读已验收，一项写操作 repo-side ready）：
   - **broker backend 已部署并通过验收**
   - **plugin lifecycle activation 已完成**
   - **registerTool 版 plugin 已部署到 live，`gateway_health` + `validate_openclaw_json_candidate` agent-facing E2E 成功**
+  - **`deploy_openclaw_json_candidate` repo-side ready（Route C：agent 可发出 deploy 请求，但 restart/snapshot/health 仍由 operator-mediated checklist 承担）**
   - **其余 action 仍需逐项 agent-facing 开放与验收**
-  - **下一推荐切片：`deploy_openclaw_json_candidate`（路线已裁决，见 `docs/planning/deploy-candidate-slice-design-2026-03-15.md`）**
+  - **deploy repo-side ready ≠ live done；deploy 写入成功 ≠ 配置生效成功**
 
 ### 0.3 `/var/lib/openclaw` 与根快照的边界
 - `/var/lib/openclaw` 是独立 btrfs 子卷；
@@ -151,7 +152,8 @@ sudo mv /var/lib/openclaw/.openclaw/extensions/<plugin>.bak-* /var/lib/openclaw/
    - `main.tools.allow` 已包含 `host_ops`（2026-03-15）；
    - `gateway_health` agent-facing E2E 成功；
    - `validate_openclaw_json_candidate` agent-facing E2E 成功（正例 + 负例）；
-   - 其余 action 仍需逐项开放与验收；下一推荐切片：`deploy_openclaw_json_candidate`。
+   - `deploy_openclaw_json_candidate` repo-side ready（Route C，待 live 实施，见 `docs/planning/deploy-candidate-slice-design-2026-03-15.md`）；
+   - 其余 action 仍需逐项开放与验收。
 4. ~~Phase 1B 发布 / 校验脚本已在开发仓就绪，但尚未在现网执行首次正式发布。~~ ✅ 已完成（2026-03-11）。
 
 ## 1. 磁盘与分区布局（lsblk 摘要）

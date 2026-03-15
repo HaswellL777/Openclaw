@@ -845,7 +845,7 @@ OpenClaw 外层工具调用看不到 Claude Code 内部所有真实待执行 pay
 
 ## 5.6 host-ops broker（宿主机副作用代理）
 
-> **部署状态（2026-03-15）**：broker daemon 已部署并运行（`openclaw-broker.service`，active + enabled）；8 个 wrapper 已安装为 production 版本；host-ops-tool plugin 已注册进 `openclaw.json`。plugin activation 已完成，registerTool 版 plugin 已部署到 live。agent-facing 已逐项开放两个切片：`gateway_health`（只读）和 `validate_openclaw_json_candidate`（只读），均已 live E2E verified。其余 action 仍需逐项开放。详见 `docs/records/phase2-hostops-validate-candidate-activation-2026-03-15.md`。
+> **部署状态（2026-03-15）**：broker daemon 已部署并运行（`openclaw-broker.service`，active + enabled）；8 个 wrapper 已安装为 production 版本；host-ops-tool plugin 已注册进 `openclaw.json`。plugin activation 已完成，registerTool 版 plugin 已部署到 live。agent-facing 已逐项开放两个切片：`gateway_health`（只读）和 `validate_openclaw_json_candidate`（只读），均已 live E2E verified。`deploy_openclaw_json_candidate`（写操作）已 repo-side ready（Route C，待 live 实施）。其余 action 仍需逐项开放。详见 `docs/records/phase2-hostops-deploy-candidate-activation-2026-03-15.md`。
 
 ### 5.6.1 角色定位
 

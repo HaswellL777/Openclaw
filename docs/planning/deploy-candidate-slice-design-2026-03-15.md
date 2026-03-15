@@ -6,7 +6,7 @@
 > 作者：nick + ClaudeCode
 > 前置完成：`gateway_health` E2E live verified, `validate_openclaw_json_candidate` E2E live verified
 > 目标：为 `deploy_openclaw_json_candidate` 的 agent-facing 开放建立严谨的实施方案
-> 状态：**路线已裁决，待实施（代码未变更，live 未变更）**
+> 状态：**repo-side 实施完成（plugin 代码已提交，docs/checklist/scaffold 已同步）— 待 live 实施**
 
 ---
 
