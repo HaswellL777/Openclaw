@@ -58,7 +58,7 @@ else
 
   # Create read-only snapshot
   echo "[LIVE] Creating snapshot: btrfs subvolume snapshot -r / $snapshot_path" >&2
-  if ! btrfs subvolume snapshot -r / "$snapshot_path" 2>&1; then
+  if ! btrfs subvolume snapshot -r / "$snapshot_path" >/dev/null; then
     broker_error "error" "btrfs snapshot failed for: $snapshot_path" "E_WRAPPER_FAILED"
   fi
 

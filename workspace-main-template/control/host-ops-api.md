@@ -14,18 +14,18 @@ The authoritative protocol definition is `docs/design-v3.md` §5.6.
 | Plugin config registration | **complete** — `host-ops-tool` in `plugins.allow`, `plugins.entries["host-ops-tool"].enabled = true`, gateway accepted + healthy |
 | Plugin lifecycle activation | **complete** — `register(api)` export active on live gateway, no lifecycle warnings |
 | Tool registration (repo) | **complete** — `register(api)` calls `api.registerTool(hostOpsTool, {optional:true})`, gateway_health-only, fail-closed |
-| Agent-facing `host_ops` tool | **pending** — tool is `optional:true` so requires `host_ops` in `main.tools.allow` to become visible to agent |
+| Agent-facing `host_ops` tool | **初始只读切片已完成（2026-03-15）** — `host_ops` 已加入 `main.tools.allow`，`gateway_health` agent-facing E2E 成功；其余 action 仍需逐项启用和验收 |
 
 ### Activation sequence
 
-1. **Step 1 — Plugin lifecycle activation**: Complete. `register(api)` export deployed and accepted by gateway.
-2. **Step 2 — Tool registration implementation**: Complete (repo-side). `register(api)` now calls `api.registerTool()` with the `host_ops` tool object (`optional: true`, gateway_health only). Not yet deployed to live.
-3. **Step 3 — Deploy registerTool version**: Deploy updated `index.js` to `/var/lib/openclaw/.openclaw/extensions/host-ops-tool/`. Gateway restart required. After this step, the tool is registered in the plugin registry but still invisible to the agent (because `optional: true` requires allowlist).
-4. **Step 4 — Agent-facing enablement**: Add `host_ops` to `main.tools.allow` in `/etc/openclaw/openclaw.json` via candidate workflow. Per-agent allowlist is preferred over global `tools.alsoAllow` for a high-risk host mutation tool. After this step, the agent can invoke `host_ops(action: "gateway_health")`.
+1. **Step 1 — Plugin lifecycle activation**: Complete (2026-03-15). `register(api)` export deployed and accepted by gateway.
+2. **Step 2 — Tool registration implementation**: Complete (2026-03-15). `register(api)` now calls `api.registerTool()` with the `host_ops` tool object (`optional: true`, gateway_health only).
+3. **Step 3 — Deploy registerTool version**: Complete (2026-03-15). Updated `index.js` deployed to live, gateway restarted, no registration errors.
+4. **Step 4 — Agent-facing enablement (gateway_health)**: Complete (2026-03-15). `host_ops` added to `main.tools.allow` via candidate workflow. Agent successfully invoked `host_ops(action: "gateway_health")`, broker returned `ok: true`.
 
 ### Current operational path
 
-Until Step 4 (agent-facing enablement) is complete, the Phase 1 workaround (Section "Phase 1 workaround") remains the operational path.
+`gateway_health` action 已通过 agent-facing E2E 验证，可由 agent 直接调用。其余 7 个 action 尚未逐项 agent-facing 验收，仍使用 Phase 1 workaround（Section "Phase 1 workaround"）。
 
 ## Overview
 

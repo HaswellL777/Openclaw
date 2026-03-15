@@ -15,9 +15,9 @@
 | Plugin config registration | **complete** — gateway accepted, healthy |
 | Plugin lifecycle activation | **complete** — `register(api)` export active on live gateway |
 | Tool registration (repo) | **complete** — `api.registerTool(hostOpsTool, {optional:true})` implemented, gateway_health only |
-| Agent-facing `host_ops` tool | **pending** — requires `host_ops` in `main.tools.allow` + deploy of updated plugin |
+| Agent-facing `host_ops` tool | **初始只读切片已完成（2026-03-15）** — `host_ops` 已加入 `main.tools.allow`，`gateway_health` E2E 成功；其余 action 仍需逐项验收 |
 
-**Current blocker**: The registerTool-based `index.js` is implemented in dev-repo but not yet deployed to live. After deployment, `host_ops` must be added to `tools.allow` for the agent to see it. Until then, use the Phase 1 workaround below.
+**当前状态**: `gateway_health`（只读）已通过 agent-facing E2E 验证。其余 7 个 action（含写操作）尚未逐项 agent-facing 验收，相关操作仍使用 Phase 1 workaround。
 
 ## What this skill does (planned)
 This skill provides the interface for calling host-ops broker to execute:
