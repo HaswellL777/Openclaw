@@ -14,7 +14,7 @@ The authoritative protocol definition is `docs/design-v3.md` §5.6.
 | Plugin config registration | **complete** — `host-ops-tool` in `plugins.allow`, `plugins.entries["host-ops-tool"].enabled = true`, gateway accepted + healthy |
 | Plugin lifecycle activation | **complete** — `register(api)` export active on live gateway, no lifecycle warnings |
 | Tool registration (repo) | **complete** — `register(api)` calls `api.registerTool(hostOpsTool, {optional:true})`, gateway_health-only, fail-closed |
-| Agent-facing `host_ops` tool | **初始只读切片已完成（2026-03-15）** — `host_ops` 已加入 `main.tools.allow`，`gateway_health` agent-facing E2E 成功；`validate_openclaw_json_candidate` repo-side ready（live 部署 pending）；其余 action 仍需逐项启用和验收 |
+| Agent-facing `host_ops` tool | **逐项切片推进中（2026-03-15）** — `host_ops` 已加入 `main.tools.allow`；`gateway_health` agent-facing E2E 成功；`validate_openclaw_json_candidate` agent-facing E2E 成功（含正例 + 负例，live verified）；其余 action 仍需逐项启用和验收 |
 
 ### Activation sequence
 
@@ -25,7 +25,7 @@ The authoritative protocol definition is `docs/design-v3.md` §5.6.
 
 ### Current operational path
 
-`gateway_health` action 已通过 agent-facing E2E 验证，可由 agent 直接调用。`validate_openclaw_json_candidate` 已在 repo-side 完成代码扩展（ENABLED_ACTIONS 新增、inputs 透传），live plugin sync 后可用。其余 6 个 action 尚未逐项 agent-facing 验收，仍使用 Phase 1 workaround（Section "Phase 1 workaround"）。
+`gateway_health` 和 `validate_openclaw_json_candidate` 两个 action 均已通过 agent-facing E2E 验证（live verified），可由 agent 直接调用。两者均为只读操作。其余 6 个 action（含写操作）尚未逐项 agent-facing 验收，仍使用 Phase 1 workaround（Section "Phase 1 workaround"）。
 
 ## Overview
 
