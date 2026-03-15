@@ -1,11 +1,12 @@
 # deploy_openclaw_json_candidate — 下一阶段实施设计
 
-> 文档类型：**设计准备 / planning note（非实施事实）**
+> 文档类型：**设计 / planning note（非实施事实）**
 > 创建日期：2026-03-15
+> 路线裁决日期：2026-03-15
 > 作者：nick + ClaudeCode
 > 前置完成：`gateway_health` E2E live verified, `validate_openclaw_json_candidate` E2E live verified
 > 目标：为 `deploy_openclaw_json_candidate` 的 agent-facing 开放建立严谨的实施方案
-> 状态：**设计草案，未执行**
+> 状态：**路线已裁决，待实施（代码未变更，live 未变更）**
 
 ---
 
@@ -87,13 +88,66 @@ vault_sync  (可选)
 
 这意味着 **deploy 的完整工作流仍需要人工介入**（快照 + restart 步骤由 operator 手动执行）。
 
-### 3.3 两种可选路线
+### 3.3 候选路线比较
 
-**路线 A（保守）**：先单独开放 deploy，但要求 operator 手动执行 snapshot + restart。文档中明确这是 "半自动" 模式。
+#### Route A：先单独开放 deploy，snapshot/restart 由 operator 手动
 
-**路线 B（完整切片）**：一次性开放 deploy + gateway_restart + snapshot_pre + snapshot_post 四个 action，使 agent 可以执行完整工作流。但这一次性扩面较大，风险更高。
+在 `ENABLED_ACTIONS` 中加入 `deploy_openclaw_json_candidate`。agent 可以 validate + deploy。但 `snapshot_pre` / `gateway_restart` / `snapshot_post` 仍不在 ENABLED_ACTIONS 中，必须由 operator 手动执行。
 
-**建议采用路线 A**：先单独验证 deploy 的 agent-facing 安全性，snapshot + restart 暂由 operator 手动执行。后续再逐步开放其余 action。
+- 优势：一次只扩一个写操作 action，暴露面最小；与 validate slice 的逻辑延续性最强；plugin 代码改动最小（约 5-8 行）；deploy wrapper 已有 post-deploy hash verification + 自动回滚到 .bak
+- 劣势：deploy 后系统处于"配置文件已更新但 gateway 仍运行旧配置"的中间状态；agent 无法自主完成完整 workflow
+
+#### Route B：先开放 snapshot_pre + snapshot_post，再进入 deploy
+
+先在 `ENABLED_ACTIONS` 中加入 `snapshot_pre` + `snapshot_post`，deploy 留到下一轮。
+
+- 优势：snapshot 是更保守的操作（创建只读快照，不修改现有状态）
+- 劣势：snapshot 的 agent-facing 价值在 deploy 未开放前很有限；增加一轮中间切片，延长 deploy 时间线；snapshot wrapper 曾有 stdout 污染 bug（已修复）
+
+#### Route C：开放 deploy + 强制 operator-mediated checklist（推荐）
+
+开放 deploy，代码变更与 Route A 完全相同。但在 SOP、workspace agent instructions、host-ops-api.md 中明确要求 deploy 必须运行在严格的 operator-mediated checklist 中。文档级别锁定"文件写入成功 ≠ 配置生效成功"。
+
+- 优势：与 Route A 的代码改动完全一致，零额外工程成本；但文档约束更强，审计清晰度更高；对"deploy ≠ 配置生效"的歧义有最明确的文档锁定
+- 劣势：文档级约束不是 hard block——但 Route A 也同样面对这一限制
+
+#### Route D：Deploy + snapshot_pre 联合开放
+
+同时开放 `deploy_openclaw_json_candidate` + `snapshot_pre`。
+
+- 优势：agent 能执行"snapshot_pre → validate → deploy"的前半段完整流程
+- 劣势：一次开放两个 action，暴露面较大；不对称状态（能做 pre 不能做 post）
+
+#### 路线对比矩阵
+
+| 评估维度 | Route A | Route B | Route C | Route D |
+|----------|---------|---------|---------|---------|
+| 最小 live 风险 | ★★★★ | ★★★★★ | ★★★★ | ★★★ |
+| 最强 fail-closed | ★★★★ | ★★★★ | ★★★★ | ★★★ |
+| 最清晰阶段边界 | ★★★★ | ★★★ | ★★★★★ | ★★★ |
+| 最容易审计 | ★★★★ | ★★★ | ★★★★★ | ★★★ |
+| 最少半生效中间状态 | ★★★ | ★★★★ | ★★★★ | ★★★ |
+| 最少一次暴露 | ★★★★★ | ★★★★★ | ★★★★★ | ★★★ |
+| 最容易复用 SOP/records | ★★★★ | ★★★ | ★★★★★ | ★★★ |
+| 实际工程推进价值 | ★★★★★ | ★★ | ★★★★★ | ★★★★ |
+
+### 3.4 路线裁决结论
+
+**推荐路线：Route C — 开放 deploy + 强制 operator-mediated checklist。**
+
+Route C 是 Route A 的严格增强版。两者代码层面完全一致（只在 `ENABLED_ACTIONS` 中加入 `deploy_openclaw_json_candidate`），但 Route C 额外要求：
+
+1. planning 文档中必须有唯一明确的 deploy 成功定义（区分文件写入成功 vs 配置生效成功）
+2. 文档中必须有 operator-mediated checklist，明确 deploy 后的 restart / health / snapshot 步骤
+3. 文档中必须有 rejected alternatives 段落
+
+### 3.5 Rejected Alternatives
+
+**Route B 被拒绝**：snapshot 的独立 agent-facing 开放在 deploy 未开放前没有实际价值；增加了一轮无意义的中间切片；延长了 deploy 的开放时间线却未增加安全保障。
+
+**Route D 被拒绝**：一次开放两个 action 违反了"最少一次性扩大 action 暴露面"的原则；snapshot_pre 的 agent-facing 验收引入额外测试负担；不对称状态（能做 pre 不能做 post）增加了认知负担。
+
+**纯 Route A 未被采纳**：代码改动与 Route C 完全一致，但缺少文档层面的显式约束（operator-mediated checklist、deploy 成功定义精确化、rejected alternatives 记录）。Route C 在零额外工程成本下提供了更高的审计清晰度。
 
 ---
 
@@ -133,14 +187,19 @@ vault_sync  (可选)
 | 条件 | 检查层 | 行为 |
 |------|--------|------|
 | `deploy_openclaw_json_candidate` 不在 ENABLED_ACTIONS | plugin `execute()` | 返回 `ok: false, status: denied` |
+| params 中有未知字段 | plugin `execute()` 参数白名单 | 返回 `ok: false, status: error` |
 | inputs 非 object | plugin `execute()` | 返回 `ok: false, status: error` |
+| candidate_path 缺失或非 string | plugin `validateActionInputs` | 返回 `ok: false, status: error` |
 | candidate_path 不在白名单前缀 | plugin `validateActionInputs` + wrapper `broker_validate_path` | 返回 `ok: false, status: error` |
 | candidate_path 包含 `..` | plugin `validateActionInputs` + wrapper `broker_validate_path` | 返回 `ok: false, status: error` |
 | expected_sha256 格式不合法 | plugin `validateActionInputs` + wrapper `broker_validate_sha256` | 返回 `ok: false, status: error` |
 | 候选文件不存在 | wrapper live 执行 | 返回 `ok: false, status: error, E_FILE_NOT_FOUND` |
-| 候选文件 SHA256 与 expected 不匹配 | wrapper live 执行 | 返回 `ok: false, status: error, E_WRAPPER_FAILED` |
+| 候选文件 SHA256 与 expected 不匹配 | wrapper live 执行（pre-deploy） | 返回 `ok: false, status: error, E_WRAPPER_FAILED` |
+| 当前 config 备份（.bak）创建失败 | wrapper live 执行（`set -euo pipefail`） | wrapper 非零退出，broker 返回 error |
+| `cp` / `chown` / `chmod` deploy 操作失败 | wrapper live 执行（`set -euo pipefail`） | wrapper 非零退出，broker 返回 error |
 | post-deploy SHA256 验证失败 | wrapper live 执行 | **自动回滚到 .bak** + 返回 `ok: false` |
 | broker 连接失败 | plugin `sendRequest` | 返回 `ok: false, status: error` |
+| broker 返回非 JSON 或无效 result | plugin `validateResult` | 返回 `ok: false, status: error` |
 
 ---
 
@@ -176,7 +235,21 @@ sudo systemctl restart openclaw-gateway.service
 
 ---
 
-## 7. Post-deploy health gate
+## 7. Deploy 成功定义（精确化）
+
+deploy slice 的"成功"必须严格区分三个层次：
+
+| 层次 | 定义 | 谁负责 | 属于 deploy slice 吗？ |
+|------|------|--------|----------------------|
+| **deploy 写入成功** | candidate 文件通过 wrapper 写入 `/etc/openclaw/openclaw.json`，post-deploy hash 验证通过，.bak 已创建 | agent + broker wrapper | **是** |
+| **配置生效成功** | gateway restart 后新配置被加载，`gateway_health` 返回 ok | operator（手动 restart）+ agent（health check） | **否** — 属于 restart gate |
+| **变更窗口关闭** | snapshot_post 完成，可选 vault_sync | operator（手动） | **否** — 属于 snapshot gate |
+
+**关键约束**：agent 在 deploy wrapper 返回 `ok: true` 后，可以声称"文件已写入"，但**不能声称"新配置已生效"**——除非 operator 手动 restart 后 agent 调用 `gateway_health` 确认。
+
+---
+
+## 8. Post-deploy health gate
 
 deploy 成功后，必须验证：
 
@@ -192,9 +265,9 @@ deploy 成功后，必须验证：
 
 ---
 
-## 8. repo-side 最小计划
+## 9. repo-side 最小计划
 
-### 8.1 plugin 代码变更
+### 9.1 plugin 代码变更
 
 在 `plugins/host-ops-tool/index.js` 中：
 
@@ -204,13 +277,13 @@ deploy 成功后，必须验证：
 
 预计 diff：约 5-8 行。
 
-### 8.2 文档 / records 变更
+### 9.2 文档 / records 变更
 
 - 新增 `docs/records/phase2-hostops-deploy-candidate-activation-YYYY-MM-DD.md`（scaffold 版本）
 - 更新 `docs/host-sop.md`、`docs/design-v3.md`、`host-ops-api.md` 中的阶段边界
 - 本 planning 文档转为 "设计已审批" 状态
 
-### 8.3 不应立即做的事
+### 9.3 不应立即做的事
 
 - **不应立即开放 gateway_restart**：deploy slice 中 gateway restart 由 operator 手动执行
 - **不应立即开放 snapshot_pre/post**：同上
@@ -218,9 +291,9 @@ deploy 成功后，必须验证：
 
 ---
 
-## 9. Live-side 纪律方案（仅方案，不执行）
+## 10. Live-side 纪律方案（仅方案，不执行）
 
-### 9.1 deploy slice 的 live 实施流程
+### 10.1 deploy slice 的 live 实施流程
 
 ```
 operator: snapshot_pre（手动或通过 sudo broker 直接调用）
@@ -259,22 +332,22 @@ operator: snapshot_post（手动）
 operator: vault_sync（可选，手动）
 ```
 
-### 9.2 何时必须做 snapshot_pre
+### 10.2 何时必须做 snapshot_pre
 
 - 在任何 deploy 操作之前
 - snapshot_pre 必须在 deploy 同一操作窗口内完成，不能跨天或跨多次变更
 
-### 9.3 deploy 是否必须先通过 validate
+### 10.3 deploy 是否必须先通过 validate
 
 - **是**：agent 行为规范要求先 validate 再 deploy
 - 但 plugin 不强制会话级 validate-before-deploy 检查（无状态）
 
-### 9.4 何时允许 vault_sync
+### 10.4 何时允许 vault_sync
 
 - 在 snapshot_post 完成且 health gate 通过后
 - 不应在 deploy 后、snapshot_post 前做 vault_sync
 
-### 9.5 Rollback 的首要锚点
+### 10.5 Rollback 的首要锚点
 
 1. `/etc/openclaw/openclaw.json.bak`（deploy wrapper 自动创建）
 2. root snapshot（snapshot_pre 创建）
@@ -282,9 +355,40 @@ operator: vault_sync（可选，手动）
 
 ---
 
-## 10. deploy slice 的 E2E 验收计划（草案）
+## 11. Operator-Mediated Checklist（deploy slice 操作窗口）
 
-### 10.1 正例
+> 以下 checklist 是 Route C 的核心交付物。deploy slice 的每次执行必须在一个操作窗口内完成所有步骤。本 checklist 是纪律约束，不由 plugin 或 wrapper 自动执行。
+
+### 操作前
+
+- [ ] operator: `snapshot_pre`（手动，`sudo btrfs subvolume snapshot -r / /.snapshots/root-pre-deploy-YYYYMMDD-HHMM`）
+- [ ] operator: 备份当前 plugin index.js（如果本轮是首次 deploy slice 激活）
+
+### 配置部署
+
+- [ ] agent: `host_ops(action: "validate_openclaw_json_candidate", inputs: {...})` → 确认 `ok: true`
+- [ ] agent: `host_ops(action: "deploy_openclaw_json_candidate", inputs: {...})` → 确认 `ok: true`
+- [ ] operator 确认：deploy 返回 `ok: true` 代表的是**文件写入成功**，不代表配置已生效
+
+### 配置生效
+
+- [ ] operator: `sudo systemctl restart openclaw-gateway.service`
+- [ ] operator: 确认 `systemctl is-active openclaw-gateway.service` → `active`
+- [ ] operator: 确认 `systemctl is-active openclaw-broker.service` → `active`
+- [ ] agent: `host_ops(action: "gateway_health")` → 确认 `ok: true`
+- [ ] operator: 检查 gateway journal 无 config validation errors
+
+### 变更窗口关闭
+
+- [ ] operator: `snapshot_post`（手动）
+- [ ] operator: `vault_sync`（可选，手动）
+- [ ] operator: 确认本操作窗口内所有步骤已完成，记录到 activation record
+
+---
+
+## 12. deploy slice 的 E2E 验收计划（草案）
+
+### 12.1 正例
 
 ```
 host_ops(action: "deploy_openclaw_json_candidate", inputs: {
@@ -300,7 +404,7 @@ host_ops(action: "deploy_openclaw_json_candidate", inputs: {
 - `.bak` 文件已创建
 - broker 日志有对应请求记录
 
-### 10.2 负例（复用 validate 的负例框架）
+### 12.2 负例（复用 validate 的负例框架）
 
 - 白名单外路径：拒绝
 - 路径穿越：拒绝
@@ -308,13 +412,13 @@ host_ops(action: "deploy_openclaw_json_candidate", inputs: {
 - 候选文件不存在：拒绝
 - SHA256 不匹配：拒绝
 
-### 10.3 gateway_health 回归
+### 12.3 gateway_health 回归
 
 - deploy slice 不应影响 gateway_health 和 validate 的正常工作
 
 ---
 
-## 11. 下一轮 ClaudeCode 提示词草案
+## 13. 下一轮 ClaudeCode 提示词草案
 
 > 你当前的任务是为 `deploy_openclaw_json_candidate` 完成 agent-facing 开放的 repo-side 实施。
 >
@@ -339,7 +443,7 @@ host_ops(action: "deploy_openclaw_json_candidate", inputs: {
 
 ---
 
-## 12. 风险清单
+## 14. 风险清单
 
 | 风险 | 严重程度 | 缓解措施 |
 |------|----------|----------|
