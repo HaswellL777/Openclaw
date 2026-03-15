@@ -1,0 +1,10 @@
+{
+  "id": "host-ops-tool",
+  "name": "Host Operations Tool",
+  "description": "Provides the host_ops agent tool for invoking the host-ops broker via Unix socket. Fail-closed: only explicitly enabled actions are permitted.",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  }
+}

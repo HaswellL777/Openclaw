@@ -1,9 +1,27 @@
 // host-ops-tool plugin
-// Status: Phase 2 implementation slice 2 — repo-only, not deployed
-// This module provides request building, validation, and Unix socket
-// transport functions for the host-ops broker protocol.
+// Status: Phase 2 — broker backend deployed, plugin lifecycle active,
+//         registerTool-based tool registration implemented (gateway_health only)
+// This module provides:
+//   1. register(api) export that calls api.registerTool() to register the
+//      "host_ops" agent-facing tool (optional: true — requires tools.allow)
+//   2. Request building, validation, and Unix socket transport for broker protocol
 // Transport: Unix domain socket client (Node.js net module).
 // No HTTP, no network listening.
+//
+// Tool registration evidence (live SDK v2026.3.2, 2026-03-15):
+//   - OpenClawPluginApi.registerTool exists:
+//       .../plugin-sdk/plugins/types.d.ts:233
+//   - JS implementation confirmed:
+//       .../plugin-sdk/registry-DmSqCQJS.js:323-337, :594
+//   - resolvePluginTools injects into agent tool list:
+//       .../plugin-sdk/reply-DFFRlayb.js:65825, :75859-75879
+//   - Reference: bundled llm-task extension uses identical pattern:
+//       .../extensions/llm-task/index.ts — api.registerTool(tool, { optional: true })
+//
+// Fail-closed policy:
+//   - Only ENABLED_ACTIONS are permitted (currently: gateway_health)
+//   - All other actions are rejected at execute time
+//   - Tool is optional: true — invisible to agent unless tools.allow includes it
 
 import { createConnection } from "node:net";
 
@@ -25,6 +43,10 @@ const SCHEMA_PATHS = {
 };
 
 const STATUS_VALUES = ["ok", "error", "denied"];
+
+// Fail-closed: only these actions are permitted in the current version.
+// Expand this list deliberately as each action is validated for live use.
+const ENABLED_ACTIONS = ["gateway_health"];
 
 /**
  * Build a schema-conformant broker request object.
@@ -243,11 +265,167 @@ export function validateResult(result) {
  */
 export function hostOpsToolSkeleton() {
   return {
-    status: "phase2-dev-repo-prep",
-    note: "Schemas, dual-mode wrappers, and protocol spec in repo; broker not yet deployed",
-    actions: ACTIONS,
+    status: "phase2-registerTool-implemented",
+    note: "register(api) calls api.registerTool with optional:true. Tool is gateway_health-only. Agent-facing activation requires tools.allow update (not yet done).",
+    enabledActions: ENABLED_ACTIONS,
+    allActions: ACTIONS,
     schemas: SCHEMA_PATHS,
   };
+}
+
+/**
+ * Create the host_ops agent tool object.
+ *
+ * Tool shape follows AgentTool interface from @mariozechner/pi-agent-core:
+ *   { name, label, description, parameters, execute }
+ * Parameters is a plain JSON Schema object (equivalent to TypeBox output).
+ *
+ * @returns {object} AgentTool-compatible tool object
+ */
+function createHostOpsTool() {
+  return {
+    name: "host_ops",
+    label: "Host Operations",
+    description:
+      "Execute host operations via the host-ops broker daemon. " +
+      "Sends a structured JSON request over Unix socket to the broker, " +
+      "which delegates to root-owned wrapper scripts. " +
+      "Currently only the gateway_health action is enabled.",
+    parameters: {
+      type: "object",
+      properties: {
+        action: {
+          type: "string",
+          enum: ENABLED_ACTIONS,
+          description:
+            "Host operation action to execute. " +
+            "Currently only 'gateway_health' is supported.",
+        },
+      },
+      required: ["action"],
+    },
+
+    async execute(toolCallId, params) {
+      const action =
+        params && typeof params.action === "string" ? params.action : "";
+
+      // Fail-closed: reject anything not in ENABLED_ACTIONS
+      if (!ENABLED_ACTIONS.includes(action)) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify({
+                ok: false,
+                status: "denied",
+                message: `Action '${action}' is not enabled. Currently supported: ${ENABLED_ACTIONS.join(", ")}`,
+              }),
+            },
+          ],
+          details: { denied: true, action },
+        };
+      }
+
+      // Build request using existing helper
+      const { request, errors: buildErrors } = buildRequest(
+        action,
+        {},
+        "agent:main",
+      );
+      if (buildErrors.length > 0) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify({
+                ok: false,
+                status: "error",
+                message: `Request build failed: ${buildErrors.join("; ")}`,
+              }),
+            },
+          ],
+          details: { buildErrors },
+        };
+      }
+
+      // Validate request using existing helper
+      const validationErrors = validateRequest(request);
+      if (validationErrors.length > 0) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify({
+                ok: false,
+                status: "error",
+                message: `Request validation failed: ${validationErrors.join("; ")}`,
+              }),
+            },
+          ],
+          details: { validationErrors },
+        };
+      }
+
+      // Send to broker via Unix socket
+      let result;
+      try {
+        result = await sendRequest(request);
+      } catch (err) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify({
+                ok: false,
+                status: "error",
+                message: `Broker transport error: ${err.message}`,
+              }),
+            },
+          ],
+          details: { transportError: err.message },
+        };
+      }
+
+      // Validate broker result using existing helper
+      const resultErrors = validateResult(result);
+      if (resultErrors.length > 0) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify({
+                ok: false,
+                status: "error",
+                message: `Broker returned invalid result: ${resultErrors.join("; ")}`,
+                raw: result,
+              }),
+            },
+          ],
+          details: { resultErrors, raw: result },
+        };
+      }
+
+      return {
+        content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+        details: result,
+      };
+    },
+  };
+}
+
+/**
+ * OpenClaw plugin lifecycle entry point.
+ * Called by gateway loader when the plugin is activated.
+ *
+ * Registers the "host_ops" agent-facing tool via api.registerTool().
+ * The tool is registered as optional: true, meaning it will NOT appear
+ * in the agent's tool list unless explicitly enabled in tools.allow
+ * (e.g. main.tools.allow) in /etc/openclaw/openclaw.json.
+ *
+ * @param {object} api - OpenClaw Plugin SDK API object (OpenClawPluginApi)
+ */
+export default function register(api) {
+  api.registerTool(createHostOpsTool(), { optional: true });
 }
 
 // --- Transport: Unix socket client ---
