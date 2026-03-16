@@ -144,10 +144,18 @@ No required inputs. Returns gateway service status.
 > Caller MUST invoke `gateway_health` afterward to verify that the gateway is healthy after the restart completes.
 > Operator MUST independently confirm `systemctl is-active` for both gateway and broker services.
 >
-> **IMPORTANT**: `systemd-run` returning success (exit code 0) means only that the transient
-> timer/unit was successfully created and registered with systemd. It does NOT mean the
-> gateway restart has completed. It does NOT mean the gateway restart will succeed.
-> Completion criteria: subsequent operator `systemctl is-active` check + agent `gateway_health` call.
+> **IMPORTANT**: `ok: true` means only that the restart has been **scheduled** (transient timer unit
+> created). It does NOT mean the gateway restart has completed. It does NOT mean the gateway is
+> currently active. Completion criteria: subsequent operator `systemctl is-active` check + agent
+> `gateway_health` call.
+
+**Input constraints:**
+
+- `reason` (string, required): Human-readable reason for the restart.
+  - Must be at least 3 non-whitespace characters after trimming.
+  - Must not be purely numeric (e.g. `"12345"` is rejected).
+  - These constraints are enforced by plugin `validateActionInputs` (the authoritative source).
+  - The broker schema (`gateway-restart.schema.json`) provides `minLength: 3` as contract alignment only.
 
 ```json
 {

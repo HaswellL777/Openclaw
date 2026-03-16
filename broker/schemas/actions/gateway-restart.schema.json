@@ -7,8 +7,8 @@
   "properties": {
     "reason": {
       "type": "string",
-      "minLength": 1,
-      "description": "Reason for gateway restart"
+      "minLength": 3,
+      "description": "Reason for gateway restart. Must be at least 3 non-whitespace characters and must not be purely numeric. Semantic validation is enforced by plugin validateActionInputs (the authoritative source); this schema provides contract-alignment only."
     }
   },
   "additionalProperties": false

@@ -161,6 +161,13 @@ function validateActionInputs(action, inputs) {
     case "gateway_restart":
       if (!inputs.reason || typeof inputs.reason !== "string") {
         errors.push("gateway_restart requires inputs.reason (string)");
+      } else {
+        const trimmed = inputs.reason.trim();
+        if (trimmed.length < 3) {
+          errors.push("gateway_restart reason must be at least 3 non-whitespace characters");
+        } else if (/^\d+$/.test(trimmed)) {
+          errors.push("gateway_restart reason must not be purely numeric");
+        }
       }
       break;
 
@@ -316,7 +323,8 @@ function createHostOpsTool() {
             reason: {
               type: "string",
               description:
-                "Reason for the operation (required for gateway_restart, snapshot_pre, snapshot_post, rollback_prepare).",
+                "Reason for the operation (required for gateway_restart, snapshot_pre, snapshot_post, rollback_prepare). " +
+                "For gateway_restart: must be at least 3 non-whitespace characters and must not be purely numeric.",
             },
             target_snapshot: {
               type: "string",
