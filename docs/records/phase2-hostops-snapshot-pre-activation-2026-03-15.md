@@ -3,7 +3,7 @@
 > Operator: nick
 > Dev-repo branch: `feat/phase1b-workspace-foundation`
 > Preceding record: `docs/records/phase2-hostops-deploy-candidate-activation-2026-03-15.md`
-> Status: **scaffold — pending live activation**
+> Status: **live E2E verified — 2026-03-16**
 
 ---
 
@@ -18,7 +18,7 @@
 | Agent-facing `gateway_health` | **complete** — E2E 成功 |
 | Agent-facing `validate_openclaw_json_candidate` | **complete** — live E2E verified（正例 + 负例） |
 | Agent-facing `deploy_openclaw_json_candidate` | **complete** — live E2E verified（Route C，正例 + 负例含 wrapper 侧 + 回归通过） |
-| Agent-facing `snapshot_pre` | **pending** — repo-side ready，待 live activation |
+| Agent-facing `snapshot_pre` | **complete** — live E2E verified（正例 + 负例 + 回归，2026-03-16） |
 | 其余 action | **未开放** — `gateway_restart`, `snapshot_post`, `vault_sync`, `rollback_prepare` |
 
 ---
@@ -59,41 +59,47 @@
 | `ee935f4` | `feat(host-ops-tool): enable snapshot_pre agent slice` | `plugins/host-ops-tool/index.js` |
 | `3886d83` | `docs(records): add snapshot_pre activation scaffold` | 本文件 |
 | `6517413` | `docs: sync snapshot_pre boundary across authority docs` | `docs/host-sop.md`, `docs/design-v3.md`, `workspace-main-template/control/host-ops-api.md` |
+| `(pending)` | `ops: add snapshot_pre slice activation + rollback operator scripts` | `scripts/activate-snapshot-pre-slice.sh`, `scripts/rollback-snapshot-pre-slice.sh`, `.gitignore` |
+| `87f57f4` | `ops: add snapshot_pre activation scripts and fix inputs schema` | `scripts/activate-snapshot-pre-slice.sh`, `scripts/rollback-snapshot-pre-slice.sh`, `plugins/host-ops-tool/index.js`, `.gitignore` |
+| `3a792b9` | `docs: complete snapshot_pre live E2E verified and sync boundary` | 本文件, `docs/host-sop.md`, `docs/design-v3.md`, `workspace-main-template/control/host-ops-api.md` |
 
 ---
 
-## 4. Live plugin sync 模板步骤（待执行）
+## 4. Live plugin sync 步骤（已完成 2026-03-16 09:17 CST）
+
+> 使用 operator 脚本 `scripts/activate-snapshot-pre-slice.sh` 一次性完成全部步骤。
+> 脚本记录: `artifacts/phase2/snapshot-pre-live-activation-20260316-0917/`
 
 ### 4.1 备份当前 live plugin
 
-```bash
-sudo cp /var/lib/openclaw/.openclaw/extensions/host-ops-tool/index.js \
-        /var/lib/openclaw/host-ops-tool-backups/index.js.bak-pre-snapshot-pre-slice
+```
+备份路径: /var/lib/openclaw/host-ops-tool-backups/index.js.bak-pre-snapshot-pre-slice-20260316-0917
+备份 SHA256: 99cb34b2907601587f999f08ba24265515da6868fc79bceba3e7919f16ede6d9
 ```
 
 > 备份放在 extensions 目录之外（`/var/lib/openclaw/host-ops-tool-backups/`），避免 extensions 目录清理或重装时备份丢失。plugin 文件位于 `/var/lib/openclaw`（独立 btrfs 子卷），**不在** root snapshot 保护范围内。因此 plugin 文件级备份是首要 rollback anchor，而非根快照。
 
 ### 4.2 复制新版 index.js 到 live
 
-```bash
-sudo cp /home/nick/projects/openclaw-dev/plugins/host-ops-tool/index.js \
-        /var/lib/openclaw/.openclaw/extensions/host-ops-tool/index.js
-sudo chown openclaw:openclaw /var/lib/openclaw/.openclaw/extensions/host-ops-tool/index.js
-sudo chmod 644 /var/lib/openclaw/.openclaw/extensions/host-ops-tool/index.js
+```
+源文件: /home/nick/projects/openclaw-dev/plugins/host-ops-tool/index.js
+目标: /var/lib/openclaw/.openclaw/extensions/host-ops-tool/index.js
+部署后 SHA256: 128fab369853a59267333f6c4e637571a386d90cd3fcb56825b81f8384a21771
+权限: openclaw:openclaw 644
 ```
 
 ### 4.3 重启 gateway
 
-```bash
-sudo systemctl restart openclaw-gateway.service
+```
+systemctl restart openclaw-gateway.service — 成功
 ```
 
 ### 4.4 验证
 
-- [ ] `systemctl is-active openclaw-gateway.service` → `active`
-- [ ] `systemctl is-active openclaw-broker.service` → `active`
-- [ ] gateway journal 无 plugin/tool 注册错误
-- [ ] agent 新 session 后可见 `snapshot_pre` 在 schema enum 中
+- [x] `systemctl is-active openclaw-gateway.service` → `active`
+- [x] `systemctl is-active openclaw-broker.service` → `active`
+- [x] gateway journal 无 plugin/tool 注册错误
+- [x] agent 新 session 后可见 `snapshot_pre` 在 schema enum 中（E2E 确认）
 
 ---
 
@@ -106,112 +112,95 @@ sudo systemctl restart openclaw-gateway.service
 
 ---
 
-## 6. E2E 验收模板（待执行）
+## 6. E2E 验收结果（2026-03-16，OpenClaw agent session）
 
-### 6.1 正例：合法 snapshot_pre 请求
+> 执行环境：OpenClaw agent (T800 Bot) via Feishu，fresh session
+> 7/7 PASS
+
+### 6.1 正例：合法 snapshot_pre 请求 — **PASS**
 
 ```
 host_ops(action: "snapshot_pre", inputs: {
-  label: "test-snapshot-pre-20260315",
+  label: "e2e-snapshot-pre-20260316",
   reason: "E2E verification of snapshot_pre agent slice"
 })
 ```
 
-验收标准：
-- 返回 `ok: true`, `status: "ok"`
-- `artifacts` 包含 `snapshot_name`, `snapshot_path`, `label`, `reason`
-- operator 独立确认 `/.snapshots/root-pre-test-snapshot-pre-20260315` 存在且为只读
-- broker 日志有对应 `snapshot_pre` 请求记录
+结果：`ok: true`, `status: "ok"`, message: "Pre-change snapshot created"
+快照路径：`/.snapshots/root-pre-e2e-snapshot-pre-20260316`（审计保留）
 
-### 6.2 正例：gateway_health 仍正常（回归）
+### 6.2 正例：gateway_health 仍正常（回归）— **PASS**
 
 ```
 host_ops(action: "gateway_health")
 ```
 
-验收标准：
-- 返回 `ok: true`, `status: "ok"`
+结果：`ok: true`, `status: "ok"`, message: "Gateway health check completed"
 
-### 6.3 正例：validate 仍正常（回归）
+### 6.3 正例：validate 回归 — **skipped**
 
-```
-host_ops(action: "validate_openclaw_json_candidate", inputs: {
-  candidate_path: "/var/lib/openclaw/approvals/candidates/<test-candidate>.json",
-  expected_sha256: "<actual sha256>"
-})
-```
+> validate_openclaw_json_candidate 本轮未改动，gateway_health 回归已确认 tool registration pipeline 正常。
 
-验收标准：
-- 返回 `ok: true`
+### 6.4 正例：deploy 回归 — **skipped**
 
-### 6.4 正例：deploy 仍正常（回归，如需）
+> deploy_openclaw_json_candidate 本轮未改动，同上。
 
-```
-host_ops(action: "deploy_openclaw_json_candidate", inputs: {
-  candidate_path: "/var/lib/openclaw/approvals/candidates/<test-candidate>.json",
-  expected_sha256: "<actual sha256>"
-})
-```
-
-验收标准：
-- 返回 `ok: true`
-
-### 6.5 负例：label 非法字符
+### 6.5 负例：label 非法字符 — **PASS**
 
 ```
 host_ops(action: "snapshot_pre", inputs: {
-  label: "bad label with spaces!",
+  label: "bad label spaces!",
   reason: "negative test"
 })
 ```
 
-预期：plugin 侧 `validateActionInputs` 拒绝，返回 `ok: false`, `status: "error"`, message 包含 `label must be alphanumeric`。
+结果：`ok: false`, `status: "error"`, message 包含 "label must be alphanumeric"
 
-### 6.6 负例：缺失 reason
+### 6.6 负例：缺失 reason — **PASS**
 
 ```
 host_ops(action: "snapshot_pre", inputs: {
-  label: "test-label-only"
+  label: "test-no-reason"
 })
 ```
 
-预期：plugin 侧 `validateActionInputs` 拒绝，返回 `ok: false`, `status: "error"`, message 包含 `requires inputs.reason`。
+结果：`ok: false`, `status: "error"`, message 包含 "snapshot_pre requires inputs.reason"
 
-### 6.7 负例：inputs 非 object
+### 6.7 负例：inputs 非 object — **PASS**
 
 ```
 host_ops(action: "snapshot_pre", inputs: "not-an-object")
 ```
 
-预期：execute 中 fail-closed 检查拒绝，返回 `ok: false`, `status: "error"`, message 包含 `inputs must be a plain object`。
+结果：`ok: false`, `status: "error"`, message 包含 "inputs must be a plain object"
 
-### 6.8 负例：顶层多余参数
-
-```
-host_ops(action: "snapshot_pre", inputs: { label: "test", reason: "test" }, extra_param: "bad")
-```
-
-预期：execute 参数白名单拒绝，返回 `ok: false`, `status: "error"`, message 包含 `Unknown parameter(s)`。
-
-### 6.9 负例：非 enabled action 仍拒绝
+### 6.8 负例：顶层多余参数 — **PASS**
 
 ```
-host_ops(action: "snapshot_post", inputs: { label: "test", reason: "test" })
+host_ops(action: "snapshot_pre", inputs: { label: "test-extra", reason: "test" }, extra_param: "bad")
 ```
 
-预期：`ENABLED_ACTIONS` 检查拒绝，返回 `ok: false`, `status: "denied"`, message 包含 `not enabled`。
+结果：`ok: false`, `status: "error"`, message 包含 "Unknown parameter"
+
+### 6.9 负例：非 enabled action 仍拒绝 — **PASS**
+
+```
+host_ops(action: "snapshot_post", inputs: { label: "test-denied", reason: "test" })
+```
+
+结果：`ok: false`, `status: "denied"`, message 包含 "not enabled"
 
 ---
 
 ## 7. Rollback 步骤
 
-### 7.1 首要 rollback：恢复 plugin 文件
+### 7.1 首要 rollback：operator 脚本
 
 ```bash
-sudo cp /var/lib/openclaw/host-ops-tool-backups/index.js.bak-pre-snapshot-pre-slice \
-        /var/lib/openclaw/.openclaw/extensions/host-ops-tool/index.js
-sudo systemctl restart openclaw-gateway.service
+sudo bash scripts/rollback-snapshot-pre-slice.sh artifacts/phase2/snapshot-pre-live-activation-20260316-0917
 ```
+
+脚本自动完成：读取 result.env → 恢复备份 plugin → restart gateway → 验证 health → 写 rollback 结果。
 
 效果：回到仅 `gateway_health` + `validate_openclaw_json_candidate` + `deploy_openclaw_json_candidate` 可用的基线。
 
@@ -234,19 +223,18 @@ root snapshot 可作为 host 层额外锚点，但不是 plugin rollback 的首�
 - **已完成（live verified）**：`gateway_health` agent-facing E2E
 - **已完成（live verified）**：`validate_openclaw_json_candidate` agent-facing E2E（正例 + 负例）
 - **已完成（live verified）**：`deploy_openclaw_json_candidate` agent-facing E2E（Route C，正例 + 负例含 wrapper 侧 + 回归通过）
-- **repo-side ready，待 live activation**：`snapshot_pre`
+- **已完成（live verified）**：`snapshot_pre` agent-facing E2E（正例 + 负例 + 回归，2026-03-16）
 - **未开放**：`gateway_restart`, `snapshot_post`, `vault_sync`, `rollback_prepare`
-- 不得将 `snapshot_pre` 的 repo-side ready 写成 live verified
-- 不得将本轮 snapshot_pre 的成功类推为 snapshot workflow 闭环
+- 不得将本轮 snapshot_pre 的成功类推为 snapshot workflow 闭环（snapshot_post 未开放）
 - 不得将本轮成功类推为其余 4 个 action 已安全开放
 - `gateway_restart` 未作为本轮 slice 的原因是其返回值/契约语义不稳问题，不是因为它没价值
 
 ---
 
-## 9. Snapshots（待填写）
+## 9. Snapshots
 
 | 类型 | 路径 | 时间 |
 |------|------|------|
-| Pre-change | `(待 operator 执行)` | |
-| Post-change | `(待 operator 执行)` | |
+| Pre-change | `/.snapshots/root-pre-snapshot-pre-slice-20260316-0917` | 2026-03-16 09:17 CST |
+| Post-change | `/.snapshots/root-post-snapshot-pre-slice-20260316-0917` | 2026-03-16 09:17 CST |
 | Vault sync | `(可选，待 operator 执行)` | |

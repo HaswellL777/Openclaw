@@ -14,7 +14,7 @@ The authoritative protocol definition is `docs/design-v3.md` §5.6.
 | Plugin config registration | **complete** — `host-ops-tool` in `plugins.allow`, `plugins.entries["host-ops-tool"].enabled = true`, gateway accepted + healthy |
 | Plugin lifecycle activation | **complete** — `register(api)` export active on live gateway, no lifecycle warnings |
 | Tool registration (repo) | **complete** — `register(api)` calls `api.registerTool(hostOpsTool, {optional:true})`, fail-closed via ENABLED_ACTIONS (currently: gateway_health, validate_openclaw_json_candidate, deploy_openclaw_json_candidate, snapshot_pre) |
-| Agent-facing `host_ops` tool | **逐项切片推进中（2026-03-15）** — `host_ops` 已加入 `main.tools.allow`；`gateway_health` agent-facing E2E 成功；`validate_openclaw_json_candidate` agent-facing E2E 成功（含正例 + 负例，live verified）；`deploy_openclaw_json_candidate` live E2E verified（Route C，正例 + 负例含 wrapper 侧 + 回归通过）；`snapshot_pre` repo-side ready（待 live activation）；其余 4 个 action 仍需逐项启用和验收 |
+| Agent-facing `host_ops` tool | **逐项切片推进中（2026-03-16）** — `host_ops` 已加入 `main.tools.allow`；`gateway_health` agent-facing E2E 成功；`validate_openclaw_json_candidate` agent-facing E2E 成功（含正例 + 负例，live verified）；`deploy_openclaw_json_candidate` live E2E verified（Route C，正例 + 负例含 wrapper 侧 + 回归通过）；`snapshot_pre` live E2E verified（2026-03-16，正例 + 负例 + 回归通过）；其余 4 个 action 仍需逐项启用和验收 |
 
 ### Activation sequence
 
