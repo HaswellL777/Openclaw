@@ -69,7 +69,7 @@ else
   if ! systemd-run --on-active=2s --timer-property=AccuracySec=100ms \
     --unit=openclaw-gateway-restart-deferred \
     --description="Deferred gateway restart (host-ops broker)" \
-    -- systemctl restart openclaw-gateway.service 2>&1; then
+    -- systemctl restart openclaw-gateway.service >&2; then
     broker_error "error" "systemd-run transient timer creation failed" "E_WRAPPER_FAILED"
   fi
 
