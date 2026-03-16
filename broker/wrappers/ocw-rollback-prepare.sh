@@ -37,17 +37,16 @@ fi
 broker_validate_label "$TARGET_SNAPSHOT" "target_snapshot"
 
 SNAPSHOT_PATH="/.snapshots/${TARGET_SNAPSHOT}"
-ROLLBACK_STEPS='["1. Create safety snapshot of current state","2. Verify target snapshot integrity","3. Execute rollback: btrfs subvolume snapshot /.snapshots/'"$TARGET_SNAPSHOT"' /","4. Restart affected services","5. Validate system health"]'
 
 # --- Execution ---
 if [ "${BROKER_DRY_RUN:-true}" = "true" ]; then
   echo "[STUB] Would verify snapshot exists: btrfs subvolume show $SNAPSHOT_PATH" >&2
-  echo "[STUB] Would prepare rollback plan for: $TARGET_SNAPSHOT" >&2
+  echo "[STUB] Would prepare rollback metadata for: $TARGET_SNAPSHOT" >&2
   echo "[STUB] Reason: $REASON" >&2
-  echo "[STUB] NOTE: Actual rollback execution requires separate human confirmation" >&2
+  echo "[STUB] NOTE: This is prepare-only — actual rollback requires LiveUSB/rescue environment" >&2
 
   broker_emit_result \
-    "{\"target_snapshot\":\"$TARGET_SNAPSHOT\",\"reason\":$(jq -n --arg r "$REASON" '$r'),\"snapshot_path\":\"$SNAPSHOT_PATH\",\"snapshot_verified\":null,\"rollback_steps\":$ROLLBACK_STEPS,\"mode\":\"dry-run\"}" \
+    "{\"target_snapshot\":\"$TARGET_SNAPSHOT\",\"reason\":$(jq -n --arg r "$REASON" '$r'),\"snapshot_path\":\"$SNAPSHOT_PATH\",\"snapshot_verified\":null,\"prepare_only\":true,\"rollback_executed\":false,\"scope\":\"root-filesystem-only\",\"excluded_paths\":[\"/var/lib/openclaw\"],\"operator_action_required\":true,\"mode\":\"dry-run\"}" \
     "[STUB] Rollback preparation — dry-run, no live execution" \
     "Rollback preparation is read-only; no undo needed"
 else
@@ -68,12 +67,12 @@ else
     broker_error "error" "Target path is not a valid btrfs subvolume: $SNAPSHOT_PATH" "E_WRAPPER_FAILED"
   fi
 
-  # Step 3: Emit rollback plan (does NOT execute rollback)
-  echo "[LIVE] Rollback plan prepared for: $TARGET_SNAPSHOT" >&2
-  echo "[LIVE] NOTE: Actual rollback execution requires separate human confirmation" >&2
+  # Step 3: Emit prepare-only metadata (does NOT execute rollback)
+  echo "[LIVE] Rollback prepare metadata assembled for: $TARGET_SNAPSHOT" >&2
+  echo "[LIVE] NOTE: This is prepare-only — actual rollback requires LiveUSB/rescue environment" >&2
 
   broker_emit_result \
-    "{\"target_snapshot\":\"$TARGET_SNAPSHOT\",\"reason\":$(jq -n --arg r "$REASON" '$r'),\"snapshot_path\":\"$SNAPSHOT_PATH\",\"snapshot_verified\":${snapshot_verified},\"rollback_steps\":$ROLLBACK_STEPS,\"mode\":\"live\"}" \
-    "Rollback preparation completed — awaiting human confirmation to execute" \
+    "{\"target_snapshot\":\"$TARGET_SNAPSHOT\",\"reason\":$(jq -n --arg r "$REASON" '$r'),\"snapshot_path\":\"$SNAPSHOT_PATH\",\"snapshot_verified\":${snapshot_verified},\"prepare_only\":true,\"rollback_executed\":false,\"scope\":\"root-filesystem-only\",\"excluded_paths\":[\"/var/lib/openclaw\"],\"operator_action_required\":true,\"mode\":\"live\"}" \
+    "Rollback preparation completed — prepare-only metadata, actual rollback requires operator action in LiveUSB/rescue environment" \
     "Rollback preparation is read-only; no undo needed"
 fi
