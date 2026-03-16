@@ -59,47 +59,53 @@
 | `ee935f4` | `feat(host-ops-tool): enable snapshot_pre agent slice` | `plugins/host-ops-tool/index.js` |
 | `3886d83` | `docs(records): add snapshot_pre activation scaffold` | 本文件 |
 | `6517413` | `docs: sync snapshot_pre boundary across authority docs` | `docs/host-sop.md`, `docs/design-v3.md`, `workspace-main-template/control/host-ops-api.md` |
-| `(pending)` | `ops: add snapshot_pre slice activation + rollback operator scripts` | `scripts/activate-snapshot-pre-slice.sh`, `scripts/rollback-snapshot-pre-slice.sh`, `.gitignore` |
 | `87f57f4` | `ops: add snapshot_pre activation scripts and fix inputs schema` | `scripts/activate-snapshot-pre-slice.sh`, `scripts/rollback-snapshot-pre-slice.sh`, `plugins/host-ops-tool/index.js`, `.gitignore` |
 | `3a792b9` | `docs: complete snapshot_pre live E2E verified and sync boundary` | 本文件, `docs/host-sop.md`, `docs/design-v3.md`, `workspace-main-template/control/host-ops-api.md` |
 
 ---
 
-## 4. Live plugin sync 步骤（已完成 2026-03-16 09:17 CST）
+## 4. Live plugin sync 步骤
+
+本轮共执行了两次 activation。第一次部署后 E2E 暴露出 schema 问题，修复后执行第二次部署。**E2E 验收对象是第二次 activation 的部署结果。**
+
+### 4A. 第一次 activation（2026-03-16 09:17 CST）
 
 > 使用 operator 脚本 `scripts/activate-snapshot-pre-slice.sh` 一次性完成全部步骤。
 > 脚本记录: `artifacts/phase2/snapshot-pre-live-activation-20260316-0917/`
 
-### 4.1 备份当前 live plugin
-
 ```
 备份路径: /var/lib/openclaw/host-ops-tool-backups/index.js.bak-pre-snapshot-pre-slice-20260316-0917
 备份 SHA256: 99cb34b2907601587f999f08ba24265515da6868fc79bceba3e7919f16ede6d9
+部署后 SHA256: 128fab369853a59267333f6c4e637571a386d90cd3fcb56825b81f8384a21771
+权限: openclaw:openclaw 644
+Gateway: active, Broker: active
 ```
 
 > 备份放在 extensions 目录之外（`/var/lib/openclaw/host-ops-tool-backups/`），避免 extensions 目录清理或重装时备份丢失。plugin 文件位于 `/var/lib/openclaw`（独立 btrfs 子卷），**不在** root snapshot 保护范围内。因此 plugin 文件级备份是首要 rollback anchor，而非根快照。
 
-### 4.2 复制新版 index.js 到 live
+**第一次 activation 后的 E2E 发现**：agent 无法正确传入 `inputs` 参数（label/reason）。根因：tool schema 中 `inputs` 字段定义为裸 `type: "object"` 无 `properties`，agent 无法发现可用字段，导致 `inputs` 始终为空对象。gateway_health 回归通过，但 snapshot_pre 正例及所有 inputs 相关负例均未能到达预期校验分支。
+
+**修复**：在 `plugins/host-ops-tool/index.js` 的 `inputs` schema 中加入显式 `properties`（label, reason, candidate_path, expected_sha256）。无逻辑变更，仅 schema metadata。对应 commit `87f57f4`。
+
+### 4B. 第二次 activation（2026-03-16 09:34 CST） — E2E 验收对象
+
+> 再次执行 `scripts/activate-snapshot-pre-slice.sh`，部署含 schema fix 的 plugin。
+> 脚本记录: `artifacts/phase2/snapshot-pre-live-activation-20260316-0934/`
 
 ```
-源文件: /home/nick/projects/openclaw-dev/plugins/host-ops-tool/index.js
-目标: /var/lib/openclaw/.openclaw/extensions/host-ops-tool/index.js
-部署后 SHA256: 128fab369853a59267333f6c4e637571a386d90cd3fcb56825b81f8384a21771
+备份路径: /var/lib/openclaw/host-ops-tool-backups/index.js.bak-pre-snapshot-pre-slice-20260316-0934
+备份 SHA256: 128fab369853a59267333f6c4e637571a386d90cd3fcb56825b81f8384a21771（= 第一次 activation 部署版本）
+部署后 SHA256: b3190af144603a524114024205e275d99b1a1f07f47b01c4e0a7c6cdb4153077
 权限: openclaw:openclaw 644
+Gateway: active, Broker: active
 ```
 
-### 4.3 重启 gateway
-
-```
-systemctl restart openclaw-gateway.service — 成功
-```
-
-### 4.4 验证
+SHA256 链：`99cb...`（原始基线）→ `128f...`（第一次部署）→ `b319...`（第二次部署 = 当前 repo = 当前 live）
 
 - [x] `systemctl is-active openclaw-gateway.service` → `active`
 - [x] `systemctl is-active openclaw-broker.service` → `active`
 - [x] gateway journal 无 plugin/tool 注册错误
-- [x] agent 新 session 后可见 `snapshot_pre` 在 schema enum 中（E2E 确认）
+- [x] agent 新 session 后可见 `snapshot_pre` 在 schema enum 中（E2E 确认，见 §6）
 
 ---
 
@@ -233,8 +239,11 @@ root snapshot 可作为 host 层额外锚点，但不是 plugin rollback 的首�
 
 ## 9. Snapshots
 
-| 类型 | 路径 | 时间 |
-|------|------|------|
-| Pre-change | `/.snapshots/root-pre-snapshot-pre-slice-20260316-0917` | 2026-03-16 09:17 CST |
-| Post-change | `/.snapshots/root-post-snapshot-pre-slice-20260316-0917` | 2026-03-16 09:17 CST |
-| Vault sync | `(可选，待 operator 执行)` | |
+| 类型 | 路径 | 时间 | 备注 |
+|------|------|------|------|
+| Pre-change (第一次) | `/.snapshots/root-pre-snapshot-pre-slice-20260316-0917` | 2026-03-16 09:17 CST | |
+| Post-change (第一次) | `/.snapshots/root-post-snapshot-pre-slice-20260316-0917` | 2026-03-16 09:17 CST | |
+| Pre-change (第二次) | `/.snapshots/root-pre-snapshot-pre-slice-20260316-0934` | 2026-03-16 09:34 CST | schema fix 后重新部署 |
+| Post-change (第二次) | `/.snapshots/root-post-snapshot-pre-slice-20260316-0934` | 2026-03-16 09:34 CST | E2E 验收基准 |
+| E2E 测试产生 | `/.snapshots/root-pre-e2e-snapshot-pre-20260316` | 2026-03-16 E2E 期间 | 正例 snapshot，审计保留 |
+| Vault sync | `(可选，待 operator 执行)` | | |
