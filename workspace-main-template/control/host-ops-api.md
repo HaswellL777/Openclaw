@@ -13,8 +13,8 @@ The authoritative protocol definition is `docs/design-v3.md` §5.6.
 | Broker backend | **deployed** — `openclaw-broker.service` active + enabled, socket at `/run/openclaw/broker.sock` (`root:openclaw 660`), 8 wrappers installed (production, `BROKER_DRY_RUN=false`) |
 | Plugin config registration | **complete** — `host-ops-tool` in `plugins.allow`, `plugins.entries["host-ops-tool"].enabled = true`, gateway accepted + healthy |
 | Plugin lifecycle activation | **complete** — `register(api)` export active on live gateway, no lifecycle warnings |
-| Tool registration (repo) | **complete** — `register(api)` calls `api.registerTool(hostOpsTool, {optional:true})`, fail-closed via ENABLED_ACTIONS (currently: gateway_health, validate_openclaw_json_candidate, deploy_openclaw_json_candidate, snapshot_pre, snapshot_post) |
-| Agent-facing `host_ops` tool | **逐项切片推进中（2026-03-16）** — `host_ops` 已加入 `main.tools.allow`；`gateway_health` agent-facing E2E 成功；`validate_openclaw_json_candidate` agent-facing E2E 成功（含正例 + 负例，live verified）；`deploy_openclaw_json_candidate` live E2E verified（Route C，正例 + 负例含 wrapper 侧 + 回归通过）；`snapshot_pre` live E2E verified（2026-03-16，正例 + 负例 + 回归通过）；`snapshot_post` live E2E verified（2026-03-16，正例 + 负例 + 回归通过）；其余 3 个 action 仍需逐项启用和验收 |
+| Tool registration (repo) | **complete** — `register(api)` calls `api.registerTool(hostOpsTool, {optional:true})`, fail-closed via ENABLED_ACTIONS (currently: gateway_health, validate_openclaw_json_candidate, deploy_openclaw_json_candidate, snapshot_pre, snapshot_post, rollback_prepare) |
+| Agent-facing `host_ops` tool | **逐项切片推进中（2026-03-16）** — `host_ops` 已加入 `main.tools.allow`；`gateway_health` agent-facing E2E 成功；`validate_openclaw_json_candidate` agent-facing E2E 成功（含正例 + 负例，live verified）；`deploy_openclaw_json_candidate` live E2E verified（Route C，正例 + 负例含 wrapper 侧 + 回归通过）；`snapshot_pre` live E2E verified（2026-03-16，正例 + 负例 + 回归通过）；`snapshot_post` live E2E verified（2026-03-16，正例 + 负例 + 回归通过）；`rollback_prepare` live E2E verified（2026-03-16，正例 + 负例含 wrapper 侧 E_FILE_NOT_FOUND + 回归通过，纯只读 prepare-only metadata 契约）；其余 2 个 action 仍需逐项启用和验收 |
 
 ### Activation sequence
 
@@ -25,7 +25,7 @@ The authoritative protocol definition is `docs/design-v3.md` §5.6.
 
 ### Current operational path
 
-`gateway_health`、`validate_openclaw_json_candidate`、`deploy_openclaw_json_candidate`、`snapshot_pre` 和 `snapshot_post` 五个 action 均已通过 agent-facing E2E 验证（live verified），可由 agent 直接调用。前两者为只读操作，`deploy_openclaw_json_candidate` 是写操作（Route C，deploy 后的 restart / snapshot 仍由 operator-mediated checklist 承担，见 `docs/checklists/deploy-candidate-route-c-checklist.md`），`snapshot_pre` 和 `snapshot_post` 是写操作（创建只读 btrfs 快照）。其余 3 个 action（`gateway_restart`, `vault_sync`, `rollback_prepare`）尚未逐项 agent-facing 验收，仍使用 Phase 1 workaround（Section "Phase 1 workaround"）。
+`gateway_health`、`validate_openclaw_json_candidate`、`deploy_openclaw_json_candidate`、`snapshot_pre`、`snapshot_post` 和 `rollback_prepare` 六个 action 均已通过 agent-facing E2E 验证（live verified），可由 agent 直接调用。前两者为只读操作，`deploy_openclaw_json_candidate` 是写操作（Route C，deploy 后的 restart / snapshot 仍由 operator-mediated checklist 承担，见 `docs/checklists/deploy-candidate-route-c-checklist.md`），`snapshot_pre` 和 `snapshot_post` 是写操作（创建只读 btrfs 快照），`rollback_prepare` 是纯只读操作（验证 snapshot 存在性并返回 prepare-only metadata，不执行实际 rollback）。其余 2 个 action（`gateway_restart`, `vault_sync`）尚未逐项 agent-facing 验收，仍使用 Phase 1 workaround（Section "Phase 1 workaround"）。
 
 ## Overview
 
@@ -223,6 +223,9 @@ No required inputs. Returns gateway service status.
 
 ### rollback_prepare
 
+> **Status: live E2E verified (2026-03-16)**
+> Pure read-only action: verifies snapshot existence via `btrfs subvolume show`, returns prepare-only metadata. Does NOT execute actual rollback. Actual rollback requires LiveUSB/rescue environment.
+
 ```json
 {
   "action": "rollback_prepare",
@@ -235,6 +238,22 @@ No required inputs. Returns gateway service status.
   }
 }
 ```
+
+**Return value contract (prepare-only metadata):**
+
+On success (`ok: true`), `artifacts` contains:
+- `target_snapshot` — Echo of requested snapshot name
+- `reason` — Echo of requested reason
+- `snapshot_path` — Full path to verified snapshot (`/.snapshots/{target_snapshot}`)
+- `snapshot_verified` — `true` (snapshot exists and is valid btrfs subvolume)
+- `prepare_only` — `true` (this is a prepare-only operation, no rollback executed)
+- `rollback_executed` — `false` (actual rollback was NOT executed)
+- `scope` — `"root-filesystem-only"` (rollback scope covers root filesystem only)
+- `excluded_paths` — `["/var/lib/openclaw"]` (independent btrfs subvolume, NOT included in root rollback)
+- `operator_action_required` — `true` (actual rollback requires operator in LiveUSB/rescue environment)
+- `mode` — `"live"`
+
+**The `rollback_steps` field is NOT returned.** The previous `rollback_steps` contract was removed because it implied a verified, executable recovery plan, which exceeded the actual system boundary (root snapshot does not restore `/var/lib/openclaw` independent subvolume).
 
 ## Safety guarantees
 
@@ -294,7 +313,7 @@ See `docs/specs/error-taxonomy-v1.md` for the full error code taxonomy.
 
 ## Phase 1 workaround (for remaining non-enabled actions)
 
-For the 3 actions not yet in ENABLED_ACTIONS (`gateway_restart`, `vault_sync`, `rollback_prepare`):
+For the 2 actions not yet in ENABLED_ACTIONS (`gateway_restart`, `vault_sync`):
 1. main agent prepares operation plan
 2. main agent requests approval via approval-policy.md workflow
 3. Human executes manually following runbooks in `control/runbooks/`

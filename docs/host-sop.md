@@ -120,7 +120,8 @@ sudo mv /var/lib/openclaw/.openclaw/extensions/<plugin>.bak-* /var/lib/openclaw/
   - **`deploy_openclaw_json_candidate` live E2E verified（Route C，2026-03-15：正例 + 负例含 wrapper 侧 + 回归通过；restart/snapshot/health 仍由 operator-mediated checklist 承担）**
   - **`snapshot_pre` live E2E verified（2026-03-16）：正例（btrfs 快照创建成功）+ 负例（label 非法 / 缺失 reason / 非 object inputs / 多余参数 / 非 enabled action 全部正确拒绝）+ 回归（gateway_health 通过）**
   - **`snapshot_post` live E2E verified（2026-03-16）：正例（btrfs 快照创建成功）+ 负例（label 非法 / 缺失 reason / 非 object inputs / 多余参数 / 非 enabled action 全部正确拒绝）+ 回归（gateway_health + snapshot_pre 通过）**
-  - **其余 3 个 action（`gateway_restart`, `vault_sync`, `rollback_prepare`）仍需逐项 agent-facing 开放与验收**
+  - **`rollback_prepare` live E2E verified（2026-03-16）：正例（snapshot 存在性验证成功，prepare_only metadata 返回正确）+ 负例（缺失 target_snapshot / 不存在 snapshot 返回 E_FILE_NOT_FOUND / 非 enabled action schema reject）+ 回归（gateway_health + snapshot_pre + snapshot_post 通过）。rollback_prepare 是纯只读 action，只验证 snapshot 存在性并返回 prepare-only metadata（prepare_only: true / rollback_executed: false / scope: root-filesystem-only / excluded_paths: [/var/lib/openclaw] / operator_action_required: true），不执行实际 rollback。实际 rollback 仍需 LiveUSB/救援环境。**
+  - **其余 2 个 action（`gateway_restart`, `vault_sync`）仍需逐项 agent-facing 开放与验收**
   - **`gateway_restart` 未作为下一 slice 的原因是其返回语义不稳，依赖链根因待独立复核**
   - **deploy 的成功不代表其余 action 已安全开放；deploy 写入成功 ≠ 配置生效成功（纪律约束不变）**
 
