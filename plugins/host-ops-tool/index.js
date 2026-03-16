@@ -291,7 +291,7 @@ function createHostOpsTool() {
       "Sends a structured JSON request over Unix socket to the broker, " +
       "which delegates to root-owned wrapper scripts. " +
       "Currently supported actions: gateway_health, gateway_restart, validate_openclaw_json_candidate, deploy_openclaw_json_candidate, snapshot_pre, snapshot_post, rollback_prepare. " +
-      "NOTE: gateway_restart uses --no-block dispatch and returns before the restart completes. " +
+      "NOTE: gateway_restart uses deferred dispatch via systemd-run transient timer and returns before the restart executes. " +
       "Always call gateway_health afterward to verify the gateway is healthy after the restart completes.",
     parameters: {
       type: "object",
@@ -302,7 +302,7 @@ function createHostOpsTool() {
           description:
             "Host operation action to execute. " +
             "Currently supported: gateway_health, gateway_restart, validate_openclaw_json_candidate, deploy_openclaw_json_candidate, snapshot_pre, snapshot_post, rollback_prepare. " +
-            "gateway_restart dispatches restart via --no-block and requires a follow-up gateway_health call to verify the gateway is healthy.",
+            "gateway_restart schedules restart via systemd-run transient timer and requires a follow-up gateway_health call to verify the gateway is healthy.",
         },
         inputs: {
           type: "object",

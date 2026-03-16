@@ -134,12 +134,20 @@ No required inputs. Returns gateway service status.
 
 ### gateway_restart
 
-> **Status: repo-side ready (2026-03-16) — 待 live activation + E2E 验收**
-> Contract stabilized: uses `systemctl restart --no-block` to dispatch restart asynchronously.
-> Returns `restart_dispatched: true` immediately. Does NOT verify post-restart status in the same request.
+> **Status: repo-side ready (2026-03-16, revised) — 待 live activation + E2E 验收**
+> Contract revised: uses `systemd-run --on-active=2s` transient timer to schedule restart.
+> The previous `--no-block` approach failed in live testing (E_BROKER_INTERNAL / -15)
+> because systemd's After= reverse stop order SIGTERMs the broker before the wrapper
+> can return its response.
+>
+> Returns `restart_scheduled: true` immediately. Does NOT verify post-restart status in the same request.
 > Caller MUST invoke `gateway_health` afterward to verify that the gateway is healthy after the restart completes.
 > Operator MUST independently confirm `systemctl is-active` for both gateway and broker services.
-> Rationale: broker has `Requires=openclaw-gateway.service` — a synchronous restart would SIGTERM the broker before the response can be delivered.
+>
+> **IMPORTANT**: `systemd-run` returning success (exit code 0) means only that the transient
+> timer/unit was successfully created and registered with systemd. It does NOT mean the
+> gateway restart has completed. It does NOT mean the gateway restart will succeed.
+> Completion criteria: subsequent operator `systemctl is-active` check + agent `gateway_health` call.
 
 ```json
 {
@@ -153,17 +161,19 @@ No required inputs. Returns gateway service status.
 }
 ```
 
-**Return value contract (two-stage dispatch):**
+**Return value contract (deferred dispatch via systemd-run):**
 
 On success (`ok: true`), `artifacts` contains:
 - `reason` — Echo of requested reason
-- `restart_dispatched` — `true` (restart job submitted to systemd via --no-block)
+- `restart_scheduled` — `true` (transient timer unit created, restart will execute ~2s later)
+- `delay_seconds` — `2` (delay before restart executes)
+- `dispatch_method` — `"systemd-run-transient-timer"` (mechanism used)
 - `verification_required` — `true` (post-restart status NOT verified in this request)
 - `service_active_after` — `null` (not checked — caller must use gateway_health)
 - `mode` — `"live"` or `"dry-run"`
 
-**Two-stage usage pattern:**
-1. Call `gateway_restart` → receive `restart_dispatched: true` (dispatch only — gateway has NOT restarted yet)
+**Three-stage usage pattern:**
+1. Call `gateway_restart` → receive `restart_scheduled: true` (timer unit created — gateway has NOT restarted yet, restart will execute ~2s later)
 2. Wait 5-10 seconds for gateway + broker to complete restart cycle
 3. Operator independently confirms: `systemctl is-active openclaw-gateway.service` + `systemctl is-active openclaw-broker.service`
 4. Call `gateway_health` → verify `service_active: "active"` (also implicitly confirms broker is healthy via successful socket roundtrip)

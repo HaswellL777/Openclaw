@@ -1,20 +1,29 @@
 #!/usr/bin/env bash
 # ocw-gateway-restart.sh — Wrapper for gateway_restart action
-# Status: Phase 2 — contract stabilized with --no-block two-stage semantic
+# Status: Phase 2 — deferred dispatch via systemd-run transient timer
 # In dry-run mode (default): echoes intended actions, does NOT execute
-# In live mode: requires root, dispatches restart via --no-block, returns before restart completes
+# In live mode: requires root, schedules restart via systemd-run transient timer,
+#               returns before restart executes
 #
-# Contract note (2026-03-16):
+# Contract note (2026-03-16, revised):
 #   openclaw-broker.service has Requires=openclaw-gateway.service.
-#   A synchronous `systemctl restart` would cause systemd to SIGTERM the broker,
-#   severing the Unix socket before the response can be delivered.
-#   Solution: `systemctl restart --no-block` dispatches the restart job to systemd
-#   and returns immediately, allowing the broker to send the response before
-#   the restart actually executes. The caller MUST subsequently invoke
-#   gateway_health to verify the gateway is healthy after the restart completes.
+#   A synchronous `systemctl restart` (or even --no-block) causes systemd to
+#   SIGTERM the broker before the response can be delivered, because the After=
+#   reverse stop order kills broker BEFORE gateway in the restart sequence.
+#   --no-block was attempted and FAILED in live testing (E_BROKER_INTERNAL / -15).
+#
+#   Solution: `systemd-run --on-active=2s` creates a transient timer unit that
+#   executes `systemctl restart openclaw-gateway.service` ~2 seconds later,
+#   in an independent cgroup outside the broker's process tree.
+#   This completely decouples the restart execution from the broker lifecycle.
+#
+#   IMPORTANT: systemd-run success (exit code 0) means the transient timer/unit
+#   was successfully created. It does NOT mean the gateway restart has completed.
+#   Completion criteria: subsequent operator `systemctl is-active` check +
+#   agent `gateway_health` call.
 #
 # Design rules (per design-v3.md SS5.6.4):
-# 1. Does exactly one thing: dispatch restart of openclaw-gateway.service
+# 1. Does exactly one thing: schedule restart of openclaw-gateway.service via transient timer
 # 2. Validates inputs before acting
 # 3. Returns structured JSON result on stdout
 # 4. Never executes free-form shell or user-supplied commands
@@ -40,34 +49,38 @@ fi
 
 # --- Execution ---
 if [ "${BROKER_DRY_RUN:-true}" = "true" ]; then
-  echo "[STUB] Would run: systemctl restart openclaw-gateway.service" >&2
+  echo "[STUB] Would run: systemd-run --on-active=2s ... -- systemctl restart openclaw-gateway.service" >&2
   echo "[STUB] Reason: $REASON" >&2
-  echo "[STUB] Would verify: systemctl is-active openclaw-gateway.service" >&2
+  echo "[STUB] Would verify post-restart via separate gateway_health call" >&2
 
   broker_emit_result \
-    "{\"reason\":$(jq -n --arg r "$REASON" '$r'),\"restart_dispatched\":false,\"verification_required\":true,\"service_active_after\":null,\"mode\":\"dry-run\"}" \
+    "{\"reason\":$(jq -n --arg r "$REASON" '$r'),\"restart_scheduled\":false,\"delay_seconds\":2,\"dispatch_method\":\"systemd-run-transient-timer\",\"verification_required\":true,\"service_active_after\":null,\"mode\":\"dry-run\"}" \
     "[STUB] Gateway restart — dry-run, no live execution" \
     "If gateway fails to start, check journalctl -u openclaw-gateway.service"
 else
   # [LIVE] Production execution — requires root
-  # Uses --no-block to dispatch restart asynchronously.
-  # This ensures the broker can send the response BEFORE systemd
-  # processes the restart (which would SIGTERM the broker due to
-  # Requires=openclaw-gateway.service dependency).
+  # Uses systemd-run to create a transient timer unit that executes the restart
+  # ~2 seconds later, in an independent cgroup outside the broker's process tree.
+  # This completely decouples restart execution from the broker lifecycle,
+  # avoiding the SIGTERM race that killed the --no-block approach.
   broker_require_live_capable
 
-  echo "[LIVE] Dispatching gateway restart (--no-block). Reason: $REASON" >&2
-  if ! systemctl restart --no-block openclaw-gateway.service 2>&1; then
-    broker_error "error" "systemctl restart --no-block dispatch failed" "E_WRAPPER_FAILED"
+  echo "[LIVE] Scheduling gateway restart via systemd-run transient timer (delay=2s). Reason: $REASON" >&2
+  if ! systemd-run --on-active=2s --timer-property=AccuracySec=100ms \
+    --unit=openclaw-gateway-restart-deferred \
+    --description="Deferred gateway restart (host-ops broker)" \
+    -- systemctl restart openclaw-gateway.service 2>&1; then
+    broker_error "error" "systemd-run transient timer creation failed" "E_WRAPPER_FAILED"
   fi
 
-  # NOTE: No sleep or post-restart health check here.
-  # With --no-block, the restart has been queued but NOT executed yet.
-  # The broker must return this response before systemd processes the restart.
-  # Caller MUST invoke gateway_health afterward to verify the gateway is healthy.
+  # NOTE: systemd-run returning exit code 0 means the transient timer/unit was
+  # successfully created and registered with systemd. It does NOT mean the gateway
+  # restart has completed or will succeed. The actual restart executes ~2s later
+  # in an independent cgroup. Caller MUST invoke gateway_health afterward to
+  # verify the gateway is healthy after the restart completes.
 
   broker_emit_result \
-    "{\"reason\":$(jq -n --arg r "$REASON" '$r'),\"restart_dispatched\":true,\"verification_required\":true,\"service_active_after\":null,\"mode\":\"live\"}" \
-    "Gateway restart dispatched (--no-block). Broker returns before restart completes due to Requires= dependency. Call gateway_health to verify." \
+    "{\"reason\":$(jq -n --arg r "$REASON" '$r'),\"restart_scheduled\":true,\"delay_seconds\":2,\"dispatch_method\":\"systemd-run-transient-timer\",\"verification_required\":true,\"service_active_after\":null,\"mode\":\"live\"}" \
+    "Gateway restart scheduled via systemd-run transient timer (delay=2s). Restart has NOT been executed yet — it will execute ~2s after this response. Broker returns before restart occurs due to Requires= dependency. Call gateway_health after 5-10s to verify." \
     "If gateway fails to start, check journalctl -u openclaw-gateway.service"
 fi

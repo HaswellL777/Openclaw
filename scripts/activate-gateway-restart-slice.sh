@@ -153,19 +153,19 @@ if ! grep -q '"gateway_restart"' "$REPO_PLUGIN_SRC"; then
 fi
 log_ok "Source plugin contains gateway_restart in ENABLED_ACTIONS"
 
-# 2.5 PREFLIGHT-CONTENT: Verify repo wrapper contains "--no-block" (new contract)
-if ! grep -q '\-\-no-block' "$REPO_WRAPPER_SRC"; then
-    log_fail "Source wrapper does not contain --no-block (still has old synchronous restart contract?)"
+# 2.5 PREFLIGHT-CONTENT: Verify repo wrapper contains "systemd-run" (deferred dispatch contract)
+if ! grep -q 'systemd-run' "$REPO_WRAPPER_SRC"; then
+    log_fail "Source wrapper does not contain systemd-run (deferred dispatch contract not present)"
     exit 1
 fi
-log_ok "Source wrapper contains --no-block (new contract verified)"
+log_ok "Source wrapper contains systemd-run (deferred dispatch contract verified)"
 
-# 2.6 Verify repo wrapper contains "restart_dispatched" (new contract artifact)
-if ! grep -q 'restart_dispatched' "$REPO_WRAPPER_SRC"; then
-    log_fail "Source wrapper does not contain restart_dispatched (contract not updated?)"
+# 2.6 Verify repo wrapper contains "restart_scheduled" (new contract artifact)
+if ! grep -q 'restart_scheduled' "$REPO_WRAPPER_SRC"; then
+    log_fail "Source wrapper does not contain restart_scheduled (contract not updated?)"
     exit 1
 fi
-log_ok "Source wrapper contains restart_dispatched"
+log_ok "Source wrapper contains restart_scheduled"
 
 # 2.7 Verify repo wrapper does NOT contain "Gateway restarted successfully" (old contract)
 if grep -q 'Gateway restarted successfully' "$REPO_WRAPPER_SRC"; then
