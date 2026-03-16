@@ -3,3 +3,4 @@ docs/.meta/
 .claude/settings.local.json
 *.pyc
 __pycache__/
+artifacts/

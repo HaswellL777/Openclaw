@@ -303,6 +303,30 @@ function createHostOpsTool() {
         },
         inputs: {
           type: "object",
+          properties: {
+            label: {
+              type: "string",
+              description:
+                "Snapshot label (required for snapshot_pre). " +
+                "Alphanumeric with dots, hyphens, underscores only, max 128 chars.",
+            },
+            reason: {
+              type: "string",
+              description:
+                "Reason for the operation (required for snapshot_pre).",
+            },
+            candidate_path: {
+              type: "string",
+              description:
+                "Absolute path to candidate JSON file (required for validate_openclaw_json_candidate, deploy_openclaw_json_candidate). " +
+                "Must start with /var/lib/openclaw/approvals/candidates/.",
+            },
+            expected_sha256: {
+              type: "string",
+              description:
+                "Expected SHA256 hash of candidate file, 64 lowercase hex characters (required for validate_openclaw_json_candidate, deploy_openclaw_json_candidate).",
+            },
+          },
           description:
             "Action-specific input object. Required for validate_openclaw_json_candidate and deploy_openclaw_json_candidate " +
             "(needs candidate_path, expected_sha256). Required for snapshot_pre (needs label, reason). Not needed for gateway_health.",
