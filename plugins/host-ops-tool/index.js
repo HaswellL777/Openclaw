@@ -1,6 +1,6 @@
 // host-ops-tool plugin
 // Status: Phase 2 — broker backend deployed, plugin lifecycle active,
-//         registerTool-based tool registration implemented (gateway_health + gateway_restart + validate_openclaw_json_candidate + deploy_openclaw_json_candidate + snapshot_pre + snapshot_post + rollback_prepare)
+//         registerTool-based tool registration implemented (gateway_health + gateway_restart + validate_openclaw_json_candidate + deploy_openclaw_json_candidate + snapshot_pre + snapshot_post + vault_sync + rollback_prepare)
 // This module provides:
 //   1. register(api) export that calls api.registerTool() to register the
 //      "host_ops" agent-facing tool (optional: true — requires tools.allow)
@@ -19,7 +19,7 @@
 //       .../extensions/llm-task/index.ts — api.registerTool(tool, { optional: true })
 //
 // Fail-closed policy:
-//   - Only ENABLED_ACTIONS are permitted (currently: gateway_health, gateway_restart, validate_openclaw_json_candidate, deploy_openclaw_json_candidate, snapshot_pre, snapshot_post, rollback_prepare)
+//   - Only ENABLED_ACTIONS are permitted (currently: gateway_health, gateway_restart, validate_openclaw_json_candidate, deploy_openclaw_json_candidate, snapshot_pre, snapshot_post, vault_sync, rollback_prepare)
 //   - All other actions are rejected at execute time
 //   - Tool is optional: true — invisible to agent unless tools.allow includes it
 
@@ -46,7 +46,7 @@ const STATUS_VALUES = ["ok", "error", "denied"];
 
 // Fail-closed: only these actions are permitted in the current version.
 // Expand this list deliberately as each action is validated for live use.
-const ENABLED_ACTIONS = ["gateway_health", "gateway_restart", "validate_openclaw_json_candidate", "deploy_openclaw_json_candidate", "snapshot_pre", "snapshot_post", "rollback_prepare"];
+const ENABLED_ACTIONS = ["gateway_health", "gateway_restart", "validate_openclaw_json_candidate", "deploy_openclaw_json_candidate", "snapshot_pre", "snapshot_post", "vault_sync", "rollback_prepare"];
 
 /**
  * Build a schema-conformant broker request object.
@@ -212,6 +212,9 @@ function validateActionInputs(action, inputs) {
       } else if (!/^[a-zA-Z0-9._-]+$/.test(inputs.snapshot_name)) {
         errors.push("snapshot_name must be alphanumeric with dots, hyphens, underscores only");
       }
+      if (inputs.incremental !== undefined && typeof inputs.incremental !== "boolean") {
+        errors.push("vault_sync inputs.incremental must be a boolean if provided");
+      }
       break;
 
     case "rollback_prepare":
@@ -273,7 +276,7 @@ export function validateResult(result) {
 export function hostOpsToolSkeleton() {
   return {
     status: "phase2-registerTool-implemented",
-    note: "register(api) calls api.registerTool with optional:true. Tool supports gateway_health, gateway_restart, validate_openclaw_json_candidate, deploy_openclaw_json_candidate, snapshot_pre, snapshot_post, and rollback_prepare. Agent-facing activation requires tools.allow to include host_ops.",
+    note: "register(api) calls api.registerTool with optional:true. Tool supports gateway_health, gateway_restart, validate_openclaw_json_candidate, deploy_openclaw_json_candidate, snapshot_pre, snapshot_post, vault_sync, and rollback_prepare. Agent-facing activation requires tools.allow to include host_ops.",
     enabledActions: ENABLED_ACTIONS,
     allActions: ACTIONS,
     schemas: SCHEMA_PATHS,
@@ -297,9 +300,11 @@ function createHostOpsTool() {
       "Execute host operations via the host-ops broker daemon. " +
       "Sends a structured JSON request over Unix socket to the broker, " +
       "which delegates to root-owned wrapper scripts. " +
-      "Currently supported actions: gateway_health, gateway_restart, validate_openclaw_json_candidate, deploy_openclaw_json_candidate, snapshot_pre, snapshot_post, rollback_prepare. " +
+      "Currently supported actions: gateway_health, gateway_restart, validate_openclaw_json_candidate, deploy_openclaw_json_candidate, snapshot_pre, snapshot_post, vault_sync, rollback_prepare. " +
       "NOTE: gateway_restart uses deferred dispatch via systemd-run transient timer and returns before the restart executes. " +
-      "Always call gateway_health afterward to verify the gateway is healthy after the restart completes.",
+      "Always call gateway_health afterward to verify the gateway is healthy after the restart completes. " +
+      "NOTE: vault_sync sends a specified existing snapshot to vault via btrfs send/receive. " +
+      "Supports incremental send (default) using last_sent parent tracking. Falls back to full send if parent not available on both sides.",
     parameters: {
       type: "object",
       properties: {
@@ -308,8 +313,9 @@ function createHostOpsTool() {
           enum: ENABLED_ACTIONS,
           description:
             "Host operation action to execute. " +
-            "Currently supported: gateway_health, gateway_restart, validate_openclaw_json_candidate, deploy_openclaw_json_candidate, snapshot_pre, snapshot_post, rollback_prepare. " +
-            "gateway_restart schedules restart via systemd-run transient timer and requires a follow-up gateway_health call to verify the gateway is healthy.",
+            "Currently supported: gateway_health, gateway_restart, validate_openclaw_json_candidate, deploy_openclaw_json_candidate, snapshot_pre, snapshot_post, vault_sync, rollback_prepare. " +
+            "gateway_restart schedules restart via systemd-run transient timer and requires a follow-up gateway_health call to verify the gateway is healthy. " +
+            "vault_sync sends a specified snapshot to vault; supports incremental send via last_sent parent.",
         },
         inputs: {
           type: "object",
@@ -343,11 +349,24 @@ function createHostOpsTool() {
               description:
                 "Expected SHA256 hash of candidate file, 64 lowercase hex characters (required for validate_openclaw_json_candidate, deploy_openclaw_json_candidate).",
             },
+            snapshot_name: {
+              type: "string",
+              description:
+                "Name of snapshot to sync to vault (required for vault_sync). " +
+                "Alphanumeric with dots, hyphens, underscores only, max 128 chars.",
+            },
+            incremental: {
+              type: "boolean",
+              description:
+                "Whether to attempt incremental send using last_sent parent (for vault_sync, default: true). " +
+                "Falls back to full send if parent not available on both source and vault.",
+            },
           },
           description:
             "Action-specific input object. Required for validate_openclaw_json_candidate and deploy_openclaw_json_candidate " +
             "(needs candidate_path, expected_sha256). Required for snapshot_pre and snapshot_post (needs label, reason). " +
             "Required for rollback_prepare (needs target_snapshot, reason). Required for gateway_restart (needs reason). " +
+            "Required for vault_sync (needs snapshot_name; optional: incremental). " +
             "Not needed for gateway_health.",
         },
       },

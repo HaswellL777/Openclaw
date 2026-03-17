@@ -39,7 +39,7 @@ sudo ls -la /.snapshots/
 
 # Check vault for backups
 sudo mount /mnt/vault
-sudo ls -la /mnt/vault/snapshots/
+sudo ls -la /mnt/vault/recv/system/
 ```
 
 ### 2. Document current state
@@ -127,8 +127,8 @@ Update `control/state/last-health.md` with:
 sudo mount /mnt/vault
 
 # Send current state to vault
-sudo btrfs send -p /mnt/vault/snapshots/<previous> /.snapshots/<current> | \
-  sudo btrfs receive /mnt/vault/snapshots/
+sudo btrfs send -p /mnt/vault/recv/system/<previous> /.snapshots/<current> | \
+  sudo btrfs receive /mnt/vault/recv/system/
 
 sudo umount /mnt/vault
 ```
@@ -156,12 +156,12 @@ sudo mount /mnt/vault
 
 ### 2. List available snapshots
 ```bash
-sudo ls -la /mnt/vault/snapshots/
+sudo ls -la /mnt/vault/recv/system/
 ```
 
 ### 3. Receive snapshot from vault
 ```bash
-sudo btrfs receive /.snapshots/ < /mnt/vault/snapshots/<snapshot>
+sudo btrfs receive /.snapshots/ < /mnt/vault/recv/system/<snapshot>
 ```
 
 ### 4. Follow steps 4-11 above

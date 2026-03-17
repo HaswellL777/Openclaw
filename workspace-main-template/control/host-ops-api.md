@@ -13,8 +13,8 @@ The authoritative protocol definition is `docs/design-v3.md` §5.6.
 | Broker backend | **deployed** — `openclaw-broker.service` active + enabled, socket at `/run/openclaw/broker.sock` (`root:openclaw 660`), 8 wrappers installed (production, `BROKER_DRY_RUN=false`) |
 | Plugin config registration | **complete** — `host-ops-tool` in `plugins.allow`, `plugins.entries["host-ops-tool"].enabled = true`, gateway accepted + healthy |
 | Plugin lifecycle activation | **complete** — `register(api)` export active on live gateway, no lifecycle warnings |
-| Tool registration (repo) | **complete** — `register(api)` calls `api.registerTool(hostOpsTool, {optional:true})`, fail-closed via ENABLED_ACTIONS (currently: gateway_health, gateway_restart, validate_openclaw_json_candidate, deploy_openclaw_json_candidate, snapshot_pre, snapshot_post, rollback_prepare) |
-| Agent-facing `host_ops` tool | **逐项切片推进中（2026-03-16）** — `host_ops` 已加入 `main.tools.allow`；`gateway_health` agent-facing E2E 成功；`validate_openclaw_json_candidate` agent-facing E2E 成功（含正例 + 负例，live verified）；`deploy_openclaw_json_candidate` live E2E verified（Route C，正例 + 负例含 wrapper 侧 + 回归通过）；`snapshot_pre` live E2E verified（2026-03-16，正例 + 负例 + 回归通过）；`snapshot_post` live E2E verified（2026-03-16，正例 + 负例 + 回归通过）；`rollback_prepare` live E2E verified（2026-03-16，正例 + 负例含 wrapper 侧 E_FILE_NOT_FOUND + 回归通过，纯只读 prepare-only metadata 契约）；`gateway_restart` live E2E verified（2026-03-16，两段式契约：deferred dispatch via systemd-run transient timer + operator 独立检查 + gateway_health 验证，12/12 PASS）；其余 1 个 action（`vault_sync`）仍需逐项启用和验收 |
+| Tool registration (repo) | **complete** — `register(api)` calls `api.registerTool(hostOpsTool, {optional:true})`, fail-closed via ENABLED_ACTIONS (currently: gateway_health, gateway_restart, validate_openclaw_json_candidate, deploy_openclaw_json_candidate, snapshot_pre, snapshot_post, vault_sync, rollback_prepare) |
+| Agent-facing `host_ops` tool | **逐项切片推进中（2026-03-17）** — `host_ops` 已加入 `main.tools.allow`；`gateway_health` agent-facing E2E 成功；`validate_openclaw_json_candidate` agent-facing E2E 成功（含正例 + 负例，live verified）；`deploy_openclaw_json_candidate` live E2E verified（Route C，正例 + 负例含 wrapper 侧 + 回归通过）；`snapshot_pre` live E2E verified（2026-03-16，正例 + 负例 + 回归通过）；`snapshot_post` live E2E verified（2026-03-16，正例 + 负例 + 回归通过）；`rollback_prepare` live E2E verified（2026-03-16，正例 + 负例含 wrapper 侧 E_FILE_NOT_FOUND + 回归通过，纯只读 prepare-only metadata 契约）；`gateway_restart` live E2E verified（2026-03-16，两段式契约：deferred dispatch via systemd-run transient timer + operator 独立检查 + gateway_health 验证，12/12 PASS）；`vault_sync` repo-side ready，待 live activation |
 
 ### Activation sequence
 
@@ -25,7 +25,7 @@ The authoritative protocol definition is `docs/design-v3.md` §5.6.
 
 ### Current operational path
 
-`gateway_health`、`validate_openclaw_json_candidate`、`deploy_openclaw_json_candidate`、`snapshot_pre`、`snapshot_post`、`rollback_prepare` 和 `gateway_restart` 七个 action 均已通过 agent-facing E2E 验证（live verified），可由 agent 直接调用。前两者为只读操作，`deploy_openclaw_json_candidate` 是写操作（Route C，deploy 后的 restart / snapshot 仍由 operator-mediated checklist 承担，见 `docs/checklists/deploy-candidate-route-c-checklist.md`），`snapshot_pre` 和 `snapshot_post` 是写操作（创建只读 btrfs 快照），`rollback_prepare` 是纯只读操作（验证 snapshot 存在性并返回 prepare-only metadata，不执行实际 rollback），`gateway_restart` 是写操作（两段式契约：deferred dispatch via systemd-run transient timer，`ok: true` 仅表示 restart 已 scheduled，完成判据是 operator `systemctl is-active` 双服务 active + agent `gateway_health` ok）。其余 1 个 action（`vault_sync`）尚未逐项 agent-facing 验收，仍使用 Phase 1 workaround（Section "Phase 1 workaround"）。
+`gateway_health`、`validate_openclaw_json_candidate`、`deploy_openclaw_json_candidate`、`snapshot_pre`、`snapshot_post`、`rollback_prepare` 和 `gateway_restart` 七个 action 均已通过 agent-facing E2E 验证（live verified），可由 agent 直接调用。前两者为只读操作，`deploy_openclaw_json_candidate` 是写操作（Route C，deploy 后的 restart / snapshot 仍由 operator-mediated checklist 承担，见 `docs/checklists/deploy-candidate-route-c-checklist.md`），`snapshot_pre` 和 `snapshot_post` 是写操作（创建只读 btrfs 快照），`rollback_prepare` 是纯只读操作（验证 snapshot 存在性并返回 prepare-only metadata，不执行实际 rollback），`gateway_restart` 是写操作（两段式契约：deferred dispatch via systemd-run transient timer，`ok: true` 仅表示 restart 已 scheduled，完成判据是 operator `systemctl is-active` 双服务 active + agent `gateway_health` ok）。`vault_sync` repo-side ready，待 live activation + E2E 验收后升级为 8/8。
 
 ## Overview
 
@@ -248,6 +248,23 @@ On success (`ok: true`), `artifacts` contains:
 
 ### vault_sync
 
+> **Status: repo-side ready (2026-03-17), pending live E2E verification**
+> Sends a specified existing snapshot to vault via btrfs send/receive.
+> Supports incremental send using `/var/lib/openclaw/backup/last_sent` parent tracking.
+> Falls back to full send if parent not available on both source and vault.
+> Does NOT create snapshots (that's snapshot_pre/snapshot_post's job).
+> Does NOT manage gateway lifecycle.
+> Shares `last_sent` file with authority script `/usr/local/sbin/vault-backup-root-btrfs`.
+
+**Input constraints:**
+
+- `snapshot_name` (string, required): Name of the snapshot to sync.
+  - Alphanumeric with dots, hyphens, underscores only, max 128 chars.
+  - Source path: `/.snapshots/{snapshot_name}`
+- `incremental` (boolean, optional, default: true): Whether to attempt incremental send.
+  - If true: reads `last_sent`, checks parent on both source and vault, uses `-p` if available.
+  - If false or parent not found: does full send.
+
 ```json
 {
   "action": "vault_sync",
@@ -260,6 +277,17 @@ On success (`ok: true`), `artifacts` contains:
   }
 }
 ```
+
+**Return value contract:**
+
+On success (`ok: true`), `artifacts` contains:
+- `snapshot_name` — Echo of requested snapshot name
+- `incremental` — Reflects **actual** behavior (true=incremental send, false=full send), not input echo
+- `actual_mode` — `"incremental"`, `"full"`, or `"dry-run"`
+- `parent_snapshot` — Name of parent used for incremental send, or `null` for full send
+- `vault_path` — Full path on vault: `/mnt/vault/recv/system/{snapshot_name}`
+- `last_sent_updated` — `true` if `last_sent` file was updated
+- `mode` — `"live"` or `"dry-run"`
 
 ### rollback_prepare
 
@@ -351,9 +379,11 @@ If an operation fails:
 
 See `docs/specs/error-taxonomy-v1.md` for the full error code taxonomy.
 
-## Phase 1 workaround (for remaining non-enabled actions)
+## Phase 1 workaround (historical — all actions now enabled)
 
-For the 1 action not yet in ENABLED_ACTIONS (`vault_sync`):
+All 8 actions are now in ENABLED_ACTIONS (`vault_sync` pending live E2E verification). Once `vault_sync` live E2E passes, this section can be removed.
+
+For reference, the Phase 1 workaround pattern was:
 1. main agent prepares operation plan
 2. main agent requests approval via approval-policy.md workflow
 3. Human executes manually following runbooks in `control/runbooks/`

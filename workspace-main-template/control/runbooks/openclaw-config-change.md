@@ -82,7 +82,7 @@ sudo mount /mnt/vault
 
 # Send incremental snapshot
 sudo btrfs send -p /.snapshots/<previous> /.snapshots/post-config-<timestamp> | \
-  sudo btrfs receive /mnt/vault/snapshots/
+  sudo btrfs receive /mnt/vault/recv/system/
 
 # Unmount vault
 sudo umount /mnt/vault

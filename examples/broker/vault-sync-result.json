@@ -4,11 +4,15 @@
   "request_id": "req-20260311-146000-sample07",
   "task_id": "task-sample-vault",
   "status": "ok",
-  "message": "Snapshot synced to vault",
+  "message": "Vault sync completed (incremental)",
   "artifacts": {
     "snapshot_name": "root-pre-pre-config-deploy-20260311",
     "incremental": true,
-    "vault_path": "/mnt/vault/snapshots/root-pre-pre-config-deploy-20260311"
+    "actual_mode": "incremental",
+    "parent_snapshot": "root-auto-2026-03-11-0340",
+    "vault_path": "/mnt/vault/recv/system/root-pre-pre-config-deploy-20260311",
+    "last_sent_updated": true,
+    "mode": "live"
   },
-  "rollback_hint": "Vault sync is additive; remove from vault if needed"
+  "rollback_hint": "Vault sync is additive; remove from vault if needed: btrfs subvolume delete /mnt/vault/recv/system/root-pre-pre-config-deploy-20260311"
 }
