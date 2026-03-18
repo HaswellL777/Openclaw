@@ -1,8 +1,8 @@
 # OpenClaw 多 Agent + Claude Code 协作体系设计稿 v3.1
 
 > 初版编写日期：2026-03-07
-> 本次修订日期：2026-03-18（pre-Phase 3 baseline rebase）
-> 适用宿主机：当前单机 Ubuntu 24.04 LTS / Btrfs / systemd / OpenClaw 2026.3.2 基线
+> 本次修订日期：2026-03-18（OpenClaw 2026.3.13 升级完成 syncback）
+> 适用宿主机：当前单机 Ubuntu 24.04 LTS / Btrfs / systemd / OpenClaw 2026.3.13 基线
 > 上游输入：`openclaw-host-sop-2026-03-06.md`、`1.md`、`openclaw-design-v2-2026-03-07.md`、本轮 Phase 1A 实际落地结果、Phase 1B 开发仓候选产物
 > 文档定位：**可实施规格稿 + 落地状态稿**，用于后续继续开发、验证、回滚、审计与发布
 
@@ -18,8 +18,8 @@
 4. **`workspace-main` 已实际发布**到 `/var/lib/openclaw/.openclaw/workspace-main/`，视为 published artifact（非 root snapshot 恢复对象）。
 5. **host-ops broker daemon 已部署并运行**（`openclaw-broker.service`）；8 个 wrapper 已安装（production）；host-ops-tool plugin registerTool 版已部署到 live。全部 8 个 action 已 live E2E verified。逐 action 证据见 `docs/records/README.md`。
 6. **Claude Code CLI 当前只完成角色 A**（`nick` 用户开发工具）。角色 B（容器内工程执行器）属后续阶段。
-7. **当前不应直接进入 Phase 3 实现。** 原因：live OpenClaw 基线仍是 2026.3.2（上游已到 2026.3.13），上游 2026.3.7/3.12 引入影响 Phase 3 设计假设的重大变更。正确路线：baseline rebase → 升级准备 → 升级执行 → capability probe → Phase 3 实现。详见 `docs/planning/openclaw-upgrade-readiness-2026-03-18.md`。
-8. **当前下一步为 OpenClaw 2026.3.13 升级 slice。** 升级执行包（runbook、focused regression checklist、rollback 设计）已在 repo-side 就绪。升级后应先做 capability probe，再进入 Phase 3 实现。详见 `docs/planning/openclaw-2026.3.13-upgrade-slice-design-2026-03-18.md`。
+7. **OpenClaw 2026.3.13 升级已完成（2026-03-18）。** live baseline 已从 2026.3.2 切换到 2026.3.13，P0 focused regression 19/19 PASS，rollback 未触发。`2026.3.13` 已在当前宿主机完成 live 验证。升级记录见 `docs/records/openclaw-2026.3.13-upgrade-activation-2026-03-18.md`。
+8. **当前下一步为升级后 capability probe（在 2026.3.13 上）。** 升级已完成，应先做 capability probe（评估 sessions_yield、sandbox backend、backup 工具等），再进入 Phase 3 实现。capability probe 尚未开始。详见 `docs/current-boundary.md`。
 9. **task-runner / Docker sandbox 仍是后续阶段目标，尚未进入生产执行链。** 除非特别注明”已验证”，否则不得写成当前事实。
 9. **任何宿主机副作用仍必须坚持”快照 → 变更 → 健康检查 → post 快照 → Vault 入库”的纪律。**
 10. **`/var/lib/openclaw` 已是独立 Btrfs 子卷**，不在 root snapshot 保护范围内。

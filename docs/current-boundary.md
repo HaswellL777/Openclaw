@@ -1,8 +1,8 @@
 # OpenClaw 当前真实边界
 
 > 冻结日期：2026-03-18
-> 基线版本：OpenClaw 2026.3.2 / commit 85377a2
-> 阶段：Phase 2 agent-facing host_ops 全部完成，OpenClaw 2026.3.13 升级 slice repo-side 准备完成
+> 基线版本：OpenClaw 2026.3.13（2026-03-18 从 2026.3.2 升级完成）
+> 阶段：Phase 2 全部完成 + OpenClaw 2026.3.13 升级完成，升级后 capability probe 尚未开始
 
 ---
 
@@ -16,6 +16,7 @@
 | Phase 2 broker deployment | 完成 | 2026-03-14 |
 | Phase 2 plugin activation | 完成 | 2026-03-15 |
 | Phase 2 agent-facing host_ops **8/8** | 完成 | 2026-03-17 |
+| OpenClaw 版本升级 (2026.3.2 → 2026.3.13) | 完成 | 2026-03-18 |
 
 ### 已验证的 8 个 host_ops action
 
@@ -32,38 +33,48 @@
 
 `vault_sync` 已收口，不 reopen。全部 8 action 证据见 `docs/records/`。
 
+### 2026.3.13 升级窗口事实
+
+- Pre snapshot：`root-pre-upgrade-2026.3.13-20260318-1530`
+- Post snapshot：`root-post-upgrade-2026.3.13-20260318-1615`
+- Pre / post vault_sync：均已完成
+- Plugin 文件级备份：`/var/lib/openclaw/host-ops-tool-backups/host-ops-tool-pre-upgrade-20260318-1530.tar.gz`
+- P0 focused regression：19/19 PASS
+- Phase 2 host_ops 升级后回归：8/8 PASS
+- Rollback：未触发
+- 升级记录：`docs/records/openclaw-2026.3.13-upgrade-activation-2026-03-18.md`
+
 ## 未开始
 
 | 事项 | 状态 |
 |------|------|
+| 升级后 capability probe（在 2026.3.13 上） | **未开始** — 这是当前下一步 |
 | Phase 3 (Docker sandbox / task-runner) | **未开始** |
 | Phase 4 (容器内 Claude Code 执行链) | **未开始** |
 | Phase 5 (LLM gateway / token 最小化) | **未开始** |
 | Phase 6 (备份扩展 / 长期收口) | **未开始** |
-| OpenClaw 版本升级 (2026.3.2 → 2026.3.13) | **repo-side 准备完成，待 operator 执行** |
 | Scrapling 接入 | **未开始** |
 
-## 当前不应直接进入 Phase 3
+## 当前下一步：升级后 capability probe
 
-原因：
+升级已完成，当前下一步应为在 2026.3.13 上进行 capability probe：
 
-1. **版本落后**：当前 live 基线仍是 2026.3.2，上游已到 2026.3.13。2026.3.7 引入 ContextEngine plugin slot，2026.3.12 带来 sessions_yield 和 workspace plugin trust 变更（implicit auto-load 禁用），且可能涉及进一步 sandbox 相关变化——这些影响 Phase 3 设计假设，具体范围待升级后验证
-2. **在旧版本上做 Phase 3 capability probe 没有意义**：结论可能在升级后失效
-3. **安全债务**：2026.3.11 包含安全修复，长期停留在 2026.3.2 不合理
+1. 评估 `sessions_yield` 对 task-runner 设计的影响
+2. 评估 sandbox backend 可用性
+3. 评估 `openclaw backup create/verify` 作为补充 backup 工具的价值
+4. 验证 Docker sandbox 相关能力是否可用
+5. 基于 probe 结论更新 Phase 3 设计
 
-后续优先路线：**baseline rebase → 升级准备 → 升级执行 → 升级后 capability probe → Phase 3 实现**
+capability probe 的结论是进入 Phase 3 实现的 Go/No-Go gate。
 
-升级执行包已就绪（repo-side）：
-- 升级 slice 设计：`docs/planning/openclaw-2026.3.13-upgrade-slice-design-2026-03-18.md`
-- Operator runbook：`docs/runbook-openclaw-upgrade-2026.3.13.md`
-- Focused regression checklist：`docs/checklists/openclaw-upgrade-focused-regression-2026.3.13.md`
-- Rollback 设计：`docs/planning/openclaw-2026.3.13-upgrade-rollback-design-2026-03-18.md`
+**capability probe 尚未开始。**
 
-详见 `docs/planning/openclaw-upgrade-readiness-2026-03-18.md`。
-
-## 已知漂移（非阻塞）
+## 已知非阻塞观察项
 
 - 权威脚本 `vault-backup-root-btrfs` 检查的是 `openclaw.service`，而历史文档中曾写 `openclaw-gateway.service`。属于脚本/文档命名漂移，不影响 vault_sync 已收口的结论。
+- Broker 不会随 gateway 自动启动，需 operator 手动 `systemctl start openclaw-broker.service`（2026-03-18 升级窗口发现）。
+- Plugin provenance 警告出现但不阻塞功能（P1）。
+- OpenClaw log file size cap reached（P1）。
 
 ## 关键参考
 

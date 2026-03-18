@@ -38,3 +38,9 @@
 | `phase2-hostops-vault-sync-activation-2026-03-17.md` | 2026-03-17 | `vault_sync` | incremental send E2E pass |
 
 **全部 8/8 action live E2E verified (2026-03-17)。** `vault_sync` 已收口。
+
+## OpenClaw 版本升级
+
+| 文件 | 日期 | 主题 |
+|------|------|------|
+| `openclaw-2026.3.13-upgrade-activation-2026-03-18.md` | 2026-03-18 | OpenClaw 2026.3.2 → 2026.3.13 升级，P0 19/19 PASS，rollback 未触发 |

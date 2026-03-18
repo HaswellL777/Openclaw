@@ -1,4 +1,4 @@
-# OpenClaw Host 状态记录（2026-03-17 Phase 2 agent-facing host_ops 8/8 完成）
+# OpenClaw Host 状态记录（2026-03-18 OpenClaw 2026.3.13 升级完成）
 
 > 适用范围：Ubuntu 24.04 LTS 宿主机裸机安装 OpenClaw（非 Docker），Btrfs 根（subvolid=5），使用 `/.snapshots` + 离线 Vault（`/mnt/vault`, `noauto`）做增量 `send/receive`；OpenClaw 以 systemd **system-level** 服务运行（`User=openclaw`），并严格遵循目录边界：
 >
@@ -7,7 +7,7 @@
 > - 数据：`/var/lib/openclaw`（btrfs 独立子卷，`openclaw:openclaw`，`700`）
 > - 日志：`/var/log/openclaw`（`openclaw:openclaw`）
 >
-> **当前阶段：Phase 1 + Phase 2 全部完成，agent-facing host_ops 8/8 live E2E verified（2026-03-17）。** Phase 3（task-runner / Docker sandbox）、Phase 4+ 及 OpenClaw 版本升级均未开始。当前真实边界详见 `docs/current-boundary.md`，逐 action 证据见 `docs/records/README.md`。
+> **当前阶段：Phase 1 + Phase 2 全部完成，agent-facing host_ops 8/8 live E2E verified（2026-03-17）。OpenClaw 已从 2026.3.2 升级到 2026.3.13（2026-03-18），P0 focused regression 19/19 PASS，rollback 未触发。** 当前真实边界详见 `docs/current-boundary.md`，逐 action 证据见 `docs/records/README.md`。
 
 ## ⛔ 禁止操作清单（优先阅读）
 
@@ -87,9 +87,9 @@ sudo mv /var/lib/openclaw/.openclaw/extensions/<plugin>.bak-* /var/lib/openclaw/
 
 ### 0.1 当前时间与主机
 - 时区：CST (+0800)
-- 日期：2026-03-17（Phase 2 agent-facing host_ops 8/8 完成）
+- 日期：2026-03-18（OpenClaw 2026.3.13 升级完成）
 - 主机：`nick-MS-7D73`（管理用户：`nick`，服务用户：`openclaw`）
-- OpenClaw 版本：**2026.3.2**（上游最新 2026.3.13，升级评估见 `docs/planning/openclaw-upgrade-readiness-2026-03-18.md`）
+- OpenClaw 版本：**2026.3.13**（2026-03-18 从 2026.3.2 升级，P0 19/19 PASS，rollback 未触发）
 
 ### 0.2 当前阶段定位
 - **Phase 1A（main bootstrap）已完成**：`main` agent 已上线、`workspace-main` 已发布、默认主模型已切换为 `motchat-gpt-max/gpt-5.4`。
@@ -97,7 +97,17 @@ sudo mv /var/lib/openclaw/.openclaw/extensions/<plugin>.bak-* /var/lib/openclaw/
 - **Phase 2 broker deployment 已完成**（2026-03-14）：broker daemon 运行中、8 个 wrapper 已安装（production，`BROKER_DRY_RUN=false`）、host-ops-tool plugin 注册并被 gateway 接受。
 - **Phase 2 agent-facing host_ops 8/8 live E2E verified**（2026-03-17）：`gateway_health`、`validate_openclaw_json_candidate`、`deploy_openclaw_json_candidate`、`snapshot_pre`、`snapshot_post`、`rollback_prepare`、`gateway_restart`、`vault_sync` 全部通过。逐 action 证据见 `docs/records/README.md`。
 - **Phase 3（task-runner / Docker sandbox）、Phase 4+ 均未开始**。
-- 当前不应直接进入 Phase 3——原因见 `docs/current-boundary.md`。
+- **OpenClaw 2026.3.13 升级已完成**（2026-03-18）：pre/post snapshot + vault_sync 完成，P0 focused regression 19/19 PASS，Phase 2 host_ops 8/8 升级后回归全部通过。升级记录见 `docs/records/openclaw-2026.3.13-upgrade-activation-2026-03-18.md`。
+- 当前不应直接进入 Phase 3——应先完成升级后 capability probe。原因见 `docs/current-boundary.md`。
+
+### 0.2.1 升级窗口事实记录（2026-03-18）
+- Pre snapshot：`root-pre-upgrade-2026.3.13-20260318-1530`
+- Post snapshot：`root-post-upgrade-2026.3.13-20260318-1615`
+- Pre / post vault_sync：均已完成
+- Plugin 备份：`/var/lib/openclaw/host-ops-tool-backups/host-ops-tool-pre-upgrade-20260318-1530.tar.gz`
+- **Broker 需手动启动**：升级后 broker 不会随 gateway 自动启动，需 operator 执行 `systemctl start openclaw-broker.service`
+- **Plugin provenance 警告**：出现但不阻塞功能（P1）
+- **Log file size cap reached**：非阻塞（P1）
 
 ### 0.3 `/var/lib/openclaw` 与根快照的边界
 - `/var/lib/openclaw` 是独立 btrfs 子卷；
@@ -124,8 +134,11 @@ sudo mv /var/lib/openclaw/.openclaw/extensions/<plugin>.bak-* /var/lib/openclaw/
    - 后续仍需核实其实际解析路径是否仍指向 `/var/lib/openclaw/.openclaw/...`，并确认不会引回 `nick` 用户空间。
 3. ~~**agent-facing `host_ops` 切片推进中。**~~ ✅ **全部 8/8 action 已 live E2E verified（2026-03-17）。** 逐 action 证据见 `docs/records/README.md`。
 4. ~~Phase 1B 发布 / 校验脚本已在开发仓就绪，但尚未在现网执行首次正式发布。~~ ✅ 已完成（2026-03-11）。
-5. **OpenClaw 版本落后**：当前 live 基线仍是 2026.3.2，上游已到 2026.3.13。升级评估见 `docs/planning/openclaw-upgrade-readiness-2026-03-18.md`。
+5. ~~**OpenClaw 版本落后**：当前 live 基线仍是 2026.3.2，上游已到 2026.3.13。~~ ✅ **已升级到 2026.3.13**（2026-03-18），P0 19/19 PASS。
 6. **已知非阻塞漂移**：权威脚本 `vault-backup-root-btrfs` 检查的是 `openclaw.service`，部分历史文档写 `openclaw-gateway.service`。属于命名漂移，不影响 vault_sync 已收口的结论。
+7. **Broker 需手动启动**（2026-03-18 升级窗口发现）：升级后 broker 不会随 gateway 自动启动，需 operator 手动 `systemctl start openclaw-broker.service`。手动启动后功能正常。
+8. **Plugin provenance 警告**（P1）：升级后出现 provenance 警告，不阻塞 plugin 功能。
+9. **Log file size cap reached**（P1）：升级后观察到日志文件大小上限触达，不影响运行，后续可评估日志轮转策略。
 
 ## 1. 磁盘与分区布局（lsblk 摘要）
 ### 1.1 系统盘（System）

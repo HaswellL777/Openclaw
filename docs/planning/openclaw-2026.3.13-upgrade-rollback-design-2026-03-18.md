@@ -3,6 +3,7 @@
 > 设计日期：2026-03-18
 > 升级基线：2026.3.2 → 2026.3.13
 > 依赖文档：`docs/runbook-openclaw-upgrade-2026.3.13.md`
+> **升级状态：已完成（2026-03-18），rollback 未触发**
 
 ---
 
@@ -249,3 +250,5 @@ EOF
 2. vault_sync 因 Vault 未挂载失败（环境问题，非版本兼容问题）
 3. gateway 启动时有 warning 但无 error 且服务 active
 4. 日志路径变化但内容正常
+
+> **实际执行结果（2026-03-18）**：升级成功完成，P0 19/19 PASS，本 rollback 设计未被触发。Broker 需手动启动（非 rollback 场景），provenance 警告非阻塞。本文档保留为 rollback 参考设计，适用于未来同类升级。

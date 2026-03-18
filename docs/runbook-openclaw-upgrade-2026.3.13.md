@@ -7,6 +7,8 @@
 > 设计来源：`docs/planning/openclaw-2026.3.13-upgrade-slice-design-2026-03-18.md`
 > Rollback 设计：`docs/planning/openclaw-2026.3.13-upgrade-rollback-design-2026-03-18.md`
 > Focused regression：`docs/checklists/openclaw-upgrade-focused-regression-2026.3.13.md`
+> **执行状态：已完成（2026-03-18），升级成功，rollback 未触发**
+> **升级 activation record：`docs/records/openclaw-2026.3.13-upgrade-activation-2026-03-18.md`**
 
 ---
 
@@ -16,6 +18,12 @@
 - 所有步骤必须按顺序逐步执行
 - 任何步骤失败时，根据该步骤的失败处理指引决定是否继续或回滚
 - 本文档**不是**升级完成记录——升级完成后需要单独写 records
+
+> **实际执行观测（2026-03-18 补充）**：
+> - Broker 不会随 gateway 自动启动，需手动 `systemctl start openclaw-broker.service`
+> - Plugin provenance 警告出现但不阻塞功能（P1）
+> - P0 focused regression 19/19 PASS
+> - Log file size cap reached（P1，不影响运行）
 
 ---
 

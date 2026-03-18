@@ -3,8 +3,9 @@
 > 设计日期：2026-03-18
 > 当前基线：OpenClaw 2026.3.2 / commit 85377a2
 > 目标版本：OpenClaw 2026.3.13
-> 状态：**升级执行包 repo-side 设计文档**
+> 状态：**升级已完成（2026-03-18），本文档保留为设计记录 + 实际观测补充**
 > 前置文档：`docs/planning/openclaw-upgrade-readiness-2026-03-18.md`
+> 升级 activation record：`docs/records/openclaw-2026.3.13-upgrade-activation-2026-03-18.md`
 
 ---
 
@@ -121,14 +122,23 @@
 
 升级 slice 视为完成当且仅当：
 
-- [ ] 8 个 P0 focused regression 全部 PASS
-- [ ] post-change snapshot 已创建
-- [ ] vault_sync 已完成
-- [ ] host-sop.md 已更新版本号
-- [ ] 升级记录已写入 `docs/records/`
-- [ ] `docs/current-boundary.md` 已更新
+- [x] 8 个 P0 focused regression 全部 PASS（19/19 PASS，包含补充 P0 项）
+- [x] post-change snapshot 已创建（`root-post-upgrade-2026.3.13-20260318-1615`）
+- [x] vault_sync 已完成
+- [x] host-sop.md 已更新版本号
+- [x] 升级记录已写入 `docs/records/`
+- [x] `docs/current-boundary.md` 已更新
 
 如有 P0 项目未通过，必须先完成 rollback，再分析原因，不可直接进入 Phase 3。
+
+### 8.1 实际观测差异（2026-03-18 升级窗口）
+
+以下为设计时未预见或需补充的实际观测：
+
+1. **Broker 不会随 gateway 自动启动**：升级后 `systemctl start openclaw-gateway.service` 不会自动拉起 broker，需 operator 手动 `systemctl start openclaw-broker.service`。手动启动后功能正常。
+2. **Plugin provenance 警告**：升级后出现 provenance 警告，但不阻塞 plugin registration 和 registerTool 功能。归类为 P1。
+3. **P0 focused regression 19/19 PASS**：Phase 2 host_ops 全部 8 action 在 2026.3.13 上通过正例回归。
+4. **Log file size cap reached**：观察到日志文件大小上限触达，归类为 P1，不影响运行。
 
 ## 9. 当前不需要预先修改实现代码
 
