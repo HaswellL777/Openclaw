@@ -47,7 +47,7 @@
 
 原因：
 
-1. **版本落后**：当前 live 基线仍是 2026.3.2，上游已到 2026.3.13。2026.3.7 引入 ContextEngine plugin slot，2026.3.12 引入 pluggable sandbox backends 和 plugin trust 变更——这些直接影响 Phase 3 sandbox / task-runner 设计假设
+1. **版本落后**：当前 live 基线仍是 2026.3.2，上游已到 2026.3.13。2026.3.7 引入 ContextEngine plugin slot，2026.3.12 带来 sessions_yield 和 workspace plugin trust 变更（implicit auto-load 禁用），且可能涉及进一步 sandbox 相关变化——这些影响 Phase 3 设计假设，具体范围待升级后验证
 2. **在旧版本上做 Phase 3 capability probe 没有意义**：结论可能在升级后失效
 3. **安全债务**：2026.3.11 包含安全修复，长期停留在 2026.3.2 不合理
 

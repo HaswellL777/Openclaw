@@ -10,7 +10,7 @@
 ## 1. 为什么要升级
 
 1. **版本落后 11 个稳定版本**（2026.3.2 → 2026.3.13），其中包含安全修复（2026.3.11）
-2. **Phase 3 依赖上游新能力**：2026.3.12 引入 pluggable sandbox backends，直接影响 Docker sandbox / task-runner 设计假设
+2. **Phase 3 可能依赖上游新能力**：2026.3.12 带来 sessions_yield 和 workspace plugin trust 变更，且可能涉及进一步 sandbox 相关变化；具体范围待升级后验证
 3. **plugin trust 模型变更**（2026.3.12）：implicit workspace plugin auto-load 被禁用，需验证 host-ops-tool 不受影响
 4. **在旧版本上做 Phase 3 capability probe 没有意义**：结论可能在升级后失效
 
@@ -27,7 +27,7 @@
 | 变更 | 影响 | 需验证 |
 |------|------|--------|
 | ContextEngine plugin slot（7 lifecycle hooks） | 未来 context 管理可用插件化策略 | 不影响现有 host-ops-tool（非 context-engine plugin） |
-| `config.schema.lookup` gateway tool action | agent 可在修改前检查 config schema | 可简化 validate_candidate 工作流 |
+| config schema lookup 相关能力线索 | 可在升级后评估是否用于减少无效 validate 调用 | 本轮不视为已收口依赖 |
 | Skills/workspace 边界强化 | skill root/SKILL.md realpath 检查 | 需验证现有 workspace-main skills 不受影响 |
 
 ### 2026.3.8
@@ -48,9 +48,8 @@
 | 变更 | 影响 | 需验证 |
 |------|------|--------|
 | `sessions_yield` | 新的会话管理原语 | 评估对 task-runner 会话管理的影响 |
-| Pluggable sandbox backends（OpenShell + SSH） | `sandbox list/recreate/prune` 不再 Docker-only | Phase 3 capability probe 需在此版本上进行 |
 | Implicit workspace plugin auto-load 禁用 | 安全强化：cloned repos 不能自动执行 plugin 代码 | **必须验证** host-ops-tool 通过 `plugins.entries` 注册不受影响（预期不受影响，auto-load 针对 workspace plugins） |
-| Sandbox session-tree 可见性强化 | subagent 不能窥视 parent session | 需验证 main → task-runner 场景 |
+| 其余 sandbox 相关能力变更 | 可能涉及 sandbox backend 扩展、session-tree 可见性等 | 本轮不将其写为已锁定结论，待升级后验证 |
 
 ### 2026.3.13
 
