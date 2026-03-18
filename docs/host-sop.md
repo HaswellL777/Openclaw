@@ -1,4 +1,4 @@
-# OpenClaw Host 状态记录（2026-03-14 Phase 2 broker deployment 完成）
+# OpenClaw Host 状态记录（2026-03-17 Phase 2 agent-facing host_ops 8/8 完成）
 
 > 适用范围：Ubuntu 24.04 LTS 宿主机裸机安装 OpenClaw（非 Docker），Btrfs 根（subvolid=5），使用 `/.snapshots` + 离线 Vault（`/mnt/vault`, `noauto`）做增量 `send/receive`；OpenClaw 以 systemd **system-level** 服务运行（`User=openclaw`），并严格遵循目录边界：
 >
@@ -7,7 +7,7 @@
 > - 数据：`/var/lib/openclaw`（btrfs 独立子卷，`openclaw:openclaw`，`700`）
 > - 日志：`/var/log/openclaw`（`openclaw:openclaw`）
 >
-> 当前宿主机状态不再是纯 Phase 0，而是 **Phase 1（Phase 1A + Phase 1B）已完成**：`main` agent 已上线、`workspace-main` 已发布、工具集 fix-forward 已完成、默认主模型已切换为 `motchat-gpt-max/gpt-5.4`；**Phase 1B 控制面收口已完成**（2026-03-11 首次现网脚本化发布通过，`check-workspace-main.sh` 校验通过）；**Phase 2 broker deployment 已完成**（2026-03-14）：broker daemon 运行中、8 个 wrapper 已安装（production 逻辑）、host-ops-tool plugin 已注册进 openclaw.json 并被 gateway 接受；**plugin lifecycle activation 已完成（2026-03-15）**；**agent-facing host_ops 全部 8 个 action 已 live E2E verified（2026-03-17）**（registerTool 版 plugin 已部署、`main.tools.allow` 已追加 `host_ops`、`gateway_health` + `validate_openclaw_json_candidate` + `deploy_openclaw_json_candidate` + `snapshot_pre` + `snapshot_post` + `rollback_prepare` + `gateway_restart` + `vault_sync` 均已 live E2E verified）；正式 `task-runner`、Docker 执行面与 `/var/lib/openclaw` 独立控制面备份链仍未落地。
+> **当前阶段：Phase 1 + Phase 2 全部完成，agent-facing host_ops 8/8 live E2E verified（2026-03-17）。** Phase 3（task-runner / Docker sandbox）、Phase 4+ 及 OpenClaw 版本升级均未开始。当前真实边界详见 `docs/current-boundary.md`，逐 action 证据见 `docs/records/README.md`。
 
 ## ⛔ 禁止操作清单（优先阅读）
 
@@ -87,44 +87,17 @@ sudo mv /var/lib/openclaw/.openclaw/extensions/<plugin>.bak-* /var/lib/openclaw/
 
 ### 0.1 当前时间与主机
 - 时区：CST (+0800)
-- 日期：2026-03-14（Phase 2 broker deployment 完成）
+- 日期：2026-03-17（Phase 2 agent-facing host_ops 8/8 完成）
 - 主机：`nick-MS-7D73`（管理用户：`nick`，服务用户：`openclaw`）
+- OpenClaw 版本：**2026.3.2**（上游最新 2026.3.13，升级评估见 `docs/planning/openclaw-upgrade-readiness-2026-03-18.md`）
 
 ### 0.2 当前阶段定位
-- 当前宿主机已不再停留在纯 Phase 0。
-- **Phase 1A（main bootstrap only）已完成落地**：
-  - `main` agent 已加入运行态配置；
-  - `workspace-main` 已发布到 `/var/lib/openclaw/.openclaw/workspace-main`；
-  - 已完成 gateway 重启、health 验证与 Feishu 黑盒实测；
-  - `main` 当前可读取其 workspace 内控制文件，并具备最小 file tools + session tools；
-  - 默认主模型已切换为 `motchat-gpt-max/gpt-5.4`。
-- **Phase 1B（控制面收口）已完成**：
-  - `workspace-main-template/` 目录已建立并提交至 `~/projects/openclaw-dev/`；
-  - `scripts/publish-workspace-main.sh`、`scripts/publish-sop.sh`、`scripts/check-workspace-main.sh` 已实现并提交；
-  - `docs/runtime-allowlist-backup-draft.md` 已升级为设计定稿候选（design candidate）——分类模型、恢复语义、恢复优先级、实施约束已结构化，但尚未转化为可执行脚本，也未在生产中启用；
-  - 以上均为开发仓库内的候选产物，**脚本化发布链已于 2026-03-11 首次用于 live target 并校验通过**（workspace-main 本身最初在 Phase 1A 手动部署，本次通过 publish 脚本完成首次脚本化覆写发布）。
-- **Phase 2 broker deployment 已完成（2026-03-14）**：
-  - host-ops broker daemon 运行中（`openclaw-broker.service`，active + enabled）；
-  - 8 个 wrapper 已安装（production 逻辑，`BROKER_DRY_RUN=false`）；
-  - Unix socket `/run/openclaw/broker.sock`（`root:openclaw 660`）；
-  - host-ops-tool plugin 已注册进 `openclaw.json`，gateway 已接受该配置并健康运行；
-  - **plugin lifecycle activation 已完成（2026-03-15）**：`register(api)` export 已部署，gateway 无 warning；
-  - **registerTool 版 `index.js` 已部署到 live（2026-03-15）**，agent-facing `gateway_health` E2E 成功；
-  - **`main.tools.allow` 已包含 `host_ops`（2026-03-15）**，agent 可见 `host_ops` 工具；
-  - **agent-facing 全部 8 个 action 已 live E2E verified（2026-03-17）**：`gateway_health` + `validate_openclaw_json_candidate` + `deploy_openclaw_json_candidate` + `snapshot_pre` + `snapshot_post` + `rollback_prepare` + `gateway_restart` + `vault_sync`；
-  - **Phase 2 的后续工作（task-runner、Docker 隔离等）尚未开始**。
-- 当前是 **Phase 2 agent-facing 切片全部完成**（8/8 live E2E verified）：
-  - **broker backend 已部署并通过验收**
-  - **plugin lifecycle activation 已完成**
-  - **registerTool 版 plugin 已部署到 live，`gateway_health` + `validate_openclaw_json_candidate` agent-facing E2E 成功**
-  - **`deploy_openclaw_json_candidate` live E2E verified（Route C，2026-03-15：正例 + 负例含 wrapper 侧 + 回归通过；restart/snapshot/health 仍由 operator-mediated checklist 承担）**
-  - **`snapshot_pre` live E2E verified（2026-03-16）：正例（btrfs 快照创建成功）+ 负例（label 非法 / 缺失 reason / 非 object inputs / 多余参数 / 非 enabled action 全部正确拒绝）+ 回归（gateway_health 通过）**
-  - **`snapshot_post` live E2E verified（2026-03-16）：正例（btrfs 快照创建成功）+ 负例（label 非法 / 缺失 reason / 非 object inputs / 多余参数 / 非 enabled action 全部正确拒绝）+ 回归（gateway_health + snapshot_pre 通过）**
-  - **`rollback_prepare` live E2E verified（2026-03-16）：正例（snapshot 存在性验证成功，prepare_only metadata 返回正确）+ 负例（缺失 target_snapshot / 不存在 snapshot 返回 E_FILE_NOT_FOUND / 非 enabled action schema reject）+ 回归（gateway_health + snapshot_pre + snapshot_post 通过）。rollback_prepare 是纯只读 action，只验证 snapshot 存在性并返回 prepare-only metadata（prepare_only: true / rollback_executed: false / scope: root-filesystem-only / excluded_paths: [/var/lib/openclaw] / operator_action_required: true），不执行实际 rollback。实际 rollback 仍需 LiveUSB/救援环境。**
-  - **`gateway_restart` live E2E verified（2026-03-16）：两段式契约（deferred dispatch via systemd-run transient timer + operator 独立 systemctl 检查 + agent gateway_health 验证），12/12 PASS（含正例 + 正例后续 operator 检查 + 7 个负例 + 3 个回归）。经历三次 live activation：(1) --no-block 方案失败（SIGTERM 竞态），(2) systemd-run deferred dispatch 部分失败（stderr 污染 + reason 输入验证不足），(3) input hardening 后成功。`ok: true` / `restart_scheduled: true` 仅表示 restart 已 scheduled，不表示 restart 已完成——完成判据是 operator `systemctl is-active` 双服务 active + agent `gateway_health` ok。**
-  - **`vault_sync` live E2E verified（2026-03-17）：incremental send 成功（parent=`root-auto-2026-03-17-0340`，目标入库 `/mnt/vault/recv/system/`）+ 4 个负例全部正确拒绝（wrapper 层 E_FILE_NOT_FOUND + plugin 侧缺失/非法 snapshot_name + gateway 层 tool schema 拦截 incremental 非 boolean）+ 最小回归通过（gateway_health + snapshot_pre + snapshot_post + gateway_restart）。vault_sync 共享 `/var/lib/openclaw/backup/last_sent` 增量链与权威脚本。详见 `docs/records/phase2-hostops-vault-sync-activation-2026-03-17.md`。**
-  - **Phase 2 agent-facing host_ops 全部 8/8 action 已 live E2E verified**
-  - **deploy 写入成功 ≠ 配置生效成功（纪律约束不变）**
+- **Phase 1A（main bootstrap）已完成**：`main` agent 已上线、`workspace-main` 已发布、默认主模型已切换为 `motchat-gpt-max/gpt-5.4`。
+- **Phase 1B（控制面收口）已完成**（2026-03-11）：脚本化发布链首次 live target 校验通过。
+- **Phase 2 broker deployment 已完成**（2026-03-14）：broker daemon 运行中、8 个 wrapper 已安装（production，`BROKER_DRY_RUN=false`）、host-ops-tool plugin 注册并被 gateway 接受。
+- **Phase 2 agent-facing host_ops 8/8 live E2E verified**（2026-03-17）：`gateway_health`、`validate_openclaw_json_candidate`、`deploy_openclaw_json_candidate`、`snapshot_pre`、`snapshot_post`、`rollback_prepare`、`gateway_restart`、`vault_sync` 全部通过。逐 action 证据见 `docs/records/README.md`。
+- **Phase 3（task-runner / Docker sandbox）、Phase 4+ 均未开始**。
+- 当前不应直接进入 Phase 3——原因见 `docs/current-boundary.md`。
 
 ### 0.3 `/var/lib/openclaw` 与根快照的边界
 - `/var/lib/openclaw` 是独立 btrfs 子卷；
@@ -149,21 +122,10 @@ sudo mv /var/lib/openclaw/.openclaw/extensions/<plugin>.bak-* /var/lib/openclaw/
 2. **`session-memory` 日志路径显示为 `~/.openclaw/workspace-main/memory/...`。**
    - 这说明日志展示层存在 `~` 形式路径；
    - 后续仍需核实其实际解析路径是否仍指向 `/var/lib/openclaw/.openclaw/...`，并确认不会引回 `nick` 用户空间。
-3. **agent-facing `host_ops` 切片推进中（2026-03-15）。**
-   - broker backend 已于 2026-03-14 部署完成（`openclaw-broker.service` active + enabled）；
-   - host-ops-tool plugin 已注册进 `openclaw.json`；
-   - plugin lifecycle activation 已完成（2026-03-15，`register(api)` export 部署，warning 消失）；
-   - registerTool 版 `index.js` 已部署到 live（2026-03-15）；
-   - `main.tools.allow` 已包含 `host_ops`（2026-03-15）；
-   - `gateway_health` agent-facing E2E 成功；
-   - `validate_openclaw_json_candidate` agent-facing E2E 成功（正例 + 负例）；
-   - `deploy_openclaw_json_candidate` live E2E verified（Route C，2026-03-15：正例 + 负例含 wrapper 侧 + 回归通过，见 `docs/records/phase2-hostops-deploy-candidate-activation-2026-03-15.md`）；
-   - `snapshot_pre` live E2E verified（2026-03-16：正例 + 负例 + 回归通过，见 `docs/records/phase2-hostops-snapshot-pre-activation-2026-03-15.md`）；
-   - `snapshot_post` live E2E verified（2026-03-16：正例 + 负例 + 回归通过，见 `docs/records/phase2-hostops-snapshot-post-activation-2026-03-16.md`）；
-   - `rollback_prepare` live E2E verified（2026-03-16：正例 + 负例含 wrapper 侧 E_FILE_NOT_FOUND + 回归通过，见 `docs/records/phase2-hostops-rollback-prepare-activation-2026-03-16.md`）；
-   - `gateway_restart` live E2E verified（2026-03-16：两段式契约 deferred dispatch，12/12 PASS，见 `docs/records/phase2-hostops-gateway-restart-activation-2026-03-16.md`）；
-   - `vault_sync` live E2E verified（2026-03-17：incremental send 成功 + 负例 + 回归通过，见 `docs/records/phase2-hostops-vault-sync-activation-2026-03-17.md`）。
+3. ~~**agent-facing `host_ops` 切片推进中。**~~ ✅ **全部 8/8 action 已 live E2E verified（2026-03-17）。** 逐 action 证据见 `docs/records/README.md`。
 4. ~~Phase 1B 发布 / 校验脚本已在开发仓就绪，但尚未在现网执行首次正式发布。~~ ✅ 已完成（2026-03-11）。
+5. **OpenClaw 版本落后**：当前 live 基线仍是 2026.3.2，上游已到 2026.3.13。升级评估见 `docs/planning/openclaw-upgrade-readiness-2026-03-18.md`。
+6. **已知非阻塞漂移**：权威脚本 `vault-backup-root-btrfs` 检查的是 `openclaw.service`，部分历史文档写 `openclaw-gateway.service`。属于命名漂移，不影响 vault_sync 已收口的结论。
 
 ## 1. 磁盘与分区布局（lsblk 摘要）
 ### 1.1 系统盘（System）

@@ -3,14 +3,15 @@
 > 文档类型：**操作清单（每次 deploy 操作窗口必须完成全部步骤）**
 > 路线：Route C（deploy + operator-mediated checklist）
 > 创建日期：2026-03-15
-> 设计来源：`docs/planning/deploy-candidate-slice-design-2026-03-15.md`
+> 设计来源：`docs/archive/planning/phase2/deploy-candidate-slice-design-2026-03-15.md`
 
 ---
 
 ## 核心约束
 
 - **deploy 写入成功 ≠ 配置生效成功 ≠ 变更窗口关闭**
-- agent 可自主调用 `validate` 和 `deploy`，但 `restart` / `snapshot` / `vault_sync` 仍由 operator 手动执行
+- agent 可自主调用 `validate`、`deploy`、`snapshot_pre`、`snapshot_post`、`gateway_restart`、`vault_sync`——这些 action 在能力层面均已 agent-facing 可用（8/8 live E2E verified，2026-03-17）
+- 在当前 Route C 操作纪律中，restart / snapshot / vault_sync 的 closeout 步骤**仍由 operator-mediated checklist 承担**——这是纪律选择，不是能力缺失
 - 本 checklist 是纪律约束，不由 plugin 或 wrapper 自动执行
 - 每次 deploy 操作必须在一个操作窗口内完成所有步骤
 
@@ -25,7 +26,11 @@
 
 ## Phase 1: Pre-snapshot
 
-- [ ] operator: 创建 pre-change snapshot
+> `snapshot_pre` action 已 agent-facing 可用，但 Route C 纪律要求 operator 确认快照已创建。
+
+- [ ] agent 或 operator: 创建 pre-change snapshot
+  - agent 可调用 `host_ops(action: "snapshot_pre", inputs: { label: "pre-deploy-YYYYMMDD-HHMM", reason: "..." })`
+  - 或 operator 手动：
   ```bash
   sudo btrfs subvolume snapshot -r / /.snapshots/root-pre-deploy-YYYYMMDD-HHMM
   ```
@@ -43,7 +48,9 @@
 
 ## Phase 4: Restart (operator-mediated)
 
-- [ ] operator: `sudo systemctl restart openclaw-gateway.service`
+> `gateway_restart` action 已 agent-facing 可用（两段式契约），但 Route C 纪律要求 operator 独立确认 restart 完成。
+
+- [ ] agent 或 operator: 触发 restart（agent 可调用 `host_ops(action: "gateway_restart", inputs: { reason: "..." })`，或 operator 手动 `sudo systemctl restart openclaw-gateway.service`）
 - [ ] operator: `systemctl is-active openclaw-gateway.service` → `active`
 - [ ] operator: `systemctl is-active openclaw-broker.service` → `active`
 
@@ -57,11 +64,17 @@
 
 ## Phase 6: Post-snapshot & Close
 
-- [ ] operator: 创建 post-change snapshot
+> `snapshot_post` 和 `vault_sync` action 均已 agent-facing 可用，但 Route C 纪律要求 operator 确认变更窗口关闭。
+
+- [ ] agent 或 operator: 创建 post-change snapshot
+  - agent 可调用 `host_ops(action: "snapshot_post", inputs: { label: "post-deploy-YYYYMMDD-HHMM", reason: "..." })`
+  - 或 operator 手动：
   ```bash
   sudo btrfs subvolume snapshot -r / /.snapshots/root-post-deploy-YYYYMMDD-HHMM
   ```
-- [ ] operator: vault_sync（可选，手动）
+- [ ] agent 或 operator: vault_sync
+  - agent 可调用 `host_ops(action: "vault_sync", inputs: { snapshot_name: "root-post-deploy-YYYYMMDD-HHMM" })`
+  - 或 operator 手动：
   ```bash
   sudo /usr/local/sbin/vault-backup-root-btrfs
   ```

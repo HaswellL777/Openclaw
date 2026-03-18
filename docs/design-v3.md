@@ -1,7 +1,7 @@
 # OpenClaw 多 Agent + Claude Code 协作体系设计稿 v3.1
 
 > 初版编写日期：2026-03-07
-> 本次修订日期：2026-03-14（Phase 2 broker deployment 完成）
+> 本次修订日期：2026-03-18（pre-Phase 3 baseline rebase）
 > 适用宿主机：当前单机 Ubuntu 24.04 LTS / Btrfs / systemd / OpenClaw 2026.3.2 基线
 > 上游输入：`openclaw-host-sop-2026-03-06.md`、`1.md`、`openclaw-design-v2-2026-03-07.md`、本轮 Phase 1A 实际落地结果、Phase 1B 开发仓候选产物
 > 文档定位：**可实施规格稿 + 落地状态稿**，用于后续继续开发、验证、回滚、审计与发布
@@ -10,25 +10,20 @@
 
 ## 0. 文档结论先行
 
-截至 2026-03-17，本设计稿 v3.1 的状态应表述为：
+截至 2026-03-18，本设计稿 v3.1 的状态应表述为：
 
-1. **当前真实落地阶段是 Phase 1（Phase 1A + Phase 1B 均已完成）+ Phase 2 broker deployment 已完成，Phase 2 plugin activation 已完成，agent-facing host_ops 全部 8/8 action 已 live E2E verified（2026-03-17）。**
+1. **当前真实落地阶段：Phase 1（1A + 1B）+ Phase 2 全部完成。** agent-facing host_ops 8/8 action 已 live E2E verified（2026-03-17）。详见 `docs/current-boundary.md`。
 2. **主控制面仍在宿主机，不容器化。**
-3. **`main` agent 已在现网落地（落地起点属于 Phase 1A：main bootstrap only；当前宿主机整体阶段已到 Phase 1 完成）。**
-4. **`workspace-main` 已实际发布到 `/var/lib/openclaw/.openclaw/workspace-main/`，并已成为 `main` 的 runtime workspace。**
-5. **`main` 当前已经具备 `read / write / edit / sessions_*` 基础控制面工具，但仍无 `exec`、无 `elevated`、无 direct host mutation。**
-6. **`main` 的 per-agent allowlist 与全局 `tools.profile` 不可并存；当使用 per-agent allow/deny 时，不再保留全局 `tools.profile`。**
-7. **Claude Code CLI 已正式纳入体系，但当前只完成了角色 A：`nick` 用户开发工具这一侧的实际可用落地。**
-8. **host-ops broker daemon 已部署并运行（`openclaw-broker.service`，active + enabled，2026-03-14）；8 个 wrapper 已安装为 production 版本（`BROKER_DRY_RUN=false`）；host-ops-tool plugin 已注册进 `openclaw.json` 并被 gateway 接受。plugin activation 已完成（2026-03-15），registerTool 版 plugin 已部署到 live，`main.tools.allow` 已包含 `host_ops`。agent-facing 全部 8 个 action 已 live E2E verified（2026-03-17）：`gateway_health`（2026-03-15）、`validate_openclaw_json_candidate`（2026-03-15）、`deploy_openclaw_json_candidate`（Route C，2026-03-15）、`snapshot_pre`（2026-03-16）、`snapshot_post`（2026-03-16）、`rollback_prepare`（2026-03-16）、`gateway_restart`（两段式契约，2026-03-16）、`vault_sync`（incremental send，2026-03-17）。task-runner / Docker sandbox 仍是后续阶段目标，尚未进入生产执行链。**
-9. **任何宿主机副作用仍必须坚持“快照 → 变更 → 健康检查 → post 快照 → Vault 入库”的纪律。**
-10. **`/var/lib/openclaw` 已是独立 Btrfs 子卷，因此不在 root snapshot 保护范围内；`workspace-main` 必须被视为可重复发布产物，而不是依赖 root snapshot 恢复的长期真相源。**
-11. **本轮实际落地过程中，曾出现 `main` 工具集被顶层 `tools.profile = messaging` 覆盖的问题；该问题已通过移除顶层 `tools.profile` 修复。**
-12. **默认主模型已从 `motchat-claude-4-6/claude-opus-4-6` 切换到 `motchat-gpt-max/gpt-5.4`；当前把 g54 视为更稳妥的主控制面默认值，但不把“Claude 4.6 一定是卡顿根因”写成已证事实。**
-13. **Claude Code 容器内执行链仍属于后续阶段目标；agent-facing `host_ops` 全部 8/8 action 已 live E2E verified（`gateway_health` + `validate_openclaw_json_candidate` + `deploy_openclaw_json_candidate` + `snapshot_pre` + `snapshot_post` + `rollback_prepare` + `gateway_restart` + `vault_sync`，最新 2026-03-17）；除非特别注明”已验证”，否则不得写成当前事实。**
-14. **Phase 1B 控制面收口已完成（2026-03-11）：`workspace-main-template/` 已建立并提交；`scripts/publish-workspace-main.sh`、`scripts/publish-sop.sh`、`scripts/check-workspace-main.sh` 已实现；`docs/runtime-allowlist-backup-draft.md` 已升级为设计定稿候选（design candidate）；脚本化发布链已于 2026-03-11 首次用于 live target 并校验通过。**
-15. **Phase 1B 退出条件与 Phase 2 进入门槛已正式定义（2026-03-10，见 §7）；控制面备份脚本实现从 Phase 1B 重新归入 Phase 6。**
-16. **Phase 1B 退出条件已于 2026-03-11 全部满足：首次现网脚本化发布已完成并校验通过。Phase 2 broker deployment 已于 2026-03-14 完成（详见 `docs/records/phase2-broker-deployment-2026-03-14.md`）。**
-17. **Phase 2 broker deployment 现场发现：(a) Vault receive 路径为 `/mnt/vault/recv/system`（非 `/mnt/vault/snapshots/`）；(b) `gateway_restart` 经由 broker 发送时，因 `Requires=` 依赖 broker 被 SIGTERM，请求返回值不可靠，需以 post-restart 服务状态为准；(c) 部署前 `/etc/openclaw/openclaw.json` 为 JSON5 格式不可被 jq 解析，candidate 必须为 strict JSON，部署后若已被 strict JSON candidate 替换则 jq 可用；(d) gateway 日志中 `host-ops-tool missing register/activate export` 警告为非阻塞，根因是 `index.js` 尚未实现 register/activate export。**
+3. **`main` agent 已在现网落地**，具备 `read / write / edit / sessions_*` + `host_ops` 工具，无 `exec`、无 `elevated`。
+4. **`workspace-main` 已实际发布**到 `/var/lib/openclaw/.openclaw/workspace-main/`，视为 published artifact（非 root snapshot 恢复对象）。
+5. **host-ops broker daemon 已部署并运行**（`openclaw-broker.service`）；8 个 wrapper 已安装（production）；host-ops-tool plugin registerTool 版已部署到 live。全部 8 个 action 已 live E2E verified。逐 action 证据见 `docs/records/README.md`。
+6. **Claude Code CLI 当前只完成角色 A**（`nick` 用户开发工具）。角色 B（容器内工程执行器）属后续阶段。
+7. **当前不应直接进入 Phase 3 实现。** 原因：live OpenClaw 基线仍是 2026.3.2（上游已到 2026.3.13），上游 2026.3.7/3.12 引入影响 Phase 3 设计假设的重大变更。正确路线：baseline rebase → 升级准备 → 升级执行 → capability probe → Phase 3 实现。详见 `docs/planning/openclaw-upgrade-readiness-2026-03-18.md`。
+8. **task-runner / Docker sandbox 仍是后续阶段目标，尚未进入生产执行链。** 除非特别注明”已验证”，否则不得写成当前事实。
+9. **任何宿主机副作用仍必须坚持”快照 → 变更 → 健康检查 → post 快照 → Vault 入库”的纪律。**
+10. **`/var/lib/openclaw` 已是独立 Btrfs 子卷**，不在 root snapshot 保护范围内。
+
+> 运行态细节（模型切换、plugin activation 逐步骤记录、per-agent allowlist 修复历史等）已下沉到 `docs/host-sop.md`。本文档聚焦架构设计与实施规格。
 
 ---
 
@@ -1693,7 +1688,66 @@ Phase 1B 完成收口需要同时满足以下全部条件：
 
 ---
 
+## 7.5 OpenClaw 2026.3.x 上游 delta impact
+
+> 当前 live 基线：2026.3.2。上游最新稳定版：2026.3.13。
+> 本节记录影响本设计的关键上游变更。详细升级评估见 `docs/planning/openclaw-upgrade-readiness-2026-03-18.md`。
+
+### 2026.3.7
+
+- **ContextEngine plugin slot**：新增 7 个 lifecycle hooks（bootstrap / ingest / assemble / compact / afterTurn / prepareSubagentSpawn / onSubagentEnded），slot-based registry with config-driven resolution。零行为变更（无 plugin 时自动 LegacyContextEngine）。不影响现有 host-ops-tool。
+- **`config.schema.lookup` gateway tool action**：agent 可按路径检查 config schema，无需加载完整 schema 到 prompt context。可简化未来 config 验证工作流。
+- **Skills/workspace 边界强化**：reject realpath 逃逸 source root 的 skill root 或 SKILL.md。升级后需验证现有 workspace-main skills 不受影响。
+- **`gateway.auth.token` SecretRef 支持**：若 `gateway.auth.token` 与 `gateway.auth.password` 同时配置，升级后要求显式 `gateway.auth.mode` guardrail。
+
+### 2026.3.8
+
+- **`openclaw backup create` / `openclaw backup verify`**：新增结构化 backup 工具（含 `--only-config`、`--no-include-workspace`、manifest/payload 验证）。这是**补充性 backup/verify 链**，**不替代**本设计的 Btrfs snapshot discipline、Vault send/receive discipline 和 candidate workflow。可作为额外安全网在升级/变更前使用。
+- **Docker/runtime image pruning**：更小的运行时镜像。
+
+### 2026.3.11
+
+- **安全修复版本**。不能降级为普通 bugfix。长期停留在 2026.3.2 不合理。
+
+### 2026.3.12
+
+- **`sessions_yield`**：新的会话管理原语。需评估对 task-runner 会话管理的影响。
+- **Pluggable sandbox backends**：新增 OpenShell + SSH sandbox backend，`sandbox list/recreate/prune` 不再 Docker-only。Phase 3 capability probe 必须在此版本或更高版本上进行。
+- **Implicit workspace plugin auto-load 禁用**（安全强化）：cloned repos 不能自动执行 workspace plugin 代码。host-ops-tool 通过 `plugins.entries` config 注册（非 workspace auto-load），预期不受影响，但升级后**必须验证**。
+- **Sandbox session-tree 可见性强化**：sandboxed subagent 不能窥视 parent session metadata。需验证 main → task-runner 场景。
+
+### 2026.3.13
+
+- **Cross-agent subagent target workspace 修复**：对未来 `sessions_spawn("task-runner")` 直接相关。
+- **`agents.list[].params` schema 修复**：agent 配置可能更严格。升级后需验证现有 main agent 配置兼容性。
+- **防止 gateway token 泄露到 Docker build context**：Phase 4 任务镜像构建安全前提。
+- **plugin-sdk bundling 修复**：plugin 内存使用改善。
+
+### 设计影响总结
+
+| 原 design-v3 假设 | 上游变更 | 影响 |
+|-------------------|---------|------|
+| §5.9 Docker sandbox 方案需 capability probe | 2026.3.12 pluggable sandbox backends | probe 必须在升级后版本上进行 |
+| Phase 6 backup 需自研脚本 | 2026.3.8 `openclaw backup create/verify` | 可作为补充工具，但不替代 Btrfs/Vault |
+| host-ops-tool 通过 extensions 目录部署 | 2026.3.12 workspace plugin auto-load 禁用 | config 注册路径预期不受影响，需验证 |
+
+---
+
+## 7.6 Scrapling 系统定位
+
+**结论：Scrapling 不进入控制面，不进入 host_ops。定位为 task-runner / Docker 执行面 capability。**
+
+Scrapling 是 Python 3.10+ 的自适应 Web 抓取框架，需要网络访问和（可选）浏览器引擎。其网络需求、资源消耗和安全边界决定了它只能在 task-runner 容器 sandbox 内运行，不适合控制面或 broker 通道。
+
+实际接入等待 Phase 3 任务镜像构建时落地。完整分析见 `docs/adr/adr-scrapling-placement.md`。
+
+---
+
 ## Phase 3：Docker sandbox capability probe 与 task-runner 上线
+
+> **前置条件（2026-03-18 新增）：当前不应直接进入 Phase 3 实现。**
+> 必须先完成：(1) baseline rebase（本轮）→ (2) OpenClaw 升级到 ≥ 2026.3.12 → (3) 升级后 focused regression → (4) 在升级后版本上做 capability probe。
+> 原因：2026.3.12 引入 pluggable sandbox backends，在 2026.3.2 上做 probe 结论可能在升级后失效。
 
 ### 目标
 
@@ -1786,137 +1840,42 @@ Phase 1B 完成收口需要同时满足以下全部条件：
 
 ## 8. 完整 TODO 清单
 
-## 8.1 Phase 0 已完成项
+## 8.1 Phase 0 — 已完成
 
-- [x] 以 `nick` 用户安装 Claude Code CLI
-- [x] 确认不会生成 `~/.openclaw/` gateway 运行态
-- [x] 创建 `~/projects/openclaw-dev/`
-- [x] `git init`
-- [x] 写 `docs/host-sop.md`
-- [x] 写 `docs/design-v3.1.md`
-- [x] 写 `CLAUDE.md`
-- [x] 写 `.claude/settings.json`
-- [x] 写 `.claude/agents/config-auditor.md`
-- [x] 写 `.claude/agents/plugin-dev.md`
-- [x] 写 `.claude/agents/broker-dev.md`
-- [x] 写 `.claude/agents/test-runner.md`
-- [x] 创建 `/srv/openclaw-control/`
-- [x] 初始化控制仓库 git
-- [x] 确认权威 SOP 路径
-- [x] 编写 `scripts/publish-sop.sh`
-- [x] 编写 `scripts/check-no-user-gateway.sh`
-- [x] 编写 `tests/test_sop_publish.sh`
+Phase 0 dev skeleton 全部完成（2026-03-07）。详见 `docs/milestones/phase0-baseline.md`。
 
 ---
 
-## 8.2 Phase 1B TODO
+## 8.2 Phase 1B — 已完成
 
-- [x] 更新 `docs/host-sop.md`
-- [x] 更新 `docs/design-v3.md`（原 `design-v3.1.md`）
-- [x] 在文档中明确 Phase 1A 已落地事实
-- [x] 明确 `/var/lib/openclaw` 为独立 Btrfs 子卷且不在 root snapshot 内
-- [x] 明确 `workspace-main` 是 published artifact
-- [x] 明确权威控制仓库 / 开发仓 / runtime workspace / task repo 四层模型
-- [x] 固化 `candidate -> deploy -> health -> snapshot -> vault -> capture-current` 流程
-- [x] 补齐 `workspace-main` 的 publish / check 脚本
-- [x] 记录 Phase 1A 快照名与 Vault 入库结果
-- [x] 记录 `tools.profile` 覆盖问题与 fix-forward 结果
-- [x] 记录默认主模型切换到 `g54`
-- [x] 设计 `/var/lib/openclaw` 独立备份 allowlist 并升级为设计定稿候选
-- [x] 在现网执行首次 `publish-workspace-main.sh --apply --allow-live-target` 正式发布
-- [x] 移除 publish 脚本生产路径 safety guard 或增加 `--allow-live-target` flag
-- [x] 实现首次 live publish 只读 preflight 脚本（`scripts/preflight-first-live-publish.sh`）
-- [x] 增强 runbook（Go/No-Go checklist、证据采集要求、preflight 集成、check 命令 sudo 修正）
-- [x] 修正 `publish-sop.sh` 描述（无条件拒绝 live path，非"含 --allow-live-target"）
-- [x] 发布后通过 `check-workspace-main.sh` 校验发布产物结构完整性
+Phase 1B 控制面收口全部完成（2026-03-11）：workspace-main-template 建立、publish/check 脚本实现、首次 live publish 校验通过。
 
-> 注：控制面备份脚本的实现（将 `runtime-allowlist-backup-draft.md` 转化为可执行脚本）已从 Phase 1B 重新归入 Phase 6（§8.7），Phase 1B 的交付物为设计定稿候选文档。
+> 控制面备份脚本的实现（将 `runtime-allowlist-backup-draft.md` 转化为可执行脚本）已从 Phase 1B 重新归入 Phase 6（§8.7）。
 
 ---
 
-## 8.3 Phase 2 TODO
+## 8.3 Phase 2 — 已完成
 
-### 开发仓内准备工作（Phase 2 prep，仓库内落地，不涉及现网部署）
+### 开发仓内准备工作
 
-- [x] 创建 `broker/`（目录结构、README）
-- [x] 创建 `broker/schemas/host-ops-request.schema.json`（请求 JSON Schema，8 个 action enum）
-- [x] 创建 `broker/schemas/host-ops-result.schema.json`（结果 JSON Schema，ok/error/denied）
-- [x] 创建 `broker/schemas/actions/*.schema.json`（8 个 per-action 输入 schema）
-- [x] 创建 `broker/wrappers/ocw-*.sh`（8 个 wrapper stub，仅验证 + echo，不执行）
-- [x] 创建 `examples/broker/`（8 对 request/result fixture + 1 negative test pair）
-- [x] 创建 `scripts/validate-broker-schemas.sh`（schema / wrapper / fixture 交叉验证，192 checks）
-- [x] 创建 `tests/test_broker_schemas.sh`（wrapper stub 运行时测试 + negative cases，62 checks）
-- [x] 创建 `plugins/host-ops-tool/`（skeleton index.js、package.json，phase2-prep 标记）
-- [x] 对齐 `workspace-main-template/control/host-ops-api.md` 与 `design-v3.md` §5.6.2 请求契约（消除 operation/parameters/approval_id 与 action/inputs/requested_by 漂移）
-- [x] 修正全仓 "Phase 1B+" / "Phase 0" 残留引用为准确阶段标号（routing-policy、approval-policy、broker SKILL、broker README、wrappers README）
-- [x] 创建 `broker/wrappers/lib/common.sh`（共享验证库，消除 8 个 wrapper stub 间代码重复）
-- [x] 重构 8 个 wrapper stub 使用 `common.sh`（validate_request_file、parse_common、validate_action、emit_result）
-- [x] 创建 `docs/specs/host-ops-broker-protocol-v1.md`（协议规格文档：传输、信封、字段语义、fail-closed 规则、per-action 输入规格）
-- [x] 创建 `plugins/host-ops-tool/lib/build-request.sh`（shell-based request fixture generator）
-- [x] 创建 `plugins/host-ops-tool/lib/validate-request.sh`（shell-based request validator，与 common.sh 和 index.js 验证逻辑镜像）
-- [x] 增强 `plugins/host-ops-tool/index.js`（buildRequest、validateRequest、validateResult 函数）
-- [x] 创建 `scripts/validate-phase2-prep.sh`（聚合验证：schema + wrapper + plugin + fixture + protocol spec + cross-layer contract）
-- [x] 创建 `tests/test_phase2_integration.sh`（集成测试：plugin→wrapper pipeline、negative tests、contract drift detection）
-- [x] 修正 `workspace-main-template/skills/broker/SKILL.md` 契约漂移（operation/parameters/approval_id → action/inputs/requested_by）
-- [x] 创建 `docs/specs/error-taxonomy-v1.md`（错误分类、错误码、denied/error 语义区分、negative fixture 索引）
-- [x] 创建 `tests/test_contract_freeze.sh`（协议冻结测试：action enum、envelope fields、status enum、per-action schema、ok/status invariant、deprecated fields、cross-layer consistency、negative fixture coverage）
-- [x] 扩充 negative fixture 覆盖至 17 场景（empty-reason、empty-label、empty-sha256、missing-snapshot-name、missing-target-snapshot、missing-label、type-error-reason、empty-action）
-- [x] 在 `common.sh`、`index.js`、`validate-request.sh` 三层同步 `maxLength` 校验（label/snapshot_name/target_snapshot ≤ 128 chars）
-- [x] 扩展 builder→wrapper pipeline 集成测试覆盖全部 8 个 action
-- [x] 增强 `validate-phase2-prep.sh`：扩展 builder 测试 action 覆盖、负面 fixture 验证器拒绝测试、schema maxLength 一致性校验
-- [x] 修正 protocol spec 描述漂移：snapshot_name / target_snapshot / label 字段描述由 "alphanumeric" 精确化为 "alphanumeric, dots, hyphens, underscores; max 128 chars"
-- [x] 冻结 per-action schema property types 与 maxLength=128 约束
-- [x] 冻结 wrapper stub 存在性（8 个 ocw-*.sh）
-- [x] 冻结 fixture 中无 deprecated field names
-- [x] 更新 error taxonomy negative fixture index 至完整 19 条
-- [x] 强化 result schema：`additionalProperties: false`、required string 字段 `minLength: 1`、`if/then/else` ok/status 不变量、reserved `error_code` 字段
-- [x] 创建 `docs/specs/contract-matrix-v1.md`（跨层契约矩阵：字段映射、镜像关系、deprecated 名称、共享校验规则）
-- [x] 扩充 negative fixture 至 22 组 + 2 特殊场景（extra-fields、null-action、null-inputs、array-inputs、numeric-action、ok-status-mismatch）
-- [x] 冻结 result envelope property types 与 minLength/invariant schema 约束
-- [x] 修正 `SKILL.md` SHA256 占位符（`abc123...` → proper 64-char hex）
-- [x] 更新 error taxonomy negative fixture index 至完整 25 条
-- [x] 创建 `broker/schemas/action-inventory.json`（单一来源 action inventory，frozen=true，映射 schema/wrapper/fixture/required_inputs）
-- [x] 创建 `examples/broker/fixture-registry.json`（fixture registry：happy-path、negative、expected results、error types）
-- [x] 在 `host-ops-api.md` 补充 `error_code` 可选字段文档（reserved，指向 error-taxonomy-v1.md）
-- [x] 在 `contract-matrix-v1.md` §7 添加验证脚本实现状态标记与单一来源引用
-- [x] 创建 `docs/specs/phase2-repo-prep-gate.md`（prep 退出标准、明确 deferred 事项、残留低优先级项）
-- [x] 增强 `test_contract_freeze.sh`：action inventory 冻结验证、fixture registry 一致性验证
-- [x] 增强 `validate-phase2-prep.sh`：action inventory、fixture registry、prep gate、validator parity freeze 校验
-- [x] 创建 `docs/specs/phase2-broker-deployment-layout.md`（部署目标文件系统布局规格：daemon、socket、wrappers、logs、state、systemd unit、权限模型）
-- [x] 创建 `docs/runbook-phase2-broker-deployment.md`（部署 runbook：进入条件、禁止条件、10 阶段部署序列、验证序列、回滚规程、快照纪律）
-- [x] 创建 `docs/execution-pack-phase2-broker-deployment.md`（分步执行包：15 步命令块 + 人工确认点 + 回退规程）
-- [x] 创建 `docs/templates/phase2-broker-deployment-record-template.md`（部署现场记录模板）
-- [x] 创建 `docs/templates/phase2-broker-deployment-syncback-template.md`（部署后文档回写模板）
-- [x] 创建 `scripts/preflight-phase2-broker-deployment.sh`（只读预检脚本：10 段验证，不访问 live path）
+Phase 2 repo prep 全部完成。完整 prep 退出标准见 `docs/specs/phase2-repo-prep-gate.md`。产物包括：broker daemon + socket listener、8 个 wrapper（含 common.sh 共享库）、host-ops-tool plugin（registerTool 版）、request/result JSON Schema、25+ negative fixtures、协议规格/错误分类/契约矩阵/部署布局等规格文档、validation/integration/contract-freeze 测试脚本。
 
-### 现网部署（需 Phase 2 正式启动后执行）
+### 现网部署
 
-> 2026-03-14 operator-led 手动部署完成，部署结论 PASS。详见 `docs/records/phase2-broker-deployment-2026-03-14.md`。
+2026-03-14 operator-led 手动部署完成，PASS。详见 `docs/records/phase2-broker-deployment-2026-03-14.md`。
 
-- [x] 实现 broker 主程序（Unix socket daemon / CLI）
-- [x] 实现 Unix socket 权限边界
-- [x] 将 wrapper stub 升级为 root-owned 生产版本
-- [x] 实现 `ocw-gateway-health`（live execution）
-- [x] 实现 `ocw-validate-openclaw-json`（live execution）
-- [x] 实现 `ocw-deploy-openclaw-json`（live execution）
-- [x] 实现 `ocw-gateway-restart`（live execution）
-- [x] 实现 `ocw-snapshot-pre`（live execution）
-- [x] 实现 `ocw-snapshot-post`（live execution）
-- [x] 实现 `ocw-vault-sync`（live execution）
-- [ ] 实现 `ocw-rollback-prepare`（live execution）——wrapper 已部署，但本次部署未实际行使，不计为 live execution 完成
-- [x] 实现 `index.js` register/activate export（plugin lifecycle activation）——已完成（2026-03-15），registerTool 版 plugin 已部署到 live
-- [ ] 写部署脚本——本次为 operator-led 手动执行
-- [x] 注册 plugin 到 `openclaw.json`
-- [x] 变更前快照
-- [x] 重启 gateway
-- [x] 验证只读 host_ops（gateway_health）
-- [x] 验证写操作 schema 拒绝（invalid action / bad path / path traversal）
-- [x] 变更后快照
-- [x] Vault 入库
+- broker daemon、8 wrapper（production, `BROKER_DRY_RUN=false`）、plugin lifecycle activation 全部完成
+- agent-facing 全部 8/8 action live E2E verified（2026-03-17）。逐 action 证据见 `docs/records/README.md`
+- 部署脚本化尚未完成（本次为 operator-led 手动执行）
+- `ocw-rollback-prepare` wrapper 已部署但未实际行使 live execution（action 本身已 E2E verified）
+
+> Phase 2 切片设计文档已归档至 `docs/archive/planning/phase2/`。
 
 ---
 
 ## 8.4 Phase 3 TODO
+
+> **前置条件：先完成 OpenClaw 升级到 ≥ 2026.3.12 + 升级后 focused regression。** 在 2026.3.2 上做以下工作没有意义。
 
 - [ ] 安装 / 整理 Docker Engine
 - [ ] 设计 `openclaw-task-net`
