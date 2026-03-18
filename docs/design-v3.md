@@ -19,7 +19,8 @@
 5. **host-ops broker daemon 已部署并运行**（`openclaw-broker.service`）；8 个 wrapper 已安装（production）；host-ops-tool plugin registerTool 版已部署到 live。全部 8 个 action 已 live E2E verified。逐 action 证据见 `docs/records/README.md`。
 6. **Claude Code CLI 当前只完成角色 A**（`nick` 用户开发工具）。角色 B（容器内工程执行器）属后续阶段。
 7. **当前不应直接进入 Phase 3 实现。** 原因：live OpenClaw 基线仍是 2026.3.2（上游已到 2026.3.13），上游 2026.3.7/3.12 引入影响 Phase 3 设计假设的重大变更。正确路线：baseline rebase → 升级准备 → 升级执行 → capability probe → Phase 3 实现。详见 `docs/planning/openclaw-upgrade-readiness-2026-03-18.md`。
-8. **task-runner / Docker sandbox 仍是后续阶段目标，尚未进入生产执行链。** 除非特别注明”已验证”，否则不得写成当前事实。
+8. **当前下一步为 OpenClaw 2026.3.13 升级 slice。** 升级执行包（runbook、focused regression checklist、rollback 设计）已在 repo-side 就绪。升级后应先做 capability probe，再进入 Phase 3 实现。详见 `docs/planning/openclaw-2026.3.13-upgrade-slice-design-2026-03-18.md`。
+9. **task-runner / Docker sandbox 仍是后续阶段目标，尚未进入生产执行链。** 除非特别注明”已验证”，否则不得写成当前事实。
 9. **任何宿主机副作用仍必须坚持”快照 → 变更 → 健康检查 → post 快照 → Vault 入库”的纪律。**
 10. **`/var/lib/openclaw` 已是独立 Btrfs 子卷**，不在 root snapshot 保护范围内。
 

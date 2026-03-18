@@ -10,6 +10,8 @@
 | 文件 | 日期 | 主题 | 状态 |
 |------|------|------|------|
 | `openclaw-upgrade-readiness-2026-03-18.md` | 2026-03-18 | OpenClaw 升级就绪评估 | active |
+| `openclaw-2026.3.13-upgrade-slice-design-2026-03-18.md` | 2026-03-18 | 2026.3.13 升级 slice 设计 | active |
+| `openclaw-2026.3.13-upgrade-rollback-design-2026-03-18.md` | 2026-03-18 | 2026.3.13 升级 rollback 设计 | active |
 
 ## 已归档
 

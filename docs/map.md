@@ -28,6 +28,8 @@
 |------|------|
 | `docs/planning/README.md` | planning 目录索引 |
 | `docs/planning/openclaw-upgrade-readiness-2026-03-18.md` | OpenClaw 升级就绪评估 |
+| `docs/planning/openclaw-2026.3.13-upgrade-slice-design-2026-03-18.md` | 2026.3.13 升级 slice 设计 |
+| `docs/planning/openclaw-2026.3.13-upgrade-rollback-design-2026-03-18.md` | 2026.3.13 升级 rollback 设计 |
 
 ## 架构决策记录 `[active]`
 
@@ -61,6 +63,7 @@
 | 文件 | 描述 |
 |------|------|
 | `docs/checklists/deploy-candidate-route-c-checklist.md` | Route C deploy 操作清单 |
+| `docs/checklists/openclaw-upgrade-focused-regression-2026.3.13.md` | 2026.3.13 升级 focused regression checklist |
 | `docs/records/README.md` | records 目录索引 |
 
 ## 活跃参考 `[active]`
@@ -90,6 +93,7 @@
 
 | 文件 | 描述 |
 |------|------|
+| `docs/runbook-openclaw-upgrade-2026.3.13.md` | **[active]** 2026.3.13 升级 operator runbook |
 | `docs/runbook-first-live-publish.md` | Phase 1B 首次 live publish runbook |
 | `docs/execution-pack-first-live-publish.md` | Phase 1B 执行包 |
 | `docs/runbook-phase2-broker-deployment.md` | Phase 2 broker 部署 runbook |

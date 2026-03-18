@@ -2,7 +2,7 @@
 
 > 冻结日期：2026-03-18
 > 基线版本：OpenClaw 2026.3.2 / commit 85377a2
-> 阶段：Phase 2 agent-facing host_ops 全部完成，pre-Phase 3 baseline rebase 中
+> 阶段：Phase 2 agent-facing host_ops 全部完成，OpenClaw 2026.3.13 升级 slice repo-side 准备完成
 
 ---
 
@@ -40,7 +40,7 @@
 | Phase 4 (容器内 Claude Code 执行链) | **未开始** |
 | Phase 5 (LLM gateway / token 最小化) | **未开始** |
 | Phase 6 (备份扩展 / 长期收口) | **未开始** |
-| OpenClaw 版本升级 (2026.3.2 → 2026.3.13) | **未开始** |
+| OpenClaw 版本升级 (2026.3.2 → 2026.3.13) | **repo-side 准备完成，待 operator 执行** |
 | Scrapling 接入 | **未开始** |
 
 ## 当前不应直接进入 Phase 3
@@ -52,6 +52,12 @@
 3. **安全债务**：2026.3.11 包含安全修复，长期停留在 2026.3.2 不合理
 
 后续优先路线：**baseline rebase → 升级准备 → 升级执行 → 升级后 capability probe → Phase 3 实现**
+
+升级执行包已就绪（repo-side）：
+- 升级 slice 设计：`docs/planning/openclaw-2026.3.13-upgrade-slice-design-2026-03-18.md`
+- Operator runbook：`docs/runbook-openclaw-upgrade-2026.3.13.md`
+- Focused regression checklist：`docs/checklists/openclaw-upgrade-focused-regression-2026.3.13.md`
+- Rollback 设计：`docs/planning/openclaw-2026.3.13-upgrade-rollback-design-2026-03-18.md`
 
 详见 `docs/planning/openclaw-upgrade-readiness-2026-03-18.md`。
 
