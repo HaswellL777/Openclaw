@@ -1696,7 +1696,7 @@ Phase 1B 完成收口需要同时满足以下全部条件：
 ### 2026.3.7
 
 - **ContextEngine plugin slot**：新增 7 个 lifecycle hooks（bootstrap / ingest / assemble / compact / afterTurn / prepareSubagentSpawn / onSubagentEnded），slot-based registry with config-driven resolution。零行为变更（无 plugin 时自动 LegacyContextEngine）。不影响现有 host-ops-tool。
-- **`config.schema.lookup` gateway tool action**：agent 可按路径检查 config schema，无需加载完整 schema 到 prompt context。可简化未来 config 验证工作流。
+- **config schema lookup 能力线索**：上游出现与 config schema 按路径查询相关的能力迹象，可在升级后评估是否用于减少无效 validate 调用。本轮不将其作为已收口依赖。
 - **Skills/workspace 边界强化**：reject realpath 逃逸 source root 的 skill root 或 SKILL.md。升级后需验证现有 workspace-main skills 不受影响。
 - **`gateway.auth.token` SecretRef 支持**：若 `gateway.auth.token` 与 `gateway.auth.password` 同时配置，升级后要求显式 `gateway.auth.mode` guardrail。
 
@@ -1712,9 +1712,8 @@ Phase 1B 完成收口需要同时满足以下全部条件：
 ### 2026.3.12
 
 - **`sessions_yield`**：新的会话管理原语。需评估对 task-runner 会话管理的影响。
-- **Pluggable sandbox backends**：新增 OpenShell + SSH sandbox backend，`sandbox list/recreate/prune` 不再 Docker-only。Phase 3 capability probe 必须在此版本或更高版本上进行。
 - **Implicit workspace plugin auto-load 禁用**（安全强化）：cloned repos 不能自动执行 workspace plugin 代码。host-ops-tool 通过 `plugins.entries` config 注册（非 workspace auto-load），预期不受影响，但升级后**必须验证**。
-- **Sandbox session-tree 可见性强化**：sandboxed subagent 不能窥视 parent session metadata。需验证 main → task-runner 场景。
+- 当前审计仅稳健确认上述两项；其余 sandbox 相关能力变更（如 sandbox backend 扩展、session-tree 可见性调整等）不在本次权威 delta 结论中，待升级后再验证。
 
 ### 2026.3.13
 
@@ -1727,9 +1726,9 @@ Phase 1B 完成收口需要同时满足以下全部条件：
 
 | 原 design-v3 假设 | 上游变更 | 影响 |
 |-------------------|---------|------|
-| §5.9 Docker sandbox 方案需 capability probe | 2026.3.12 pluggable sandbox backends | probe 必须在升级后版本上进行 |
 | Phase 6 backup 需自研脚本 | 2026.3.8 `openclaw backup create/verify` | 可作为补充工具，但不替代 Btrfs/Vault |
 | host-ops-tool 通过 extensions 目录部署 | 2026.3.12 workspace plugin auto-load 禁用 | config 注册路径预期不受影响，需验证 |
+| §5.9 Docker sandbox 方案需 capability probe | 2026.3.12 可能含 sandbox 相关变更 | 具体影响待升级后验证，probe 应在升级后版本上进行 |
 
 ---
 
@@ -1747,7 +1746,7 @@ Scrapling 是 Python 3.10+ 的自适应 Web 抓取框架，需要网络访问和
 
 > **前置条件（2026-03-18 新增）：当前不应直接进入 Phase 3 实现。**
 > 必须先完成：(1) baseline rebase（本轮）→ (2) OpenClaw 升级到 ≥ 2026.3.12 → (3) 升级后 focused regression → (4) 在升级后版本上做 capability probe。
-> 原因：2026.3.12 引入 pluggable sandbox backends，在 2026.3.2 上做 probe 结论可能在升级后失效。
+> 原因：2026.3.12 可能含 sandbox 相关能力变更，在 2026.3.2 上做 probe 结论可能在升级后失效。
 
 ### 目标
 
