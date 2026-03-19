@@ -48,7 +48,7 @@
 
 | 事项 | 状态 |
 |------|------|
-| 升级后 capability probe（在 2026.3.13 上） | **未开始** — 这是当前下一步 |
+| 升级后 capability probe（在 2026.3.13 上） | **设计完成，probe 尚未执行** — 这是当前直接下一刀 `execute-post-upgrade-capability-probe-on-2026.3.13` |
 | Phase 3 (Docker sandbox / task-runner) | **未开始** |
 | Phase 4 (容器内 Claude Code 执行链) | **未开始** |
 | Phase 5 (LLM gateway / token 最小化) | **未开始** |
@@ -67,7 +67,12 @@
 
 capability probe 的结论是进入 Phase 3 实现的 Go/No-Go gate。
 
-**capability probe 尚未开始。**
+**capability probe 设计已完成，probe 尚未执行。**
+
+- 设计文档：`docs/planning/post-upgrade-capability-probe-2026.3.13-slice-design-2026-03-18.md`
+- Probe matrix：`docs/checklists/post-upgrade-capability-probe-matrix-2026.3.13.md`
+- Operator runbook：`docs/runbook-post-upgrade-capability-probe-2026.3.13.md`
+- Result template：`docs/templates/post-upgrade-capability-probe-record-template.md`
 
 ## 已知非阻塞观察项
 
