@@ -27,9 +27,10 @@
 | 文件 | 描述 |
 |------|------|
 | `docs/planning/README.md` | planning 目录索引 |
-| `docs/planning/openclaw-upgrade-readiness-2026-03-18.md` | OpenClaw 升级就绪评估 |
-| `docs/planning/openclaw-2026.3.13-upgrade-slice-design-2026-03-18.md` | 2026.3.13 升级 slice 设计 |
-| `docs/planning/openclaw-2026.3.13-upgrade-rollback-design-2026-03-18.md` | 2026.3.13 升级 rollback 设计 |
+| `docs/planning/post-upgrade-capability-probe-2026.3.13-slice-design-2026-03-18.md` | **升级后 capability probe 设计（当前活跃）** |
+| `docs/planning/openclaw-upgrade-readiness-2026-03-18.md` | OpenClaw 升级就绪评估（已完成） |
+| `docs/planning/openclaw-2026.3.13-upgrade-slice-design-2026-03-18.md` | 2026.3.13 升级 slice 设计（已完成） |
+| `docs/planning/openclaw-2026.3.13-upgrade-rollback-design-2026-03-18.md` | 2026.3.13 升级 rollback 设计（已完成） |
 
 ## 架构决策记录 `[active]`
 
@@ -64,6 +65,7 @@
 |------|------|
 | `docs/checklists/deploy-candidate-route-c-checklist.md` | Route C deploy 操作清单 |
 | `docs/checklists/openclaw-upgrade-focused-regression-2026.3.13.md` | 2026.3.13 升级 focused regression checklist |
+| `docs/checklists/post-upgrade-capability-probe-matrix-2026.3.13.md` | **升级后 capability probe matrix** |
 | `docs/records/README.md` | records 目录索引 |
 
 ## 活跃参考 `[active]`
@@ -80,6 +82,12 @@
 |------|------|
 | `docs/milestones/phase0-baseline.md` | Phase 0 基线记录 |
 
+## 活跃模板 `[active]`
+
+| 文件 | 描述 |
+|------|------|
+| `docs/templates/post-upgrade-capability-probe-record-template.md` | **升级后 capability probe record 模板** |
+
 ## 已用模板 `[archived]`
 
 | 文件 | 描述 |
@@ -89,11 +97,17 @@
 | `docs/templates/phase2-broker-deployment-record-template.md` | Phase 2 部署记录模板 |
 | `docs/templates/phase2-broker-deployment-syncback-template.md` | Phase 2 syncback 模板 |
 
+## Runbook `[active]`
+
+| 文件 | 描述 |
+|------|------|
+| `docs/runbook-post-upgrade-capability-probe-2026.3.13.md` | **[active]** 升级后 capability probe operator runbook |
+
 ## 已用 Runbook 与执行包 `[archived]`
 
 | 文件 | 描述 |
 |------|------|
-| `docs/runbook-openclaw-upgrade-2026.3.13.md` | **[active]** 2026.3.13 升级 operator runbook |
+| `docs/runbook-openclaw-upgrade-2026.3.13.md` | 2026.3.13 升级 operator runbook（已完成） |
 | `docs/runbook-first-live-publish.md` | Phase 1B 首次 live publish runbook |
 | `docs/execution-pack-first-live-publish.md` | Phase 1B 执行包 |
 | `docs/runbook-phase2-broker-deployment.md` | Phase 2 broker 部署 runbook |
