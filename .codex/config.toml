@@ -1,0 +1,8 @@
+# repo-local Codex 配置层。
+# 这里只放项目内共享的最小配置，不放用户级接入信息、凭据或网关地址。
+# 用户级 provider/base URL/project trust 等接入事实属于 ~/.codex/config.toml，不属于 repo 事实源。
+model = "gpt-5.4"
+approval_policy = "on-request"
+
+# 先按保守值，后续再根据中转站实际能力调
+model_context_window = 272000

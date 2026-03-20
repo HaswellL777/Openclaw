@@ -44,3 +44,6 @@
 | 文件 | 日期 | 主题 |
 |------|------|------|
 | `openclaw-2026.3.13-upgrade-activation-2026-03-18.md` | 2026-03-18 | OpenClaw 2026.3.2 → 2026.3.13 升级，P0 19/19 PASS，rollback 未触发 |
+| `post-upgrade-capability-probe-execution-2026-03-19.md` | 2026-03-19 | capability probe execution attempted，P5 hard gate FAIL 后中止，结果 = NO-GO |
+
+`post-upgrade-capability-probe-execution-2026-03-19.md` 是执行证据文件，不是 Docker prerequisite establishment 的实施记录。

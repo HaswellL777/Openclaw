@@ -9,10 +9,18 @@
 
 | 文件 | 日期 | 主题 | 状态 |
 |------|------|------|------|
-| `post-upgrade-capability-probe-2026.3.13-slice-design-2026-03-18.md` | 2026-03-18 | **升级后 capability probe 设计** | **active** |
+| `docker-prerequisite-establishment-for-phase3-2026-03-19.md` | 2026-03-19 | **Docker prerequisite establishment for Phase 3** | **active / current next slice** |
+| `post-upgrade-capability-probe-2026.3.13-slice-design-2026-03-18.md` | 2026-03-18 | **升级后 capability probe 设计** | completed as design; execution ended with `P5 FAIL / Phase 3 = NO-GO` |
 | `openclaw-upgrade-readiness-2026-03-18.md` | 2026-03-18 | OpenClaw 升级就绪评估 | completed |
 | `openclaw-2026.3.13-upgrade-slice-design-2026-03-18.md` | 2026-03-18 | 2026.3.13 升级 slice 设计 | completed |
 | `openclaw-2026.3.13-upgrade-rollback-design-2026-03-18.md` | 2026-03-18 | 2026.3.13 升级 rollback 设计 | completed |
+
+当前 planning 层应按以下顺序理解：
+
+1. 升级后 capability probe 设计已完成，且 probe 已执行。
+2. probe 在 `P5 Docker / task-runner prerequisites` 因 Docker prerequisite 缺失而 hard gate FAIL。
+3. 当前 Phase 3 结论为 **NO-GO**。
+4. 当前唯一下一刀是 `docker-prerequisite-establishment-for-phase3`。
 
 ## 已归档
 

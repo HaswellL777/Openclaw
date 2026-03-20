@@ -1140,7 +1140,7 @@ C. 配置发布：
 - Vault 入库；
 - post-state 抓回开发仓归档
 
-### 13.9 Claude Code CLI 现状、配置与使用边界（截至 2026-03-07）
+### 13.9 Claude Code / Codex 现状、配置与使用边界（2026-03-20 syncback）
 
 #### 13.9.1 当前安装状态
 Claude Code CLI 当前已由 `nick` 用户安装在用户域：
@@ -1211,7 +1211,34 @@ Claude Code 项目级配置文件统一按以下原则理解：
 - 未来 `tasks/<task-id>/repo/CLAUDE.md` 与 `.claude/agents/` 用于容器内 Claude Code 工程执行流程；
 - `workspace-main` 本身不是 Claude Code 项目根，不要求按开发仓方式长期维护 `.claude/`。
 
-### 13.10 今后继续使用 Claude Code 进行开发的标准工作流
+#### 13.9.5 Codex 当前接手状态与双栈共存边界
+截至 2026-03-20：
+
+- Codex 当前已可作为 `~/projects/openclaw-dev/` 的 **repo-side 主执行者** 使用；
+- 这表示它已可接手开发仓内的文档收口、脚本修改、候选产物整理与 repo-local 配置维护；
+- 这 **不表示** live-side 执行器、宿主机控制面或容器内工程执行器已经切换到 Codex；
+- Claude Code **未被替代**，当前应视为与 Codex 双栈共存。
+
+当前文件角色应统一理解为：
+
+- `CLAUDE.md`
+  - repo 级协作规则入口；
+- `.codex/config.toml`
+  - repo-local 配置层；
+- `~/.codex/config.toml`
+  - 用户级接入层，用于本机 Codex 可用性；
+  - 不入库；
+  - 不作为仓库事实源；
+- `docs/*.md`
+  - 仓库事实、边界、设计与证据的权威叙述层。
+
+边界说明：
+
+- 任何 live-side 配置、凭据、运行态文件都不属于 repo-side 文档收口包；
+- repo-side 文档收口不得被描述成系统上线、执行器切换或 live-side 变更；
+- 用户级接入配置只可在 SOP 中作为“本机现状与使用边界”记录，不可被回写成仓库共享凭据或 runtime 真相源。
+
+### 13.10 今后继续使用 Claude Code / Codex 进行开发的标准工作流
 
 #### 13.10.1 开发前准备
 每次进入开发前，先确认：
@@ -1221,10 +1248,10 @@ Claude Code 项目级配置文件统一按以下原则理解：
    - `~/.config/systemd/user/openclaw-gateway.service` 不存在
 3. 当前 system gateway 正常：
    - `openclaw-gateway.service` 为 `active`
-4. 若需要联网访问 Claude Code 中转：
+4. 若需要联网访问 Claude Code / Codex 中转：
    - `HTTP_PROXY / HTTPS_PROXY` 正确
    - `ANTHROPIC_BASE_URL / ANTHROPIC_AUTH_TOKEN` 正确
-5. Claude Code 只在开发仓运行，不在宿主运行路径直接写配置
+5. Claude Code / Codex 只在开发仓运行，不在宿主运行路径直接写配置
 
 #### 13.10.2 日常开发循环
 默认循环如下：
@@ -1235,7 +1262,7 @@ Claude Code 项目级配置文件统一按以下原则理解：
    - workspace 模板
    - script
    - plugin / broker 代码
-2. 在 `~/projects/openclaw-dev/` 中用 Claude Code 进行：
+2. 在 `~/projects/openclaw-dev/` 中用 Claude Code 或 Codex 进行：
    - 方案草拟
    - 文件改写
    - diff 检查
@@ -1257,13 +1284,13 @@ Claude Code 项目级配置文件统一按以下原则理解：
    - 不做 host snapshot；
    - 仅走 repo commit + 测试
 
-#### 13.10.3 何时可以让 Claude Code 直接改文件
-Claude Code 可以直接改：
+#### 13.10.3 何时可以让 Claude Code / Codex 直接改文件
+Claude Code / Codex 可以直接改：
 - `~/projects/openclaw-dev/**`
 - 未来任务容器内 `tasks/<task-id>/repo/**`
 - 未来任务容器内 `outputs/**`
 
-Claude Code 不得直接改：
+Claude Code / Codex 不得直接改：
 - `/etc/openclaw/**`
 - `/opt/openclaw/**`
 - `/var/lib/openclaw/.openclaw/extensions/**`
@@ -1278,7 +1305,7 @@ Claude Code 不得直接改：
 - 未来 plugin 正式部署目录
 - 任何会影响 system gateway、快照链、Vault 链的变更
 
-#### 13.10.5 Claude Code 输出应如何沉淀
+#### 13.10.5 Claude Code / Codex 输出应如何沉淀
 开发仓阶段应沉淀：
 - 候选配置文件
 - delta 文档

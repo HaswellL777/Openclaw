@@ -1,8 +1,8 @@
 # OpenClaw 当前真实边界
 
-> 冻结日期：2026-03-18
+> 冻结日期：2026-03-19
 > 基线版本：OpenClaw 2026.3.13（2026-03-18 从 2026.3.2 升级完成）
-> 阶段：Phase 2 全部完成 + OpenClaw 2026.3.13 升级完成，升级后 capability probe 尚未开始
+> 阶段：Phase 2 全部完成 + OpenClaw 2026.3.13 升级完成；升级后 capability probe 已执行到 P5，并因 hard gate FAIL 中止；Phase 3 当前为 NO-GO
 
 ---
 
@@ -44,35 +44,50 @@
 - Rollback：未触发
 - 升级记录：`docs/records/openclaw-2026.3.13-upgrade-activation-2026-03-18.md`
 
-## 未开始
+## 当前真实边界
 
 | 事项 | 状态 |
 |------|------|
-| 升级后 capability probe（在 2026.3.13 上） | **设计完成，probe 尚未执行** — 这是当前直接下一刀 `execute-post-upgrade-capability-probe-on-2026.3.13` |
-| Phase 3 (Docker sandbox / task-runner) | **未开始** |
+| 升级后 capability probe（在 2026.3.13 上） | **已执行到 P5，并因 hard gate FAIL 中止** — `P5 FAIL`，Phase 3 当前为 **NO-GO**，`P2 / P1 / P4 / P3` 为 **deferred / not executed** |
+| Phase 3 (Docker sandbox / task-runner) | **未开始** — 当前不放行，待 `docker-prerequisite-establishment-for-phase3` 完成后再评估 |
 | Phase 4 (容器内 Claude Code 执行链) | **未开始** |
 | Phase 5 (LLM gateway / token 最小化) | **未开始** |
 | Phase 6 (备份扩展 / 长期收口) | **未开始** |
 | Scrapling 接入 | **未开始** |
 
-## 当前下一步：升级后 capability probe
+## 当前下一步：docker-prerequisite-establishment-for-phase3
 
-升级已完成，当前下一步应为在 2026.3.13 上进行 capability probe：
+本次 capability probe 已在 `2026.3.13` live baseline 上执行到 `P5 Docker / task-runner prerequisites`，并因 Docker prerequisite 缺失而在 hard gate 处中止。
 
-1. 评估 `sessions_yield` 对 task-runner 设计的影响
-2. 评估 sandbox backend 可用性
-3. 评估 `openclaw backup create/verify` 作为补充 backup 工具的价值
-4. 验证 Docker sandbox 相关能力是否可用
-5. 基于 probe 结论更新 Phase 3 设计
+当前下一步不是继续 capability probe 主流程，不是直接进入 `phase3-docker-sandbox-foundation`，而是先完成：
 
-capability probe 的结论是进入 Phase 3 实现的 Go/No-Go gate。
+- `docker-prerequisite-establishment-for-phase3`
 
-**capability probe 设计已完成，probe 尚未执行。**
+其目标应聚焦于：
 
+1. 安装并启用 Docker Engine
+2. 明确 `docker.service` / `docker.socket` 的目标形态
+3. 为 `openclaw` 用户建立安全访问路径
+4. 定义后续 Phase 3 所需的最小 Docker prerequisite
+5. 为 capability probe 的 `P5 / P4 / P3` 重试建立入口
+
+capability probe 的结论仍然是进入 Phase 3 实现的 Go/No-Go gate；本次执行窗口的正式结果是：**P5 FAIL，Phase 3 = NO-GO**。
+
+- 执行记录：`docs/records/post-upgrade-capability-probe-execution-2026-03-19.md`
 - 设计文档：`docs/planning/post-upgrade-capability-probe-2026.3.13-slice-design-2026-03-18.md`
 - Probe matrix：`docs/checklists/post-upgrade-capability-probe-matrix-2026.3.13.md`
 - Operator runbook：`docs/runbook-post-upgrade-capability-probe-2026.3.13.md`
-- Result template：`docs/templates/post-upgrade-capability-probe-record-template.md`
+- 下一刀 planning：`docs/planning/docker-prerequisite-establishment-for-phase3-2026-03-19.md`
+
+## 当前 repo-side 执行器状态
+
+- Codex 当前已可作为 **repo-side 主执行者** 使用，但这只代表开发仓文档/脚本/候选产物层可接手，不代表 live-side 执行器已切换。
+- Claude Code **未被替代**；当前应视为与 Codex **双栈共存**：
+  - Claude Code：已有既有 SOP、项目规则与开发使用路径。
+  - Codex：当前已可在 `~/projects/openclaw-dev/` 内承担 repo-side 主执行工作。
+- `CLAUDE.md` 当前仍是 repo 级协作规则入口。
+- `.codex/config.toml` 是 repo-local 配置层；`~/.codex/config.toml` 是用户级接入层，不属于仓库事实源。
+- 本轮文档收口仅覆盖 repo-side 文档与 repo-local 配置，不涉及任何 live-side 配置、凭据或运行态文件。
 
 ## 已知非阻塞观察项
 

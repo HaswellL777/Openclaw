@@ -1,6 +1,6 @@
 # OpenClaw Dev Repo 文档地图
 
-> 更新日期：2026-03-18
+> 更新日期：2026-03-20
 
 ---
 
@@ -27,7 +27,7 @@
 | 文件 | 描述 |
 |------|------|
 | `docs/planning/README.md` | planning 目录索引 |
-| `docs/planning/post-upgrade-capability-probe-2026.3.13-slice-design-2026-03-18.md` | **升级后 capability probe 设计（当前活跃）** |
+| `docs/planning/docker-prerequisite-establishment-for-phase3-2026-03-19.md` | **当前唯一下一刀：Docker prerequisite establishment（active）** |
 | `docs/planning/openclaw-upgrade-readiness-2026-03-18.md` | OpenClaw 升级就绪评估（已完成） |
 | `docs/planning/openclaw-2026.3.13-upgrade-slice-design-2026-03-18.md` | 2026.3.13 升级 slice 设计（已完成） |
 | `docs/planning/openclaw-2026.3.13-upgrade-rollback-design-2026-03-18.md` | 2026.3.13 升级 rollback 设计（已完成） |
@@ -56,7 +56,7 @@
 
 | 目录 | 描述 |
 |------|------|
-| `docs/records/` | Phase 1B–2 激活记录（11 files），见 `docs/records/README.md` |
+| `docs/records/` | Phase 1B–2 + post-upgrade probe 证据记录（12 files），见 `docs/records/README.md` |
 | `docs/checklists/` | 操作清单 |
 
 ### 证据文件明细
@@ -65,8 +65,9 @@
 |------|------|
 | `docs/checklists/deploy-candidate-route-c-checklist.md` | Route C deploy 操作清单 |
 | `docs/checklists/openclaw-upgrade-focused-regression-2026.3.13.md` | 2026.3.13 升级 focused regression checklist |
-| `docs/checklists/post-upgrade-capability-probe-matrix-2026.3.13.md` | **升级后 capability probe matrix** |
+| `docs/checklists/post-upgrade-capability-probe-matrix-2026.3.13.md` | **升级后 capability probe matrix（对应已执行 probe，不代表当前 active planning）** |
 | `docs/records/README.md` | records 目录索引 |
+| `docs/records/post-upgrade-capability-probe-execution-2026-03-19.md` | **P5 FAIL / Phase 3 = NO-GO 执行证据；不是当前 active planning** |
 
 ## 活跃参考 `[active]`
 
@@ -75,6 +76,7 @@
 | `docs/when-to-snapshot.md` | 快照时机指南 |
 | `docs/acceptance-tests.md` | 验收测试 |
 | `docs/runtime-allowlist-backup-draft.md` | Phase 6 输入：运行态备份 allowlist 设计 |
+| `.codex/config.toml` | repo-local Codex 配置层（非用户级接入配置） |
 
 ## 历史里程碑 `[archived]`
 
@@ -115,10 +117,11 @@
 
 ## 已归档规划 `[archived]`
 
-已完成的 Phase 2 slice 设计文档，移至 `docs/archive/planning/phase2/`。
+已完成或已退出当前 active 状态的 planning 文档。
 
 | 文件 | 描述 |
 |------|------|
+| `docs/planning/post-upgrade-capability-probe-2026.3.13-slice-design-2026-03-18.md` | 升级后 capability probe 设计；probe 已执行并在 P5 FAIL 后收口，当前不再是 active slice |
 | `docs/archive/planning/phase2/deploy-candidate-slice-design-2026-03-15.md` | deploy_candidate 切片设计 |
 | `docs/archive/planning/phase2/snapshot-pre-slice-design-2026-03-15.md` | snapshot_pre 切片设计 |
 | `docs/archive/planning/phase2/snapshot-post-slice-design-2026-03-16.md` | snapshot_post 切片设计 |

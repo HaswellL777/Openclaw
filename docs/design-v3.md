@@ -1,7 +1,7 @@
 # OpenClaw 多 Agent + Claude Code 协作体系设计稿 v3.1
 
 > 初版编写日期：2026-03-07
-> 本次修订日期：2026-03-18（OpenClaw 2026.3.13 升级完成 syncback）
+> 本次修订日期：2026-03-20（NO-GO 收口 + Codex repo-side 接手文档化）
 > 适用宿主机：当前单机 Ubuntu 24.04 LTS / Btrfs / systemd / OpenClaw 2026.3.13 基线
 > 上游输入：`openclaw-host-sop-2026-03-06.md`、`1.md`、`openclaw-design-v2-2026-03-07.md`、本轮 Phase 1A 实际落地结果、Phase 1B 开发仓候选产物
 > 文档定位：**可实施规格稿 + 落地状态稿**，用于后续继续开发、验证、回滚、审计与发布
@@ -10,19 +10,21 @@
 
 ## 0. 文档结论先行
 
-截至 2026-03-18，本设计稿 v3.1 的状态应表述为：
+截至 2026-03-20，本设计稿 v3.1 的状态应表述为：
 
 1. **当前真实落地阶段：Phase 1（1A + 1B）+ Phase 2 全部完成。** agent-facing host_ops 8/8 action 已 live E2E verified（2026-03-17）。详见 `docs/current-boundary.md`。
 2. **主控制面仍在宿主机，不容器化。**
 3. **`main` agent 已在现网落地**，具备 `read / write / edit / sessions_*` + `host_ops` 工具，无 `exec`、无 `elevated`。
 4. **`workspace-main` 已实际发布**到 `/var/lib/openclaw/.openclaw/workspace-main/`，视为 published artifact（非 root snapshot 恢复对象）。
 5. **host-ops broker daemon 已部署并运行**（`openclaw-broker.service`）；8 个 wrapper 已安装（production）；host-ops-tool plugin registerTool 版已部署到 live。全部 8 个 action 已 live E2E verified。逐 action 证据见 `docs/records/README.md`。
-6. **Claude Code CLI 当前只完成角色 A**（`nick` 用户开发工具）。角色 B（容器内工程执行器）属后续阶段。
-7. **OpenClaw 2026.3.13 升级已完成（2026-03-18）。** live baseline 已从 2026.3.2 切换到 2026.3.13，P0 focused regression 19/19 PASS，rollback 未触发。`2026.3.13` 已在当前宿主机完成 live 验证。升级记录见 `docs/records/openclaw-2026.3.13-upgrade-activation-2026-03-18.md`。
-8. **当前下一步为升级后 capability probe（在 2026.3.13 上）。** 升级已完成，应先做 capability probe（评估 sessions_yield、sandbox backend、backup 工具等），再进入 Phase 3 实现。capability probe 设计已完成（`docs/planning/post-upgrade-capability-probe-2026.3.13-slice-design-2026-03-18.md`），probe 尚未执行。详见 `docs/current-boundary.md`。
-9. **task-runner / Docker sandbox 仍是后续阶段目标，尚未进入生产执行链。** 除非特别注明”已验证”，否则不得写成当前事实。
-9. **任何宿主机副作用仍必须坚持”快照 → 变更 → 健康检查 → post 快照 → Vault 入库”的纪律。**
-10. **`/var/lib/openclaw` 已是独立 Btrfs 子卷**，不在 root snapshot 保护范围内。
+6. **Claude Code CLI 当前只完成角色 A**（`nick` 用户开发工具）。角色 B（容器内工程执行器）属后续阶段；当前并未被 Codex 替代。
+7. **Codex 当前已可接手 repo-side 主执行者角色。** 其适用范围是开发仓 `~/projects/openclaw-dev/` 内的文档、脚本、候选产物与 repo-local 配置工作；这不代表 live-side 执行器发生切换。
+8. **OpenClaw 2026.3.13 升级已完成（2026-03-18）。** live baseline 已从 2026.3.2 切换到 2026.3.13，P0 focused regression 19/19 PASS，rollback 未触发。`2026.3.13` 已在当前宿主机完成 live 验证。升级记录见 `docs/records/openclaw-2026.3.13-upgrade-activation-2026-03-18.md`。
+9. **升级后 capability probe 已在 2026.3.13 上执行，并在 P5 因 Docker prerequisite 缺失而 hard gate FAIL。** 当前 Phase 3 结论是 **NO-GO**；`P2 / P1 / P4 / P3` 为 deferred / not executed。执行记录见 `docs/records/post-upgrade-capability-probe-execution-2026-03-19.md`。
+10. **当前唯一下一刀是 `docker-prerequisite-establishment-for-phase3`。** 在该 prerequisite establishment 完成前，不进入 `phase3-docker-sandbox-foundation`。
+11. **task-runner / Docker sandbox 仍是后续阶段目标，尚未进入生产执行链。** 除非特别注明“已验证”，否则不得写成当前事实。
+12. **任何宿主机副作用仍必须坚持“快照 → 变更 → 健康检查 → post 快照 → Vault 入库”的纪律。**
+13. **`/var/lib/openclaw` 已是独立 Btrfs 子卷**，不在 root snapshot 保护范围内。
 
 > 运行态细节（模型切换、plugin activation 逐步骤记录、per-agent allowlist 修复历史等）已下沉到 `docs/host-sop.md`。本文档聚焦架构设计与实施规格。
 
@@ -44,7 +46,7 @@
   - 可快照；
   - 可回滚；
   - 可最小授权；
-- 让 **SOP** 成为 OpenClaw 与 Claude Code 的共同事实源；
+- 让 **SOP** 成为 OpenClaw、Claude Code 与 Codex 的共同事实源；
 - 让整套方案支持逐步扩展，而不是一开始把全部高风险能力一次性打开。
 
 ### 1.2 非目标
@@ -1381,6 +1383,17 @@ openclaw-task-claude:2026-03-v3
 - 不要让 Claude Code 在 `nick` 用户环境里直接“代执行”会改变生产宿主机状态的高风险命令；
 - 它的职责是**生成与审查**，最终落地走人的批准或后续 broker 执行链。
 
+### 6.7.1 当前 repo-side AI 执行器收口（2026-03-20）
+
+截至本轮收口，`~/projects/openclaw-dev/` 的 repo-side AI 执行器应理解为：
+
+- `CLAUDE.md` 仍是 repo 级协作规则入口；
+- Claude Code 与 Codex 当前处于 **双栈共存**，不是“替换完成”关系；
+- Codex 当前已可承担 repo-side 主执行者职责，但其工作边界仍限于开发仓内的文档、脚本、候选产物与 repo-local 配置；
+- `.codex/config.toml` 是 repo-local 配置层；
+- `~/.codex/config.toml` 是用户级接入层，不应写入仓库，也不应被当作 repo 事实源；
+- 任何 live-side 配置、凭据、运行态文件都不属于本节所述 repo-side 执行器收口范围。
+
 ---
 
 ## 6.8 当前现网状态快照（2026-03-07）
@@ -1749,10 +1762,11 @@ Scrapling 是 Python 3.10+ 的自适应 Web 抓取框架，需要网络访问和
 > 必须先完成：(1) baseline rebase（本轮）→ (2) OpenClaw 升级到 ≥ 2026.3.12 → (3) 升级后 focused regression → (4) 在升级后版本上做 capability probe。
 > 原因：2026.3.12 可能含 sandbox 相关能力变更，在 2026.3.2 上做 probe 结论可能在升级后失效。
 >
-> **当前进度（2026-03-18）：**(1)(2)(3) 均已完成。(4) capability probe 设计已完成，probe 尚未执行。
-> probe 设计见 `docs/planning/post-upgrade-capability-probe-2026.3.13-slice-design-2026-03-18.md`。
-> 当前直接下一刀应为 `execute-post-upgrade-capability-probe-on-2026.3.13`。
-> 只有在 probe 完成且 Go/No-Go hard gate 通过后，才推荐 `phase3-docker-sandbox-foundation` 作为后继 implementation slice.
+> **当前进度（2026-03-20）：**(1)(2)(3) 均已完成。(4) capability probe 已执行，并在 `P5 Docker / task-runner prerequisites` 因 Docker prerequisite 缺失而 hard gate FAIL。
+> probe 执行记录见 `docs/records/post-upgrade-capability-probe-execution-2026-03-19.md`。
+> 当前 Phase 3 结论为 **NO-GO**。
+> 当前唯一下一刀应为 `docker-prerequisite-establishment-for-phase3`，见 `docs/planning/docker-prerequisite-establishment-for-phase3-2026-03-19.md`。
+> 只有在该 prerequisite establishment 完成、并重试 capability probe 后，才推荐 `phase3-docker-sandbox-foundation` 作为后继 implementation slice.
 
 ### 目标
 
@@ -2054,4 +2068,3 @@ Phase 2 repo prep 全部完成。完整 prep 退出标准见 `docs/specs/phase2-
 - **运行态控制面恢复**：依赖 published artifact 重发 + 运行态 allowlist 备份。
 
 不得再把两者混写成“恢复整个系统等于恢复所有运行态目录”。
-
