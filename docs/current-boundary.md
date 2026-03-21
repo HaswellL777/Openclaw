@@ -49,47 +49,57 @@
 | 事项 | 状态 |
 |------|------|
 | 升级后 capability probe（在 2026.3.13 上） | **已执行到 P5，并因 hard gate FAIL 中止** — `P5 FAIL`，Phase 3 当前为 **NO-GO**，`P2 / P1 / P4 / P3` 为 **deferred / not executed** |
-| Phase 3 (Docker sandbox / task-runner) | **未开始** — 当前不放行，待 `docker-prerequisite-establishment-for-phase3` 完成后再评估 |
+| `2026-03-21` temporary restricted proxy feasibility window | **HARD_STOP before proxy start** — 唯一 hard-stop reason = `hello-world image missing`；`proxy not started`；`audit jsonl not created`；`gateway remained active`；`broker remained active` |
+| Phase 3 (Docker sandbox / task-runner) | **未开始** — 当前仍不放行；`docker.service` / `docker.socket` 的 dated evidence 不等于 `Phase 3 = GO` |
 | Phase 4 (容器内 Claude Code 执行链) | **未开始** |
 | Phase 5 (LLM gateway / token 最小化) | **未开始** |
 | Phase 6 (备份扩展 / 长期收口) | **未开始** |
 | Scrapling 接入 | **未开始** |
 
-## 当前下一步：docker-prerequisite-establishment-for-phase3
+## 当前下一步：hello-world-image-prerequisite-window-2026-03-21
 
-本次 capability probe 已在 `2026.3.13` live baseline 上执行到 `P5 Docker / task-runner prerequisites`，并因 Docker prerequisite 缺失而在 hard gate 处中止。
+`2026-03-19` 的 capability probe 已在 `P5 Docker / task-runner prerequisites` 处 hard gate FAIL，结论仍是 `Phase 3 = NO-GO`。
 
-当前下一步不是继续 capability probe 主流程，不是直接进入 `phase3-docker-sandbox-foundation`，而是先完成：
+`2026-03-21` 的 temporary restricted proxy feasibility window execution evidence 又进一步收口为：
 
-- `docker-prerequisite-establishment-for-phase3`
+- `WINDOW_RESULT=HARD_STOP`
+- `HARD_STOP_REASON=hello-world image missing`
+- `PROXY_NOT_STARTED=yes`
+- `AUDIT_JSONL_PRESENT=no`
 
-其目标应聚焦于：
+对应 evidence 见：
 
-1. 安装并启用 Docker Engine
-2. 明确 `docker.service` / `docker.socket` 的目标形态
-3. 为 `openclaw` 用户建立安全访问路径
-4. 定义后续 Phase 3 所需的最小 Docker prerequisite
-5. 为 capability probe 的 `P5 / P4 / P3` 重试建立入口
+- `docs/records/temporary-restricted-proxy-feasibility-window-execution-2026-03-21.md`
 
-capability probe 的结论仍然是进入 Phase 3 实现的 Go/No-Go gate；本次执行窗口的正式结果是：**P5 FAIL，Phase 3 = NO-GO**。
+同一 bundle 还直接显示：
 
-当前立即执行的 repo-side 子切片是：
+- `docker.service` pre-proxy = `active`
+- `docker.socket` pre-proxy = `active`
+- `openclaw` 直接访问 Docker daemon = `permission denied`
+- `hello-world` image 缺失
 
-- `docker access model feasibility experiment definition`
+这些 dated facts 只说明 prerequisite 现状，不构成 `Phase 3 = GO`，也不构成 temporary restricted proxy execution 已开始。
 
-它的定位是：
+因此当前新的直接下一刀不是继续 temporary restricted proxy execution，不是直接进入 `phase3-docker-sandbox-foundation`，而是先完成：
 
-- 作为 `docker-prerequisite-establishment-for-phase3` 的前置判定子包；
-- 只定义“受限 proxy + 显式 endpoint”这一当前唯一存活候选，是否足以支撑 OpenClaw `sandbox.docker` 的最小 lifecycle 闭环；
-- 不代表 live-side establishment 已开始；
-- 不改变当前 `Phase 3 = NO-GO` 结论。
+- `hello-world-image-prerequisite-window-2026-03-21`
+
+其目标应严格收敛为：
+
+1. 只补齐 `hello-world` image prerequisite。
+2. 为后续 temporary restricted proxy feasibility execution 提供进入条件。
+3. 保持 `Phase 3 = NO-GO`，直到后续 execution evidence 另行形成通过结论。
+4. 不与 temporary restricted proxy execution 合并。
+5. 不触碰 `/etc/openclaw/openclaw.json` 或 `openclaw.live.json`。
 
 - 执行记录：`docs/records/post-upgrade-capability-probe-execution-2026-03-19.md`
+- 本次 HARD_STOP evidence record：`docs/records/temporary-restricted-proxy-feasibility-window-execution-2026-03-21.md`
 - 设计文档：`docs/planning/post-upgrade-capability-probe-2026.3.13-slice-design-2026-03-18.md`
 - Probe matrix：`docs/checklists/post-upgrade-capability-probe-matrix-2026.3.13.md`
 - Operator runbook：`docs/runbook-post-upgrade-capability-probe-2026.3.13.md`
-- 下一刀 planning：`docs/planning/docker-prerequisite-establishment-for-phase3-2026-03-19.md`
-- 当前 repo-side 子切片：`docs/planning/docker-access-model-feasibility-experiment-for-openclaw-2026.3.13-2026-03-21.md`
+- 父切片 planning：`docs/planning/docker-prerequisite-establishment-for-phase3-2026-03-19.md`
+- 当前直接下一刀 planning：`docs/planning/hello-world-image-prerequisite-window-2026-03-21.md`
+- feasibility definition：`docs/planning/docker-access-model-feasibility-experiment-for-openclaw-2026.3.13-2026-03-21.md`
 
 ## 当前 repo-side 执行器状态
 

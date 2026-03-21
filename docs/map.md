@@ -27,8 +27,9 @@
 | 文件 | 描述 |
 |------|------|
 | `docs/planning/README.md` | planning 目录索引 |
-| `docs/planning/docker-prerequisite-establishment-for-phase3-2026-03-19.md` | **当前唯一下一刀：Docker prerequisite establishment（active）** |
-| `docs/planning/docker-access-model-feasibility-experiment-for-openclaw-2026.3.13-2026-03-21.md` | **当前 active repo-side 子切片：定义 Docker access model feasibility experiment；属于前置判定，不代表 establishment 已开始** |
+| `docs/planning/hello-world-image-prerequisite-window-2026-03-21.md` | **当前直接下一刀：hello-world image prerequisite-only window（active）** |
+| `docs/planning/docker-prerequisite-establishment-for-phase3-2026-03-19.md` | **当前 active 父切片：Docker prerequisite establishment** |
+| `docs/planning/docker-access-model-feasibility-experiment-for-openclaw-2026.3.13-2026-03-21.md` | **feasibility definition；`2026-03-21` execution evidence 已在 proxy start 前 `HARD_STOP`，当前不再是直接下一刀** |
 | `docs/planning/openclaw-upgrade-readiness-2026-03-18.md` | OpenClaw 升级就绪评估（已完成） |
 | `docs/planning/openclaw-2026.3.13-upgrade-slice-design-2026-03-18.md` | 2026.3.13 升级 slice 设计（已完成） |
 | `docs/planning/openclaw-2026.3.13-upgrade-rollback-design-2026-03-18.md` | 2026.3.13 升级 rollback 设计（已完成） |
@@ -57,7 +58,7 @@
 
 | 目录 | 描述 |
 |------|------|
-| `docs/records/` | Phase 1B–2 + post-upgrade probe 证据记录（12 files），见 `docs/records/README.md` |
+| `docs/records/` | Phase 1B–2 + post-upgrade probe + `2026-03-21` temporary restricted proxy feasibility window 的证据记录，见 `docs/records/README.md` |
 | `docs/checklists/` | 操作清单 |
 
 ### 证据文件明细
@@ -69,6 +70,7 @@
 | `docs/checklists/post-upgrade-capability-probe-matrix-2026.3.13.md` | **升级后 capability probe matrix（对应已执行 probe，不代表当前 active planning）** |
 | `docs/records/README.md` | records 目录索引 |
 | `docs/records/post-upgrade-capability-probe-execution-2026-03-19.md` | **P5 FAIL / Phase 3 = NO-GO 执行证据；不是当前 active planning** |
+| `docs/records/temporary-restricted-proxy-feasibility-window-execution-2026-03-21.md` | **temporary restricted proxy feasibility window 执行证据；`HARD_STOP`，唯一原因 = `hello-world image missing`；不是 Phase 3 implementation** |
 
 ## 活跃参考 `[active]`
 

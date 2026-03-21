@@ -1,7 +1,7 @@
 # OpenClaw 多 Agent + Claude Code 协作体系设计稿 v3.1
 
 > 初版编写日期：2026-03-07
-> 本次修订日期：2026-03-20（NO-GO 收口 + Codex repo-side 接手文档化）
+> 本次修订日期：2026-03-21（2026-03-21 HARD_STOP 后边界收口 + Codex repo-side 接手文档化）
 > 适用宿主机：当前单机 Ubuntu 24.04 LTS / Btrfs / systemd / OpenClaw 2026.3.13 基线
 > 上游输入：`openclaw-host-sop-2026-03-06.md`、`1.md`、`openclaw-design-v2-2026-03-07.md`、本轮 Phase 1A 实际落地结果、Phase 1B 开发仓候选产物
 > 文档定位：**可实施规格稿 + 落地状态稿**，用于后续继续开发、验证、回滚、审计与发布
@@ -10,7 +10,7 @@
 
 ## 0. 文档结论先行
 
-截至 2026-03-20，本设计稿 v3.1 的状态应表述为：
+截至 2026-03-21，本设计稿 v3.1 的状态应表述为：
 
 1. **当前真实落地阶段：Phase 1（1A + 1B）+ Phase 2 全部完成。** agent-facing host_ops 8/8 action 已 live E2E verified（2026-03-17）。详见 `docs/current-boundary.md`。
 2. **主控制面仍在宿主机，不容器化。**
@@ -21,10 +21,11 @@
 7. **Codex 当前已可接手 repo-side 主执行者角色。** 其适用范围是开发仓 `~/projects/openclaw-dev/` 内的文档、脚本、候选产物与 repo-local 配置工作；这不代表 live-side 执行器发生切换。
 8. **OpenClaw 2026.3.13 升级已完成（2026-03-18）。** live baseline 已从 2026.3.2 切换到 2026.3.13，P0 focused regression 19/19 PASS，rollback 未触发。`2026.3.13` 已在当前宿主机完成 live 验证。升级记录见 `docs/records/openclaw-2026.3.13-upgrade-activation-2026-03-18.md`。
 9. **升级后 capability probe 已在 2026.3.13 上执行，并在 P5 因 Docker prerequisite 缺失而 hard gate FAIL。** 当前 Phase 3 结论是 **NO-GO**；`P2 / P1 / P4 / P3` 为 deferred / not executed。执行记录见 `docs/records/post-upgrade-capability-probe-execution-2026-03-19.md`。
-10. **当前唯一下一刀是 `docker-prerequisite-establishment-for-phase3`。** 在该 prerequisite establishment 完成前，不进入 `phase3-docker-sandbox-foundation`。
-11. **task-runner / Docker sandbox 仍是后续阶段目标，尚未进入生产执行链。** 除非特别注明“已验证”，否则不得写成当前事实。
-12. **任何宿主机副作用仍必须坚持“快照 → 变更 → 健康检查 → post 快照 → Vault 入库”的纪律。**
-13. **`/var/lib/openclaw` 已是独立 Btrfs 子卷**，不在 root snapshot 保护范围内。
+10. **当前 active parent slice 是 `docker-prerequisite-establishment-for-phase3`；current direct next window 是 `hello-world-image-prerequisite-window-2026-03-21`。** `2026-03-21` 的 temporary restricted proxy feasibility window 已在 proxy start 前以 `HARD_STOP` 收口，唯一 hard-stop reason = `hello-world image missing`。
+11. **Phase 3 当前仍是 NO-GO；temporary restricted proxy execution 尚未启动。** `proxy not started`、`audit jsonl not created`；在 hello-world prerequisite-only window 完成前，不继续 proxy execution，不进入 `phase3-docker-sandbox-foundation`。
+12. **task-runner / Docker sandbox 仍是后续阶段目标，尚未进入生产执行链。** 除非特别注明“已验证”，否则不得写成当前事实。
+13. **任何宿主机副作用仍必须坚持“快照 → 变更 → 健康检查 → post 快照 → Vault 入库”的纪律。**
+14. **`/var/lib/openclaw` 已是独立 Btrfs 子卷**，不在 root snapshot 保护范围内。
 
 > 运行态细节（模型切换、plugin activation 逐步骤记录、per-agent allowlist 修复历史等）已下沉到 `docs/host-sop.md`。本文档聚焦架构设计与实施规格。
 
@@ -207,6 +208,9 @@ v3.1 继续坚持“控制面 / 执行面分离”，但必须明确区分 **当
 5. 现有 LLM provider / upstream proxy 配置
 6. vLLM audit service（已存在，但未与最终 Claude Code gate flow 完整闭环）
 7. 开发仓库 `~/projects/openclaw-dev/` 与候选配置生成流程
+8. `openclaw-broker.service` 与 root-owned wrapper 链
+9. host-ops-tool plugin（registerTool 版）
+10. Phase 2 agent-facing host_ops 8/8 action 的 live E2E 证据链
 
 当前实际职责：
 
@@ -217,15 +221,12 @@ v3.1 继续坚持“控制面 / 执行面分离”，但必须明确区分 **当
 - 以最小工具集执行对话与控制面编排；
 - 在未来 task-runner 上线前，先承担单代理控制入口角色。
 
-#### B. 当前尚未落地、但仍保留的宿主机控制面目标组件
+#### B. 当前尚未落地、但仍保留的后续控制面目标组件
 
 以下仍属于后续阶段目标，而不是现网已完成能力：
 
-1. `host-ops broker`
-2. root-owned wrapper 链
-3. 正式 `host_ops` plugin
-4. task token / gateway token 下发链
-5. `/var/lib/openclaw` 独立 allowlist 备份链（开发仓设计定稿候选 `docs/runtime-allowlist-backup-draft.md` 已结构化，尚未转化为可执行脚本）
+1. task token / gateway token 下发链
+2. `/var/lib/openclaw` 独立 allowlist 备份链（开发仓设计定稿候选 `docs/runtime-allowlist-backup-draft.md` 已结构化，尚未转化为可执行脚本）
 
 #### C. 目标中的任务执行面（尚未落地）
 
@@ -293,9 +294,9 @@ v3.1 继续坚持“控制面 / 执行面分离”，但必须明确区分 **当
 
 截至本次修订：
 
-- 4.2.2 / 4.2.3 仍是目标路径；
-- 当前现网只真正落到了 4.2.1；
-- 因此任何文中出现的 `task-runner`、`host-ops broker`、`wrapper`、容器内 Claude Code 执行流，除非特别注明“已验证”，都应视为后续阶段目标。
+- 4.2.2 仍是目标路径；
+- 4.2.3 只部分落地：broker / wrapper / host-ops plugin 链已在 Phase 2 live E2E verified，但 `task-runner -> host-change-request.json -> main -> broker` 这条编排流尚未上线；
+- 因此任何文中出现的 `task-runner`、容器内 Claude Code 执行流，除非特别注明“已验证”，都应视为后续阶段目标；`broker` / `wrapper` / `host_ops plugin` 则不得再误写成“尚未落地”。
 
 ---
 
@@ -1758,15 +1759,12 @@ Scrapling 是 Python 3.10+ 的自适应 Web 抓取框架，需要网络访问和
 
 ## Phase 3：Docker sandbox capability probe 与 task-runner 上线
 
-> **前置条件（2026-03-18 新增）：当前不应直接进入 Phase 3 实现。**
-> 必须先完成：(1) baseline rebase（本轮）→ (2) OpenClaw 升级到 ≥ 2026.3.12 → (3) 升级后 focused regression → (4) 在升级后版本上做 capability probe。
-> 原因：2026.3.12 可能含 sandbox 相关能力变更，在 2026.3.2 上做 probe 结论可能在升级后失效。
+> **前置条件（2026-03-21 同步）：当前仍不得直接进入 Phase 3 implementation。**
+> `(1) baseline rebase -> (2) OpenClaw 升级到 >= 2026.3.12 -> (3) 升级后 focused regression -> (4) post-upgrade capability probe` 均已完成，其中 `(4)` 已在 `P5 Docker / task-runner prerequisites` 处 hard gate FAIL。
 >
-> **当前进度（2026-03-20）：**(1)(2)(3) 均已完成。(4) capability probe 已执行，并在 `P5 Docker / task-runner prerequisites` 因 Docker prerequisite 缺失而 hard gate FAIL。
-> probe 执行记录见 `docs/records/post-upgrade-capability-probe-execution-2026-03-19.md`。
-> 当前 Phase 3 结论为 **NO-GO**。
-> 当前唯一下一刀应为 `docker-prerequisite-establishment-for-phase3`，见 `docs/planning/docker-prerequisite-establishment-for-phase3-2026-03-19.md`。
-> 只有在该 prerequisite establishment 完成、并重试 capability probe 后，才推荐 `phase3-docker-sandbox-foundation` 作为后继 implementation slice.
+> **当前进度（2026-03-21）：** `2026-03-19` capability probe 已执行，结论为 `P5 FAIL / Phase 3 = NO-GO`。`2026-03-21` 的 temporary restricted proxy feasibility window 又在 proxy start 前 `HARD_STOP`，唯一 hard-stop reason = `hello-world image missing`；`proxy not started`，`audit jsonl not created`。
+> 当前 active parent slice = `docker-prerequisite-establishment-for-phase3`，current direct next window = `hello-world-image-prerequisite-window-2026-03-21`。
+> 在该 prerequisite-only window 完成前，不继续 temporary restricted proxy execution，不进入 `phase3-docker-sandbox-foundation`。相关记录见 `docs/records/post-upgrade-capability-probe-execution-2026-03-19.md` 与 `docs/records/temporary-restricted-proxy-feasibility-window-execution-2026-03-21.md`。
 
 ### 目标
 

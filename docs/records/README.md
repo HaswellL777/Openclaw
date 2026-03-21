@@ -45,5 +45,8 @@
 |------|------|------|
 | `openclaw-2026.3.13-upgrade-activation-2026-03-18.md` | 2026-03-18 | OpenClaw 2026.3.2 → 2026.3.13 升级，P0 19/19 PASS，rollback 未触发 |
 | `post-upgrade-capability-probe-execution-2026-03-19.md` | 2026-03-19 | capability probe execution attempted，P5 hard gate FAIL 后中止，结果 = NO-GO |
+| `temporary-restricted-proxy-feasibility-window-execution-2026-03-21.md` | 2026-03-21 | temporary restricted proxy feasibility window execution evidence；`HARD_STOP`，唯一原因 = `hello-world image missing`；proxy 未启动，audit jsonl 未创建 |
 
 `post-upgrade-capability-probe-execution-2026-03-19.md` 是执行证据文件，不是 Docker prerequisite establishment 的实施记录。
+
+`temporary-restricted-proxy-feasibility-window-execution-2026-03-21.md` 也是执行证据文件，不是 Phase 3 implementation record，不是 docker-prerequisite establishment completion record。

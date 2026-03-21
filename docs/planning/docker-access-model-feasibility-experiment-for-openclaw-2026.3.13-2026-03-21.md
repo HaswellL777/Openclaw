@@ -2,7 +2,7 @@
 
 > 日期：2026-03-21
 > 文档类型：planning / feasibility experiment definition
-> 当前状态：**active repo-side sub-slice**
+> 当前状态：**retained as feasibility definition / not current direct next window**
 > 父切片：`docker-prerequisite-establishment-for-phase3`
 > baseline：OpenClaw `2026.3.13`
 > 文档性质：**这是可行性实验定义，不是 establishment 记录，不是 Phase 3 实施记录**
@@ -274,7 +274,7 @@
 - `docker-prerequisite-establishment-for-phase3`
   的前置判定子包
 
-父切片仍是当前唯一下一刀；本文件只把其中“当前立即执行的 repo-side 子切片”定义清楚：
+父切片仍处于 active 状态；但当前直接下一刀已经切成 `hello-world-image-prerequisite-window-2026-03-21`。本文件只保留为 prerequisite establishment 内的 feasibility definition 子包：
 
 - `docker access model feasibility experiment definition`
 
