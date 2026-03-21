@@ -1,6 +1,6 @@
 # OpenClaw Dev Repo 文档地图
 
-> 更新日期：2026-03-20
+> 更新日期：2026-03-21
 
 ---
 
@@ -28,6 +28,7 @@
 |------|------|
 | `docs/planning/README.md` | planning 目录索引 |
 | `docs/planning/docker-prerequisite-establishment-for-phase3-2026-03-19.md` | **当前唯一下一刀：Docker prerequisite establishment（active）** |
+| `docs/planning/docker-access-model-feasibility-experiment-for-openclaw-2026.3.13-2026-03-21.md` | **当前 active repo-side 子切片：定义 Docker access model feasibility experiment；属于前置判定，不代表 establishment 已开始** |
 | `docs/planning/openclaw-upgrade-readiness-2026-03-18.md` | OpenClaw 升级就绪评估（已完成） |
 | `docs/planning/openclaw-2026.3.13-upgrade-slice-design-2026-03-18.md` | 2026.3.13 升级 slice 设计（已完成） |
 | `docs/planning/openclaw-2026.3.13-upgrade-rollback-design-2026-03-18.md` | 2026.3.13 升级 rollback 设计（已完成） |

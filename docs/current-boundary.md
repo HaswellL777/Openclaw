@@ -1,6 +1,6 @@
 # OpenClaw 当前真实边界
 
-> 冻结日期：2026-03-19
+> 冻结日期：2026-03-21
 > 基线版本：OpenClaw 2026.3.13（2026-03-18 从 2026.3.2 升级完成）
 > 阶段：Phase 2 全部完成 + OpenClaw 2026.3.13 升级完成；升级后 capability probe 已执行到 P5，并因 hard gate FAIL 中止；Phase 3 当前为 NO-GO
 
@@ -73,11 +73,23 @@
 
 capability probe 的结论仍然是进入 Phase 3 实现的 Go/No-Go gate；本次执行窗口的正式结果是：**P5 FAIL，Phase 3 = NO-GO**。
 
+当前立即执行的 repo-side 子切片是：
+
+- `docker access model feasibility experiment definition`
+
+它的定位是：
+
+- 作为 `docker-prerequisite-establishment-for-phase3` 的前置判定子包；
+- 只定义“受限 proxy + 显式 endpoint”这一当前唯一存活候选，是否足以支撑 OpenClaw `sandbox.docker` 的最小 lifecycle 闭环；
+- 不代表 live-side establishment 已开始；
+- 不改变当前 `Phase 3 = NO-GO` 结论。
+
 - 执行记录：`docs/records/post-upgrade-capability-probe-execution-2026-03-19.md`
 - 设计文档：`docs/planning/post-upgrade-capability-probe-2026.3.13-slice-design-2026-03-18.md`
 - Probe matrix：`docs/checklists/post-upgrade-capability-probe-matrix-2026.3.13.md`
 - Operator runbook：`docs/runbook-post-upgrade-capability-probe-2026.3.13.md`
 - 下一刀 planning：`docs/planning/docker-prerequisite-establishment-for-phase3-2026-03-19.md`
+- 当前 repo-side 子切片：`docs/planning/docker-access-model-feasibility-experiment-for-openclaw-2026.3.13-2026-03-21.md`
 
 ## 当前 repo-side 执行器状态
 
