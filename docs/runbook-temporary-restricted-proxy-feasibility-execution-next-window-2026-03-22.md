@@ -153,6 +153,52 @@ scripts/precheck-temporary-restricted-proxy-artifact-alignment.sh \
    - post-change Vault sync
 13. 将 evidence bundle、结果摘要与 gate 结论 sync back 到 repo-side，更新 record / checklist / pack，而不是继续 deployment continuation
 
+### 4.1 Approved Direct Proxy Execution Block Status
+
+截至 `2026-03-22` 的 blocked-check，当前窗口结论已固定为：
+
+- `RESULT=BLOCKED_BEFORE_HOST_SIDE_CHANGE`
+- `GATE0_3=GREEN`
+- `PREPARED_STATE_PASS=YES`
+- `READONLY_EVIDENCE_GREEN=YES`
+- `APPROVED_PROXY_EXEC_CMD=NO`
+
+这意味着：
+
+- Gate 0-3 已绿，只代表 repo-side prepare/precheck 与 readonly evidence 已形成；
+- 这 **不** 释放 live-side pre-snapshot gate；
+- steps 8-10 目前仍只定义了顺序、目标和 evidence points，**尚未形成已批准的 direct operator command block**；
+- steps 8-10 仍不得被解释为可执行 operator block，也不得在 live-side 现场拼接执行。
+
+在本段被一个单独审阅并批准的 exact block 替换之前，operator 必须继续遵守以下限制：
+
+- 不得现场拼接 proxy start / lifecycle / teardown 命令；
+- 不得把 `docker_restricted_proxy.py` 的存在，误写成 proxy 已获准启动；
+- 不得把 validate-only candidate 的存在，误写成 OpenClaw 已获准使用该 candidate；
+- 不得进入 pre-snapshot；
+- 不得开始 host-side change。
+
+当前仍未批准的项仅限以下七项：
+
+1. proxy 启动锚点未批准
+2. proxy unit / process identity 未批准
+3. candidate acceptance operator 路径未批准
+4. 在不修改 `/etc/openclaw/openclaw.json`、不修改 `openclaw.live.json`、不启动第二个 gateway 的前提下，如何让 OpenClaw 实际使用 current-run validate-only candidate，这条 operator 路径未批准
+5. lifecycle trigger 未批准
+6. teardown 未批准
+7. 证据与命令未一一绑定
+
+因此，本 runbook 当前只能继续提供：
+
+- Gate chain
+- exact order 的阶段顺序
+- hard-stop matrix
+- evidence expectations
+
+本 runbook 当前 **不能** 作为 operator 的 direct proxy start / lifecycle / cleanup 命令来源。
+
+只有当上述七项被收敛为一个单独审阅、逐条可举证的 `Approved Direct Proxy Execution Block` 后，steps 8-10 才可从“占位执行顺序”升级为“可执行 operator block”。
+
 ## 5. Hard-Stop Matrix
 
 ### Before Pre-Snapshot

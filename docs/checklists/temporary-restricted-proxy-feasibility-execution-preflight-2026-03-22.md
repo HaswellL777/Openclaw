@@ -136,6 +136,41 @@
 
 ### 10.2 execution 中最小 evidence
 
+> **Blocked-State Note（2026-03-22）**
+>
+> 当前 `temporary restricted proxy feasibility execution` 仍停在：
+>
+> - `BLOCKED_BEFORE_HOST_SIDE_CHANGE`
+> - `GATE0_3=GREEN`
+> - `PREPARED_STATE_PASS=YES`
+> - `READONLY_EVIDENCE_GREEN=YES`
+> - `APPROVED_PROXY_EXEC_CMD=NO`
+>
+> 因此，`10.2 execution 中最小 evidence` 当前只定义 **必须回收的证据类型**，**不构成 operator 可直接执行的命令块**。
+>
+> 在单独的 `Approved Direct Proxy Execution Block` 被写入并批准前：
+>
+> - 不得现场拼接 proxy start / lifecycle / cleanup 命令；
+> - 不得把 `<proxy-unit>`、`<audit-jsonl-path>` 或“保留相关输出”类占位语句，当作已批准的执行步骤；
+> - 不得把 `candidate config accepted`、`proxy actually started`、`backend reachable via explicit endpoint`、`lifecycle create / start / run / cleanup` 填写为已可执行；
+> - 只允许写回：当前 execution 仍 blocked by missing approved operator block。
+
+### 10.2 execution 中最小 evidence（blocked-state 补充）
+
+在 `Approved Direct Proxy Execution Block` 缺失的情况下，下表各项只保留为 **目标 evidence points**，不得被解释为已存在 operator 命令。
+
+| evidence 点 | 当前可写结论 | 当前仍缺的批准项 |
+|------|------|------|
+| candidate config accepted | 尚无已批准 operator 路径 | candidate acceptance operator 路径 |
+| proxy actually started | 尚无已批准 start anchor | proxy 启动锚点；proxy unit / process identity |
+| audit jsonl actually created | audit 路径已冻结，但创建动作未获准执行 | approved start block；evidence-command binding |
+| backend reachable via explicit endpoint | explicit endpoint 已冻结在 freeze card / helper / candidate 中，但运行态接入路径未获准执行 | candidate acceptance path；lifecycle trigger |
+| lifecycle create / start / run / cleanup | 只定义了目标闭环，未定义已批准 trigger / teardown | lifecycle trigger；teardown；evidence-command binding |
+
+在上述批准项补齐前，本节出口只能写成：
+
+- `blocked by missing approved operator block`
+
 | evidence 点 | 最低要求 | 建议命令骨架 / 核对方式 | 备注 |
 |------|------|------|------|
 | candidate config accepted | OpenClaw 接受相关 `sandbox.docker` 配置，而非 schema/config 级拒绝 | 保留 validate / load / start 相关输出 |  |

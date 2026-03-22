@@ -184,6 +184,7 @@ precheck PASS 的出口语义只能是：
 - temporary restricted proxy execution 已开始
 - validate-only candidate 已完成 live validate
 - Phase 3 = GO
+- operator 在后续窗口中不得现场拼接 proxy start / lifecycle / teardown 命令，必须等待 runbook 中单独批准的 `Approved Direct Proxy Execution Block`。
 
 ## 9. 2026-03-22 Repo-Side Validation Reference
 
