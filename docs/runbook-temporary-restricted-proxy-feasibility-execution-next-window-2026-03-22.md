@@ -17,7 +17,7 @@
 它只回答以下问题：
 
 - repo-side prepare / precheck 先做什么
-- 哪些条件满足后，才允许进入 live-side pre-snapshot
+- 哪些条件满足后，才允许进入下一层 blocked-state 审阅，以及在何种前提下仍不得进入 live-side pre-snapshot
 - snapshot / Vault / proxy start / evidence / hard stop / post-check / syncback 的顺序是什么
 - `2026-03-22` hard-stop 教训如何转成下一次窗口的硬门禁
 
