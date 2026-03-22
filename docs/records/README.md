@@ -47,9 +47,12 @@
 | `post-upgrade-capability-probe-execution-2026-03-19.md` | 2026-03-19 | capability probe execution attempted，P5 hard gate FAIL 后中止，结果 = NO-GO |
 | `temporary-restricted-proxy-feasibility-window-execution-2026-03-21.md` | 2026-03-21 | temporary restricted proxy feasibility window execution evidence；`HARD_STOP`，唯一原因 = `hello-world image missing`；proxy 未启动，audit jsonl 未创建 |
 | `hello-world-image-prerequisite-remediation-micro-window-2026-03-22.md` | 2026-03-22 | prerequisite-only remediation 微窗口执行证据；仅通过 `registry-mirrors` + Docker restart 补齐 `hello-world` prerequisite；proxy 未启动，audit jsonl 未创建 |
+| `temporary-restricted-proxy-feasibility-execution-hard-stop-exp-docker-access-feasibility-20260322-111033.md` | 2026-03-22 | temporary restricted proxy feasibility execution evidence；`HARD_STOP before_proxy_start`，唯一原因 = `current-run artifact alignment not established`；current-run helper 与 validate-only candidate 缺失；previous-run helper 仅作为历史参考，未复用 |
 
 `post-upgrade-capability-probe-execution-2026-03-19.md` 是执行证据文件，不是 Docker prerequisite establishment 的实施记录。
 
 `temporary-restricted-proxy-feasibility-window-execution-2026-03-21.md` 也是执行证据文件，不是 Phase 3 implementation record，不是 docker-prerequisite establishment completion record。
 
 `hello-world-image-prerequisite-remediation-micro-window-2026-03-22.md` 也是执行证据文件，只收口 prerequisite remediation，不是 temporary restricted proxy execution record，不是 Phase 3 implementation record。
+
+`temporary-restricted-proxy-feasibility-execution-hard-stop-exp-docker-access-feasibility-20260322-111033.md` 也是执行证据文件，只收口 `before_proxy_start` 的 hard-stop，不是 temporary restricted proxy execution start 后失败，不是 Phase 3 implementation record。
