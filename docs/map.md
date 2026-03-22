@@ -1,6 +1,6 @@
 # OpenClaw Dev Repo 文档地图
 
-> 更新日期：2026-03-21
+> 更新日期：2026-03-22
 
 ---
 
@@ -27,9 +27,9 @@
 | 文件 | 描述 |
 |------|------|
 | `docs/planning/README.md` | planning 目录索引 |
-| `docs/planning/hello-world-image-prerequisite-window-2026-03-21.md` | **当前直接下一刀：hello-world image prerequisite-only window（active）** |
+| `docs/planning/hello-world-image-prerequisite-window-2026-03-21.md` | **hello-world image prerequisite-only window（已完成 / 已收口；不是 implementation completion）** |
 | `docs/planning/docker-prerequisite-establishment-for-phase3-2026-03-19.md` | **当前 active 父切片：Docker prerequisite establishment** |
-| `docs/planning/docker-access-model-feasibility-experiment-for-openclaw-2026.3.13-2026-03-21.md` | **feasibility definition；`2026-03-21` execution evidence 已在 proxy start 前 `HARD_STOP`，当前不再是直接下一刀** |
+| `docs/planning/docker-access-model-feasibility-experiment-for-openclaw-2026.3.13-2026-03-21.md` | **feasibility definition；`hello-world` prerequisite 已于 `2026-03-22` 补齐，当前可返回进入评审** |
 | `docs/planning/openclaw-upgrade-readiness-2026-03-18.md` | OpenClaw 升级就绪评估（已完成） |
 | `docs/planning/openclaw-2026.3.13-upgrade-slice-design-2026-03-18.md` | 2026.3.13 升级 slice 设计（已完成） |
 | `docs/planning/openclaw-2026.3.13-upgrade-rollback-design-2026-03-18.md` | 2026.3.13 升级 rollback 设计（已完成） |
@@ -66,9 +66,11 @@
 | 文件 | 描述 |
 |------|------|
 | `docs/checklists/deploy-candidate-route-c-checklist.md` | Route C deploy 操作清单 |
+| `docs/checklists/hello-world-image-prerequisite-window-preflight-2026-03-21.md` | **hello-world prerequisite-only live-side window 的执行前门禁清单（draft）** |
 | `docs/checklists/openclaw-upgrade-focused-regression-2026.3.13.md` | 2026.3.13 升级 focused regression checklist |
 | `docs/checklists/post-upgrade-capability-probe-matrix-2026.3.13.md` | **升级后 capability probe matrix（对应已执行 probe，不代表当前 active planning）** |
 | `docs/records/README.md` | records 目录索引 |
+| `docs/records/hello-world-image-prerequisite-remediation-micro-window-2026-03-22.md` | **受限 remediation 微窗口执行证据；补齐 `hello-world` prerequisite；不是 proxy execution，也不是 Phase 3 implementation** |
 | `docs/records/post-upgrade-capability-probe-execution-2026-03-19.md` | **P5 FAIL / Phase 3 = NO-GO 执行证据；不是当前 active planning** |
 | `docs/records/temporary-restricted-proxy-feasibility-window-execution-2026-03-21.md` | **temporary restricted proxy feasibility window 执行证据；`HARD_STOP`，唯一原因 = `hello-world image missing`；不是 Phase 3 implementation** |
 
@@ -107,6 +109,12 @@
 | 文件 | 描述 |
 |------|------|
 | `docs/runbook-post-upgrade-capability-probe-2026.3.13.md` | **[active]** 升级后 capability probe operator runbook |
+
+## 执行包 `[active]`
+
+| 文件 | 描述 |
+|------|------|
+| `docs/execution-pack-hello-world-image-prerequisite-window-2026-03-21.md` | **hello-world prerequisite-only live-side window 的 operator-facing execution pack draft** |
 
 ## 已用 Runbook 与执行包 `[archived]`
 

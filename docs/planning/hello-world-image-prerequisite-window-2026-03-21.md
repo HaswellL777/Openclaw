@@ -2,7 +2,7 @@
 
 > 日期：2026-03-21
 > 文档类型：planning / prerequisite-only window
-> 当前状态：**active / current direct next window**
+> 当前状态：**completed / closed as prerequisite-only window**
 > 父切片：`docker-prerequisite-establishment-for-phase3`
 > 前置执行证据：`docs/records/temporary-restricted-proxy-feasibility-window-execution-2026-03-21.md`
 > 文档性质：**这是 prerequisite-only window，不是 temporary restricted proxy execution，不是 Phase 3 implementation，不是 docker-prerequisite establishment completion**
@@ -23,6 +23,19 @@
 - 不把 `docker-prerequisite-establishment-for-phase3` 写成已完成
 
 `2026-03-21` 的 execution evidence 已经收口为 `HARD_STOP`，且唯一 hard-stop reason 是 `hello-world image missing`。因此当前直接下一刀必须先切成单独的 prerequisite-only window，而不是继续推进 proxy execution。
+
+`2026-03-22` 的 remediation 微窗口已在该边界内完成收口：
+
+- `/etc/docker/daemon.json` 起初不存在；
+- 仅通过 `registry-mirrors` + `docker.service` restart 做最小 Docker registry reachability remediation；
+- `sudo docker pull hello-world` 成功；
+- `sudo docker image inspect hello-world` / `sudo docker image ls hello-world` 已形成直接存在证据；
+- `docker.service` / `docker.socket` / gateway / broker 在 remediation 前后均保持 `active`；
+- temporary restricted proxy 未启动；
+- audit jsonl 未创建；
+- proxy execution 未验证。
+
+因此，本文件当前只保留为**已完成 / 已收口的 prerequisite-only window 记录入口**；下一步至多是返回 temporary restricted proxy feasibility execution 的**进入评审**，而不是写成 execution 已开始。
 
 ## 2. 唯一目标
 
@@ -169,7 +182,8 @@
 - `docker-access-model-feasibility-experiment-for-openclaw-2026.3.13-2026-03-21.md`
   仍是 feasibility definition
 - `temporary-restricted-proxy-feasibility-window` 的 `2026-03-21` execution 已 `HARD_STOP`
-- 当前新的直接下一刀是：
-  - `hello-world-image-prerequisite-window-2026-03-21`
+- `2026-03-22` 的 remediation 微窗口已补齐 `hello-world` prerequisite
+- 当前下一步是：
+  - 返回 temporary restricted proxy feasibility execution 的进入评审
 
-在该 prerequisite-only window 完成前，不得把 temporary restricted proxy execution 与本窗口重新合并。
+本窗口的完成**不等于** temporary restricted proxy execution 已开始，也**不等于** Phase 3 implementation 已开始。

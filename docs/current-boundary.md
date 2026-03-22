@@ -1,6 +1,6 @@
 # OpenClaw 当前真实边界
 
-> 冻结日期：2026-03-21
+> 冻结日期：2026-03-22
 > 基线版本：OpenClaw 2026.3.13（2026-03-18 从 2026.3.2 升级完成）
 > 阶段：Phase 2 全部完成 + OpenClaw 2026.3.13 升级完成；升级后 capability probe 已执行到 P5，并因 hard gate FAIL 中止；Phase 3 当前为 NO-GO
 
@@ -50,13 +50,14 @@
 |------|------|
 | 升级后 capability probe（在 2026.3.13 上） | **已执行到 P5，并因 hard gate FAIL 中止** — `P5 FAIL`，Phase 3 当前为 **NO-GO**，`P2 / P1 / P4 / P3` 为 **deferred / not executed** |
 | `2026-03-21` temporary restricted proxy feasibility window | **HARD_STOP before proxy start** — 唯一 hard-stop reason = `hello-world image missing`；`proxy not started`；`audit jsonl not created`；`gateway remained active`；`broker remained active` |
+| `2026-03-22` hello-world image prerequisite remediation 微窗口 | **PASS / prerequisite-only 收口** — `/etc/docker/daemon.json` 起初不存在；仅通过 `registry-mirrors` + `docker.service` restart 完成最小 registry reachability remediation；`sudo docker pull hello-world` 成功；`hello-world` image 已形成直接存在证据；`docker.service` / `docker.socket` / gateway / broker 前后均保持 `active`；`proxy not started`；`audit jsonl not created`；`proxy execution not validated` |
 | Phase 3 (Docker sandbox / task-runner) | **未开始** — 当前仍不放行；`docker.service` / `docker.socket` 的 dated evidence 不等于 `Phase 3 = GO` |
 | Phase 4 (容器内 Claude Code 执行链) | **未开始** |
 | Phase 5 (LLM gateway / token 最小化) | **未开始** |
 | Phase 6 (备份扩展 / 长期收口) | **未开始** |
 | Scrapling 接入 | **未开始** |
 
-## 当前下一步：hello-world-image-prerequisite-window-2026-03-21
+## 当前下一步：temporary restricted proxy feasibility execution 的进入评审
 
 `2026-03-19` 的 capability probe 已在 `P5 Docker / task-runner prerequisites` 处 hard gate FAIL，结论仍是 `Phase 3 = NO-GO`。
 
@@ -78,22 +79,34 @@
 - `openclaw` 直接访问 Docker daemon = `permission denied`
 - `hello-world` image 缺失
 
-这些 dated facts 只说明 prerequisite 现状，不构成 `Phase 3 = GO`，也不构成 temporary restricted proxy execution 已开始。
+`2026-03-22` 的 remediation 微窗口随后补齐了该唯一 blocker：
 
-因此当前新的直接下一刀不是继续 temporary restricted proxy execution，不是直接进入 `phase3-docker-sandbox-foundation`，而是先完成：
+- `/etc/docker/daemon.json` 起初不存在；
+- 仅通过 `registry-mirrors` 配置 + `docker.service` restart 做最小 remediation；
+- `sudo docker pull hello-world` 成功；
+- `sudo docker image inspect hello-world` / `sudo docker image ls hello-world` 已形成直接存在证据；
+- `docker.service` / `docker.socket` / gateway / broker 在 remediation 前后均保持 `active`；
+- `proxy not started`；
+- `audit jsonl not created`；
+- `proxy execution not validated`。
 
-- `hello-world-image-prerequisite-window-2026-03-21`
+这些 dated facts 只说明 `hello-world` prerequisite 已补齐，不构成 `Phase 3 = GO`，也不构成 temporary restricted proxy execution 已开始。
+
+因此当前新的直接下一刀不是直接进入 `phase3-docker-sandbox-foundation`，而是回到：
+
+- `temporary restricted proxy feasibility execution` 的进入评审
 
 其目标应严格收敛为：
 
-1. 只补齐 `hello-world` image prerequisite。
-2. 为后续 temporary restricted proxy feasibility execution 提供进入条件。
-3. 保持 `Phase 3 = NO-GO`，直到后续 execution evidence 另行形成通过结论。
-4. 不与 temporary restricted proxy execution 合并。
+1. 只评估是否允许重新进入 temporary restricted proxy feasibility execution。
+2. 保持 `Phase 3 = NO-GO`，直到后续 execution evidence 另行形成通过结论。
+3. 不把 prerequisite remediation 写成 temporary restricted proxy execution 已开始。
+4. 不把当前状态写成 `phase3-docker-sandbox-foundation` 已放行。
 5. 不触碰 `/etc/openclaw/openclaw.json` 或 `openclaw.live.json`。
 
 - 执行记录：`docs/records/post-upgrade-capability-probe-execution-2026-03-19.md`
 - 本次 HARD_STOP evidence record：`docs/records/temporary-restricted-proxy-feasibility-window-execution-2026-03-21.md`
+- prerequisite remediation record：`docs/records/hello-world-image-prerequisite-remediation-micro-window-2026-03-22.md`
 - 设计文档：`docs/planning/post-upgrade-capability-probe-2026.3.13-slice-design-2026-03-18.md`
 - Probe matrix：`docs/checklists/post-upgrade-capability-probe-matrix-2026.3.13.md`
 - Operator runbook：`docs/runbook-post-upgrade-capability-probe-2026.3.13.md`
