@@ -123,6 +123,7 @@
 - Probe matrix：`docs/checklists/post-upgrade-capability-probe-matrix-2026.3.13.md`
 - next-window runbook：`docs/runbook-temporary-restricted-proxy-feasibility-execution-next-window-2026-03-22.md`
 - 父切片 planning：`docs/planning/docker-prerequisite-establishment-for-phase3-2026-03-19.md`
+- 当前 direct-next closure：`docs/planning/approved-direct-proxy-execution-block-source-closure-2026-03-22.md`
 - repo-side artifact preparation pack：`docs/execution-pack-temporary-restricted-proxy-feasibility-artifact-preparation-2026-03-22.md`
 - 已形成 green 的 preflight checklist：`docs/checklists/temporary-restricted-proxy-feasibility-execution-preflight-2026-03-22.md`
 - 已形成 green 的 readonly evidence pack：`docs/checklists/temporary-restricted-proxy-feasibility-execution-readonly-evidence-pack-2026-03-22.md`

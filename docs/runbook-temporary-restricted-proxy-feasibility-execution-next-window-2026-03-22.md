@@ -5,6 +5,7 @@
 > 当前状态：**draft / 仅用于下一次 live-side execution 开窗前的门禁与顺序收口，不构成已执行事实**
 > 父切片：`docker-prerequisite-establishment-for-phase3`
 > baseline：OpenClaw `2026.3.13`
+> 当前 direct-next closure：`docs/planning/approved-direct-proxy-execution-block-source-closure-2026-03-22.md`
 > 直接前置证据：`docs/records/temporary-restricted-proxy-feasibility-window-execution-2026-03-21.md`；`docs/records/hello-world-image-prerequisite-remediation-micro-window-2026-03-22.md`；`docs/records/temporary-restricted-proxy-feasibility-execution-hard-stop-exp-docker-access-feasibility-20260322-111033.md`
 > 文档性质：**这是下一次 live-side execution 的 operator runbook；不是 execution record，不是 deployment continuation，不是 Phase 3 GO 记录**
 
@@ -178,7 +179,7 @@ scripts/precheck-temporary-restricted-proxy-artifact-alignment.sh \
 - 不得进入 pre-snapshot；
 - 不得开始 host-side change。
 
-当前仍未批准的项仅限以下七项：
+当前仍未批准的项至少包括以下八类：
 
 1. proxy 启动锚点未批准
 2. proxy unit / process identity 未批准
@@ -187,6 +188,7 @@ scripts/precheck-temporary-restricted-proxy-artifact-alignment.sh \
 5. lifecycle trigger 未批准
 6. teardown 未批准
 7. 证据与命令未一一绑定
+8. hard boundary / forbidden actions 仍未被整理成 future approved block 的前置页
 
 因此，本 runbook 当前只能继续提供：
 
@@ -197,7 +199,7 @@ scripts/precheck-temporary-restricted-proxy-artifact-alignment.sh \
 
 本 runbook 当前 **不能** 作为 operator 的 direct proxy start / lifecycle / cleanup 命令来源。
 
-只有当上述七项被收敛为一个单独审阅、逐条可举证的 `Approved Direct Proxy Execution Block` 后，steps 8-10 才可从“占位执行顺序”升级为“可执行 operator block”。
+只有当上述八类被收敛为一个单独审阅、逐条可举证的 `Approved Direct Proxy Execution Block` 后，steps 8-10 才可从“占位执行顺序”升级为“可执行 operator block”。
 
 ## 5. Hard-Stop Matrix
 

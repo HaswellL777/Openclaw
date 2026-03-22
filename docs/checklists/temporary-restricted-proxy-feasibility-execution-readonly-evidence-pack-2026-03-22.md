@@ -5,6 +5,7 @@
 > 适用范围：`temporary restricted proxy feasibility execution` 开始前的最后一轮只读取证
 > baseline：OpenClaw `2026.3.13`
 > 配套 operator runbook：`docs/runbook-temporary-restricted-proxy-feasibility-execution-next-window-2026-03-22.md`
+> 当前 direct-next closure：`docs/planning/approved-direct-proxy-execution-block-source-closure-2026-03-22.md`
 > 文档性质：**本文件只定义 execution 前必须回收的 fresh readonly evidence，不是 execution runbook，不是 implementation completion record**
 
 ---
@@ -79,7 +80,8 @@ git log --oneline -n 8
 ```
 
 目的：
-- 确认最近提交链顶部仍以 `7b18b74` / `a58567c` 为当前 repo-side 基线
+- 只核对本地最近关键提交链仍包含 `0b409d4`、`1b73805`、`f60e992`
+- 不据此推断 remote push 状态
 
 fresh 要求：
 - 必须 fresh 回收
@@ -91,7 +93,7 @@ sed -n '53,112p' docs/current-boundary.md
 ```
 
 目的：
-- 确认当前 direct next 已写成返回 temporary restricted proxy feasibility execution 的进入评审
+- 确认当前 direct next 已写成 repo-side `Approved Direct Proxy Execution Block` 来源条件 / 批准路径补齐
 - 确认 Phase 3 仍为 `NO-GO`
 
 fresh 要求：
@@ -272,4 +274,4 @@ fresh 要求：
   - fresh 输出显示 `openclaw` 已进入 `docker` 组，或权限边界发生未审查漂移
   - 需要使用写操作、高权限变更或临时解释才能维持“可进入 execution”结论
 
-- 本包回收的输出足够支持 repo-side 做下一步二分判断；若通过，则下一步应是“允许进入正式 feasibility execution”；若不通过，则维持 `Phase 3 = NO-GO` 并继续 `HARD_STOP`。
+- 本包回收的输出足够支持 repo-side 做下一步二分判断；即使 Gate 0-3 继续为绿，下一步也仍只能是 repo-side `Approved Direct Proxy Execution Block` 来源条件 / 批准路径补齐，而不是直接释放 execution。

@@ -3,6 +3,7 @@
 > 日期：2026-03-19
 > 文档类型：planning / active parent slice design
 > 当前状态：**active / parent slice**
+> 当前 direct-next closure：`docs/planning/approved-direct-proxy-execution-block-source-closure-2026-03-22.md`
 > 前置事实：`2026-03-19` post-upgrade capability probe 已在 OpenClaw 2026.3.13 baseline 上执行，并在 `P5 Docker / task-runner prerequisites` hard gate FAIL；`2026-03-21` temporary restricted proxy feasibility window 已在 proxy start 前 `HARD_STOP`；`2026-03-22` 曾因 `current-run artifact alignment not established` 停在 `before_proxy_start`，随后 repo-side prepared state 与 readonly evidence 已补齐，但当前仍 `BLOCKED_BEFORE_HOST_SIDE_CHANGE`
 > 相关执行记录：`docs/records/post-upgrade-capability-probe-execution-2026-03-19.md`；`docs/records/temporary-restricted-proxy-feasibility-window-execution-2026-03-21.md`；`docs/records/temporary-restricted-proxy-feasibility-execution-hard-stop-exp-docker-access-feasibility-20260322-111033.md`
 

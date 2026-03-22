@@ -27,6 +27,7 @@
 | 文件 | 描述 |
 |------|------|
 | `docs/planning/README.md` | planning 目录索引 |
+| `docs/planning/approved-direct-proxy-execution-block-source-closure-2026-03-22.md` | **当前 direct next child slice 的主文档：`Approved Direct Proxy Execution Block` 来源条件 / 批准路径补齐** |
 | `docs/planning/hello-world-image-prerequisite-window-2026-03-21.md` | **hello-world image prerequisite-only window（已完成 / 已收口；不是 implementation completion）** |
 | `docs/planning/docker-prerequisite-establishment-for-phase3-2026-03-19.md` | **当前 active 父切片：Docker prerequisite establishment** |
 | `docs/planning/docker-access-model-feasibility-experiment-for-openclaw-2026.3.13-2026-03-21.md` | **feasibility definition；`hello-world` prerequisite 已于 `2026-03-22` 补齐，但当前仍缺 `Approved Direct Proxy Execution Block`** |
@@ -66,8 +67,8 @@
 | 文件 | 描述 |
 |------|------|
 | `docs/checklists/deploy-candidate-route-c-checklist.md` | Route C deploy 操作清单 |
-| `docs/checklists/temporary-restricted-proxy-feasibility-execution-preflight-2026-03-22.md` | **temporary restricted proxy feasibility execution 的 operator-facing 执行前门禁清单（draft）；当前仅证明 Gate 0-3 已绿，不等于已批准 direct operator block** |
-| `docs/checklists/temporary-restricted-proxy-feasibility-execution-readonly-evidence-pack-2026-03-22.md` | **temporary restricted proxy feasibility execution 的 operator-facing 一次性只读取证包；仅用于 execution 前 fresh evidence 回收** |
+| `docs/checklists/temporary-restricted-proxy-feasibility-execution-preflight-2026-03-22.md` | **temporary restricted proxy feasibility execution 的 operator-facing 执行前门禁清单（draft）；当前仍只作为 future operator-facing 草案，direct next 仍是 repo-side source closure** |
+| `docs/checklists/temporary-restricted-proxy-feasibility-execution-readonly-evidence-pack-2026-03-22.md` | **temporary restricted proxy feasibility execution 的 operator-facing 一次性只读取证包；当前仍只用于 Gate 0-3 fresh evidence 回收，不释放 execution** |
 | `docs/checklists/openclaw-upgrade-focused-regression-2026.3.13.md` | 2026.3.13 升级 focused regression checklist |
 | `docs/checklists/post-upgrade-capability-probe-matrix-2026.3.13.md` | **升级后 capability probe matrix（对应已执行 probe，不代表当前 active planning）** |
 | `docs/records/README.md` | records 目录索引 |
@@ -110,7 +111,7 @@
 
 | 文件 | 描述 |
 |------|------|
-| `docs/runbook-temporary-restricted-proxy-feasibility-execution-next-window-2026-03-22.md` | **[active]** blocked-state 下的 next-window runbook；当前仍缺 `Approved Direct Proxy Execution Block` |
+| `docs/runbook-temporary-restricted-proxy-feasibility-execution-next-window-2026-03-22.md` | **[active]** blocked-state 下的 next-window runbook draft；当前 direct next 仍是 repo-side `Approved Direct Proxy Execution Block` source closure |
 
 ## 执行包 `[active]`
 

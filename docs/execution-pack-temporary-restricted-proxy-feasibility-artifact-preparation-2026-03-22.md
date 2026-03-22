@@ -3,10 +3,11 @@
 > 日期：2026-03-22
 > 文档类型：execution pack / repo-side preparation draft
 > 当前状态：**draft / 仅用于 current-run artifact pre-generation + alignment precheck，不构成 live-side execution runbook**
-> 适用窗口：`temporary restricted proxy feasibility execution` 进入评审之前的 repo-side repair slice
+> 适用窗口：`Approved Direct Proxy Execution Block` 来源条件 / 批准路径补齐之前的 repo-side prepared-state slice
 > 父切片：`docker-prerequisite-establishment-for-phase3`
 > 直接前置事实：`2026-03-22` hard-stop record 明确写回唯一原因 = `current-run artifact alignment not established`
 > 配套 operator runbook：`docs/runbook-temporary-restricted-proxy-feasibility-execution-next-window-2026-03-22.md`
+> 当前 direct-next closure：`docs/planning/approved-direct-proxy-execution-block-source-closure-2026-03-22.md`
 > 文档性质：**本包只处理 current-run helper / validate-only candidate 的预生成与只读对齐预检；不启动 proxy，不创建 audit jsonl，不继续 deployment，不把 feasibility 写成 implementation**
 
 ---

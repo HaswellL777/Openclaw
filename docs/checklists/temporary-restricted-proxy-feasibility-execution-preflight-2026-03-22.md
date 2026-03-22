@@ -2,9 +2,10 @@
 
 > 日期：2026-03-22
 > 文档类型：operator-facing preflight checklist draft
-> 当前状态：**draft / 仅用于进入评审与执行前门禁，不构成已批准直接执行 runbook**
+> 当前状态：**draft / 保留为 future operator-facing preflight 草案，不构成已批准直接执行 runbook**
 > 父切片：`docker-prerequisite-establishment-for-phase3`
 > baseline：OpenClaw `2026.3.13`
+> 当前 direct-next closure：`docs/planning/approved-direct-proxy-execution-block-source-closure-2026-03-22.md`
 > 直接前置证据：`docs/records/temporary-restricted-proxy-feasibility-window-execution-2026-03-21.md`；`docs/records/hello-world-image-prerequisite-remediation-micro-window-2026-03-22.md`；`docs/records/temporary-restricted-proxy-feasibility-execution-hard-stop-exp-docker-access-feasibility-20260322-111033.md`
 > 配套 operator runbook：`docs/runbook-temporary-restricted-proxy-feasibility-execution-next-window-2026-03-22.md`
 > 文档性质：**这是 temporary restricted proxy feasibility execution 的执行前门禁清单，不是 execution record，不是 operator runbook，不是 Phase 3 implementation completion record**
@@ -13,7 +14,7 @@
 
 ## 使用说明
 
-- 本清单只服务于下一次 `temporary restricted proxy feasibility execution` 的进入评审与 operator preflight。
+- 本清单保留为 future operator-facing preflight 草案；当前 direct next 仍是 repo-side `Approved Direct Proxy Execution Block` 来源条件 / 批准路径补齐。
 - 本窗口只是 feasibility execution，不等于 `Phase 3 = GO`，不等于 implementation completion，也不等于 `phase3-docker-sandbox-foundation` 已放行。
 - 本清单中的命令只能写成检查项或建议命令骨架，不能视为已批准的直接执行步骤。
 - 进入任何 live-side readonly evidence / operator preflight 之前，必须先完成 current-run artifact pre-generation 与 alignment precheck；不得再把 previous-run baseline 当作 current-run 已就绪的替代物。
@@ -26,7 +27,7 @@
 
 | 检查项 | 通过标准 | 建议命令骨架 / 核对方式 | 结论备注 |
 |------|------|------|------|
-| 当前 direct next window 已写为进入评审 | 文档一致写明当前 direct next 是返回 temporary restricted proxy feasibility execution 的进入评审 | `sed -n '<start>,<end>p' docs/current-boundary.md` |  |
+| 当前 direct next window 已写为 source closure | 文档一致写明当前 direct next 是 repo-side `Approved Direct Proxy Execution Block` 来源条件 / 批准路径补齐 | `sed -n '<start>,<end>p' docs/current-boundary.md` |  |
 | Phase 3 仍为 NO-GO | 边界与设计文档均未把当前状态写成 GO | `sed -n '<start>,<end>p' docs/current-boundary.md`；`sed -n '<start>,<end>p' docs/design-v3.md` |  |
 | 本窗口性质无漂移 | 文档明确写成 feasibility execution，不是 implementation，不是 establishment completion | 人工核对本清单头部、planning 文档与 records 文档 |  |
 | 权威事实源未被替换 | `/etc/openclaw/openclaw.json` 仍被表述为唯一 system gateway 生效配置源 | `sed -n '<start>,<end>p' docs/design-v3.md`；`sed -n '<start>,<end>p' docs/host-sop.md` |  |
@@ -45,7 +46,7 @@
 | 检查项 | 通过标准 | 建议命令骨架 / 核对方式 | 结论备注 |
 |------|------|------|------|
 | 当前分支正确 | 分支仍为 `feat/phase1b-workspace-foundation` | `git rev-parse --abbrev-ref HEAD` |  |
-| 最近已推送基线未漂移 | 最近提交链顶部仍包含 `a58567c` 作为已知基线 | `git log --oneline -n 5` |  |
+| 最近关键本地基线未漂移 | 最近本地提交链顶部仍包含 `0b409d4`、`1b73805`、`f60e992` | `git log --oneline -n 5` |  |
 | 本轮 repo-side 补文可审计 | 本清单已纳入 git 跟踪，且除允许范围外无额外改动 | `git status --short` |  |
 | 本轮未把 local draft 纳入执行包 | 那两个未跟踪 local draft 仍保持未跟踪，且不纳入本窗口事实源 | `git status --short` |  |
 
@@ -223,7 +224,7 @@
 
 ---
 
-本清单的出口语义只能是二选一：
+本清单当前的出口语义只能是二选一：
 
-- **允许 operator 进入 temporary restricted proxy feasibility execution preflight**
+- **维持 `BLOCKED_BEFORE_HOST_SIDE_CHANGE`，并返回 repo-side `Approved Direct Proxy Execution Block` 来源条件 / 批准路径补齐**
 - **维持 `Phase 3 = NO-GO` 并返回 repo-side 收口**

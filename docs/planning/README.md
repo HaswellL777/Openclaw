@@ -9,9 +9,10 @@
 
 | 文件 | 日期 | 主题 | 状态 |
 |------|------|------|------|
+| `approved-direct-proxy-execution-block-source-closure-2026-03-22.md` | 2026-03-22 | **Approved Direct Proxy Execution Block source closure** | **active / current direct next child slice** |
 | `hello-world-image-prerequisite-window-2026-03-21.md` | 2026-03-21 | **Hello-world image prerequisite-only window** | **completed / closed as prerequisite-only window** |
 | `docker-prerequisite-establishment-for-phase3-2026-03-19.md` | 2026-03-19 | **Docker prerequisite establishment for Phase 3** | **active / parent slice** |
-| `docker-access-model-feasibility-experiment-for-openclaw-2026.3.13-2026-03-21.md` | 2026-03-21 | **Docker access model feasibility experiment definition** | retained as feasibility definition; `hello-world` prerequisite 已于 `2026-03-22` 补齐，当前可返回进入评审 |
+| `docker-access-model-feasibility-experiment-for-openclaw-2026.3.13-2026-03-21.md` | 2026-03-21 | **Docker access model feasibility experiment definition** | retained as feasibility definition; `hello-world` prerequisite 已于 `2026-03-22` 补齐，但当前 direct next 已转为 repo-side source closure |
 | `post-upgrade-capability-probe-2026.3.13-slice-design-2026-03-18.md` | 2026-03-18 | **升级后 capability probe 设计** | completed as design; execution ended with `P5 FAIL / Phase 3 = NO-GO` |
 | `openclaw-upgrade-readiness-2026-03-18.md` | 2026-03-18 | OpenClaw 升级就绪评估 | completed |
 | `openclaw-2026.3.13-upgrade-slice-design-2026-03-18.md` | 2026-03-18 | 2026.3.13 升级 slice 设计 | completed |
@@ -24,9 +25,10 @@
 3. 当前 Phase 3 结论为 **NO-GO**。
 4. `2026-03-21` 的 temporary restricted proxy feasibility window execution evidence 已收口为 `HARD_STOP`，且唯一原因是 `hello-world image missing`。
 5. `2026-03-22` 的 remediation 微窗口已在 prerequisite-only 边界内补齐 `hello-world` image prerequisite。
-6. 当前新的直接下一刀是返回 temporary restricted proxy feasibility execution 的**进入评审**，不是写成 execution 已开始。
+6. 当前新的直接下一刀是 repo-side `Approved Direct Proxy Execution Block` 来源条件 / 批准路径补齐，不是返回 execution 进入评审。
 7. `docker-prerequisite-establishment-for-phase3` 仍是父切片，且当前仍不应把 prerequisite remediation 与 temporary restricted proxy execution 合并。
 8. `docker access model feasibility experiment definition` 仍是前置判定文档，不代表 establishment 已开始，也不代表 proxy + endpoint 已冻结为终态。
+9. Gate 0-3 已绿不释放 pre-snapshot；在 `APPROVED_PROXY_EXEC_CMD=NO` 时，operator-facing 文档都仍只能停留在草案 / gate / evidence 层。
 
 ## 已归档
 
