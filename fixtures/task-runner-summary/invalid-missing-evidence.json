@@ -1,0 +1,40 @@
+{
+  "schema_version": "openclaw.task-runner.summary.v1alpha1",
+  "task_id": "task-phase3-foundation",
+  "run_id": "run-20260322-phase3-foundation",
+  "status": "completed_with_followup",
+  "summary": {
+    "goal": "Negative validation fixture.",
+    "outcome": "Missing evidence refs should be rejected.",
+    "host_change_needed": true
+  },
+  "repo_changes": {
+    "changed_files": [
+      "schemas/task-runner-summary.schema.json"
+    ],
+    "diff_path": "outputs/diff.patch"
+  },
+  "validation_results": [
+    {
+      "name": "negative-case",
+      "status": "passed"
+    }
+  ],
+  "outputs": {
+    "summary_md": "outputs/summary.md",
+    "summary_json": "outputs/summary.json",
+    "diff_patch": "outputs/diff.patch",
+    "host_change_request": "outputs/host-change-request.json"
+  },
+  "requires_operator_approval": true,
+  "forbidden_actions": [
+    "direct_host_shell",
+    "unstructured_operator_commands"
+  ],
+  "evidence_refs": [],
+  "next_handoff": {
+    "consumer": "main",
+    "action": "review_host_change_request",
+    "host_change_request_path": "outputs/host-change-request.json"
+  }
+}

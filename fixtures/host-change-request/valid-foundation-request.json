@@ -1,0 +1,136 @@
+{
+  "schema_version": "openclaw.task-runner.host-change-request.v1alpha1",
+  "request_id": "hcr-20260322-phase3-foundation",
+  "task_id": "task-phase3-foundation",
+  "requested_by": "task-runner",
+  "status": "proposed",
+  "summary": {
+    "title": "Review broker-aligned host follow-up for task-runner contract foundation",
+    "why": "The repo-side slice defines future task-runner outputs and would need host-side review before any runtime adoption.",
+    "scope": "Translate a reviewed candidate into broker-shaped actions without embedding operator command blocks.",
+    "impact": "If approved later, the sequence would affect OpenClaw config publication, gateway lifecycle validation, and snapshot discipline."
+  },
+  "repo_context": {
+    "repo_relpath": "repo/",
+    "branch": "feat/phase1b-workspace-foundation",
+    "changed_files": [
+      "schemas/host-change-request.schema.json",
+      "scripts/validate-host-change-request.py",
+      "workspace-task-runner-template/control/artifact-contract.md"
+    ]
+  },
+  "requires_operator_approval": true,
+  "requested_host_ops": [
+    {
+      "sequence": 1,
+      "action": "validate_openclaw_json_candidate",
+      "justification": "Validate a reviewed candidate before any host-side mutation.",
+      "inputs": {
+        "candidate_path": "/var/lib/openclaw/approvals/candidates/openclaw.task-runner.foundation.json",
+        "expected_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+      }
+    },
+    {
+      "sequence": 2,
+      "action": "snapshot_pre",
+      "justification": "Preserve a rollback point before a reviewed deploy.",
+      "inputs": {
+        "label": "phase3-task-runner-foundation-pre",
+        "reason": "Pre-change snapshot before reviewed candidate deploy"
+      }
+    },
+    {
+      "sequence": 3,
+      "action": "deploy_openclaw_json_candidate",
+      "justification": "Deploy the reviewed candidate only after validation and approval.",
+      "inputs": {
+        "candidate_path": "/var/lib/openclaw/approvals/candidates/openclaw.task-runner.foundation.json",
+        "expected_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+      }
+    },
+    {
+      "sequence": 4,
+      "action": "gateway_restart",
+      "justification": "Restart would be needed only after a reviewed config deploy.",
+      "inputs": {
+        "reason": "Post deploy restart for reviewed task-runner foundation candidate"
+      }
+    },
+    {
+      "sequence": 5,
+      "action": "snapshot_post",
+      "justification": "Capture the post-change state after validation.",
+      "inputs": {
+        "label": "phase3-task-runner-foundation-post",
+        "reason": "Post-change snapshot after reviewed candidate deploy"
+      }
+    },
+    {
+      "sequence": 6,
+      "action": "vault_sync",
+      "justification": "Preserve the post-change snapshot in Vault after a successful reviewed change.",
+      "inputs": {
+        "snapshot_name": "root-post-phase3-task-runner-foundation",
+        "incremental": true
+      }
+    }
+  ],
+  "forbidden_actions": [
+    "direct_host_shell",
+    "direct_openclaw_config_edit",
+    "direct_systemd_control",
+    "direct_docker_control",
+    "direct_snapshot_manipulation",
+    "direct_vault_manipulation",
+    "unstructured_operator_commands",
+    "user_level_gateway_start"
+  ],
+  "evidence_refs": [
+    {
+      "id": "design-v3",
+      "kind": "design_doc",
+      "path": "docs/design-v3.md",
+      "description": "Authoritative design target for task-runner workspace and outputs."
+    },
+    {
+      "id": "host-sop",
+      "kind": "sop_doc",
+      "path": "docs/host-sop.md",
+      "description": "Authoritative host facts and safety boundaries."
+    },
+    {
+      "id": "current-boundary",
+      "kind": "boundary_doc",
+      "path": "docs/current-boundary.md",
+      "description": "Confirms Phase 3 is not live-enabled and this artifact remains repo-side only."
+    },
+    {
+      "id": "summary-json",
+      "kind": "output_file",
+      "path": "outputs/summary.json",
+      "description": "Structured runner summary that accompanies this request."
+    }
+  ],
+  "required_evidence": [
+    {
+      "id": "schema-validation",
+      "when": "before_main_review",
+      "description": "Schema and validator output for the host-change request and summary artifacts."
+    },
+    {
+      "id": "approval-review",
+      "when": "before_broker_dispatch",
+      "description": "Explicit review of requested_host_ops ordering, inputs, and rollback expectations."
+    }
+  ],
+  "rollback_considerations": [
+    "If a reviewed deploy were ever approved, rollback should prefer the pre-change snapshot identified by the approved action sequence.",
+    "Any approved runtime adoption should keep workspace republish separate from root snapshot semantics."
+  ],
+  "handoff": {
+    "next_consumer": "main",
+    "delivery_artifact": "outputs/host-change-request.json",
+    "broker_request_ready": true,
+    "review_required": true
+  }
+}

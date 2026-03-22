@@ -1,0 +1,56 @@
+{
+  "schema_version": "openclaw.task-runner.host-change-request.v1alpha1",
+  "request_id": "hcr-20260322-invalid-command",
+  "task_id": "task-phase3-foundation",
+  "requested_by": "task-runner",
+  "status": "proposed",
+  "summary": {
+    "title": "Invalid imperative command example",
+    "why": "This fixture proves that imperative command-shaped inputs are rejected.",
+    "scope": "Negative validation path.",
+    "impact": "Should be rejected."
+  },
+  "repo_context": {
+    "repo_relpath": "repo/",
+    "changed_files": [
+      "schemas/host-change-request.schema.json"
+    ]
+  },
+  "requires_operator_approval": true,
+  "requested_host_ops": [
+    {
+      "sequence": 1,
+      "action": "gateway_restart",
+      "justification": "Invalid example only.",
+      "inputs": {
+        "reason": "This should not validate",
+        "command": "systemctl restart openclaw-gateway.service"
+      }
+    }
+  ],
+  "forbidden_actions": [
+    "direct_host_shell",
+    "unstructured_operator_commands"
+  ],
+  "evidence_refs": [
+    {
+      "id": "design-v3",
+      "kind": "design_doc",
+      "path": "docs/design-v3.md",
+      "description": "Negative test evidence."
+    }
+  ],
+  "required_evidence": [
+    {
+      "id": "negative-case",
+      "when": "before_main_review",
+      "description": "Expected validator rejection."
+    }
+  ],
+  "handoff": {
+    "next_consumer": "main",
+    "delivery_artifact": "outputs/host-change-request.json",
+    "broker_request_ready": true,
+    "review_required": true
+  }
+}

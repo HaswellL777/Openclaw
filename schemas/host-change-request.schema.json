@@ -1,0 +1,406 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TaskRunnerHostChangeRequest",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "request_id",
+    "task_id",
+    "requested_by",
+    "status",
+    "summary",
+    "repo_context",
+    "requires_operator_approval",
+    "requested_host_ops",
+    "forbidden_actions",
+    "evidence_refs",
+    "required_evidence",
+    "handoff"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "openclaw.task-runner.host-change-request.v1alpha1"
+    },
+    "request_id": {
+      "$ref": "#/$defs/id_string"
+    },
+    "task_id": {
+      "$ref": "#/$defs/id_string"
+    },
+    "requested_by": {
+      "type": "string",
+      "pattern": "^task-runner(?:[:/][A-Za-z0-9._-]+)?$"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["proposed"]
+    },
+    "summary": {
+      "type": "object",
+      "required": ["title", "why", "scope", "impact"],
+      "properties": {
+        "title": {
+          "$ref": "#/$defs/non_empty_string"
+        },
+        "why": {
+          "$ref": "#/$defs/non_empty_string"
+        },
+        "scope": {
+          "$ref": "#/$defs/non_empty_string"
+        },
+        "impact": {
+          "$ref": "#/$defs/non_empty_string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "repo_context": {
+      "type": "object",
+      "required": ["repo_relpath", "changed_files"],
+      "properties": {
+        "repo_relpath": {
+          "type": "string",
+          "pattern": "^(repo|repo/.+)$"
+        },
+        "branch": {
+          "$ref": "#/$defs/non_empty_string"
+        },
+        "changed_files": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/relative_path"
+          },
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "requires_operator_approval": {
+      "const": true
+    },
+    "requested_host_ops": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/requested_host_op"
+      }
+    },
+    "forbidden_actions": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "enum": [
+          "direct_host_shell",
+          "direct_openclaw_config_edit",
+          "direct_systemd_control",
+          "direct_docker_control",
+          "direct_snapshot_manipulation",
+          "direct_vault_manipulation",
+          "direct_secret_handling",
+          "unstructured_operator_commands",
+          "user_level_gateway_start"
+        ]
+      }
+    },
+    "evidence_refs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/evidence_ref"
+      }
+    },
+    "required_evidence": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "when", "description"],
+        "properties": {
+          "id": {
+            "$ref": "#/$defs/id_string"
+          },
+          "when": {
+            "type": "string",
+            "enum": [
+              "before_main_review",
+              "before_broker_dispatch",
+              "after_broker_execution"
+            ]
+          },
+          "description": {
+            "$ref": "#/$defs/non_empty_string"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "rollback_considerations": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/non_empty_string"
+      }
+    },
+    "handoff": {
+      "type": "object",
+      "required": [
+        "next_consumer",
+        "delivery_artifact",
+        "broker_request_ready",
+        "review_required"
+      ],
+      "properties": {
+        "next_consumer": {
+          "const": "main"
+        },
+        "delivery_artifact": {
+          "const": "outputs/host-change-request.json"
+        },
+        "broker_request_ready": {
+          "type": "boolean"
+        },
+        "review_required": {
+          "const": true
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "non_empty_string": {
+      "type": "string",
+      "minLength": 1
+    },
+    "id_string": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$"
+    },
+    "sha256_hex": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "relative_path": {
+      "type": "string",
+      "pattern": "^(?!/)(?!.*\\.\\.)[^\\n]+$"
+    },
+    "evidence_ref": {
+      "type": "object",
+      "required": ["id", "kind", "path", "description"],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id_string"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "design_doc",
+            "sop_doc",
+            "boundary_doc",
+            "repo_file",
+            "output_file",
+            "schema",
+            "fixture",
+            "validator_log"
+          ]
+        },
+        "path": {
+          "$ref": "#/$defs/relative_path"
+        },
+        "description": {
+          "$ref": "#/$defs/non_empty_string"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256_hex"
+        }
+      },
+      "additionalProperties": false
+    },
+    "requested_host_op": {
+      "type": "object",
+      "required": ["sequence", "action", "justification", "inputs"],
+      "properties": {
+        "sequence": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "action": {
+          "type": "string",
+          "enum": [
+            "gateway_health",
+            "gateway_restart",
+            "validate_openclaw_json_candidate",
+            "deploy_openclaw_json_candidate",
+            "snapshot_pre",
+            "snapshot_post",
+            "vault_sync",
+            "rollback_prepare"
+          ]
+        },
+        "justification": {
+          "$ref": "#/$defs/non_empty_string"
+        },
+        "inputs": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "gateway_health"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "inputs": {
+                "type": "object",
+                "maxProperties": 0,
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "gateway_restart"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "inputs": {
+                "type": "object",
+                "required": ["reason"],
+                "properties": {
+                  "reason": {
+                    "$ref": "#/$defs/non_empty_string"
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "enum": [
+                  "validate_openclaw_json_candidate",
+                  "deploy_openclaw_json_candidate"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "inputs": {
+                "type": "object",
+                "required": ["candidate_path", "expected_sha256"],
+                "properties": {
+                  "candidate_path": {
+                    "type": "string",
+                    "pattern": "^/var/lib/openclaw/approvals/candidates/.+\\.json$"
+                  },
+                  "expected_sha256": {
+                    "$ref": "#/$defs/sha256_hex"
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "enum": [
+                  "snapshot_pre",
+                  "snapshot_post"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "inputs": {
+                "type": "object",
+                "required": ["label", "reason"],
+                "properties": {
+                  "label": {
+                    "$ref": "#/$defs/non_empty_string"
+                  },
+                  "reason": {
+                    "$ref": "#/$defs/non_empty_string"
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "vault_sync"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "inputs": {
+                "type": "object",
+                "required": ["snapshot_name", "incremental"],
+                "properties": {
+                  "snapshot_name": {
+                    "$ref": "#/$defs/non_empty_string"
+                  },
+                  "incremental": {
+                    "type": "boolean"
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "rollback_prepare"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "inputs": {
+                "type": "object",
+                "required": ["target_snapshot", "reason"],
+                "properties": {
+                  "target_snapshot": {
+                    "$ref": "#/$defs/non_empty_string"
+                  },
+                  "reason": {
+                    "$ref": "#/$defs/non_empty_string"
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

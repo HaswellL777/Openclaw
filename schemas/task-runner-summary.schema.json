@@ -1,0 +1,259 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TaskRunnerSummary",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "task_id",
+    "run_id",
+    "status",
+    "summary",
+    "repo_changes",
+    "validation_results",
+    "outputs",
+    "requires_operator_approval",
+    "forbidden_actions",
+    "evidence_refs",
+    "next_handoff"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "openclaw.task-runner.summary.v1alpha1"
+    },
+    "task_id": {
+      "$ref": "#/$defs/id_string"
+    },
+    "run_id": {
+      "$ref": "#/$defs/id_string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "completed",
+        "completed_with_followup",
+        "failed",
+        "blocked"
+      ]
+    },
+    "summary": {
+      "type": "object",
+      "required": ["goal", "outcome", "host_change_needed"],
+      "properties": {
+        "goal": {
+          "$ref": "#/$defs/non_empty_string"
+        },
+        "outcome": {
+          "$ref": "#/$defs/non_empty_string"
+        },
+        "host_change_needed": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "repo_changes": {
+      "type": "object",
+      "required": ["changed_files", "diff_path"],
+      "properties": {
+        "changed_files": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/relative_path"
+          },
+          "uniqueItems": true
+        },
+        "diff_path": {
+          "$ref": "#/$defs/relative_path"
+        }
+      },
+      "additionalProperties": false
+    },
+    "validation_results": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["name", "status"],
+        "properties": {
+          "name": {
+            "$ref": "#/$defs/non_empty_string"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["passed", "failed", "not_run"]
+          },
+          "artifact_path": {
+            "$ref": "#/$defs/relative_path"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "outputs": {
+      "type": "object",
+      "required": ["summary_md", "summary_json", "diff_patch"],
+      "properties": {
+        "summary_md": {
+          "$ref": "#/$defs/relative_path"
+        },
+        "summary_json": {
+          "const": "outputs/summary.json"
+        },
+        "diff_patch": {
+          "$ref": "#/$defs/relative_path"
+        },
+        "host_change_request": {
+          "const": "outputs/host-change-request.json"
+        },
+        "logs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/relative_path"
+          },
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "requires_operator_approval": {
+      "type": "boolean"
+    },
+    "forbidden_actions": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "enum": [
+          "direct_host_shell",
+          "direct_openclaw_config_edit",
+          "direct_systemd_control",
+          "direct_docker_control",
+          "direct_snapshot_manipulation",
+          "direct_vault_manipulation",
+          "direct_secret_handling",
+          "unstructured_operator_commands",
+          "user_level_gateway_start"
+        ]
+      }
+    },
+    "evidence_refs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/evidence_ref"
+      }
+    },
+    "next_handoff": {
+      "type": "object",
+      "required": ["consumer", "action"],
+      "properties": {
+        "consumer": {
+          "type": "string",
+          "enum": ["none", "main"]
+        },
+        "action": {
+          "type": "string",
+          "enum": ["none", "review_host_change_request"]
+        },
+        "host_change_request_path": {
+          "const": "outputs/host-change-request.json"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "requires_operator_approval": {
+            "const": true
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "status": {
+            "const": "completed_with_followup"
+          },
+          "summary": {
+            "properties": {
+              "host_change_needed": {
+                "const": true
+              }
+            }
+          },
+          "outputs": {
+            "required": ["host_change_request"]
+          },
+          "next_handoff": {
+            "required": ["host_change_request_path"],
+            "properties": {
+              "consumer": {
+                "const": "main"
+              },
+              "action": {
+                "const": "review_host_change_request"
+              }
+            }
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "outputs": {
+            "not": {
+              "required": ["host_change_request"]
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "non_empty_string": {
+      "type": "string",
+      "minLength": 1
+    },
+    "id_string": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$"
+    },
+    "relative_path": {
+      "type": "string",
+      "pattern": "^(?!/)(?!.*\\.\\.)[^\\n]+$"
+    },
+    "evidence_ref": {
+      "type": "object",
+      "required": ["id", "kind", "path", "description"],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id_string"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "design_doc",
+            "sop_doc",
+            "boundary_doc",
+            "repo_file",
+            "output_file",
+            "schema",
+            "fixture",
+            "validator_log"
+          ]
+        },
+        "path": {
+          "$ref": "#/$defs/relative_path"
+        },
+        "description": {
+          "$ref": "#/$defs/non_empty_string"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

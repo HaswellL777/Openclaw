@@ -1,0 +1,89 @@
+{
+  "schema_version": "openclaw.task-runner.summary.v1alpha1",
+  "task_id": "task-phase3-foundation",
+  "run_id": "run-20260322-phase3-foundation",
+  "status": "completed_with_followup",
+  "summary": {
+    "goal": "Create repo-side task-runner workspace and artifact contract foundation.",
+    "outcome": "Template files, schemas, fixtures, validators, and static checks were added without any live-side publish or runtime change.",
+    "host_change_needed": true
+  },
+  "repo_changes": {
+    "changed_files": [
+      "workspace-task-runner-template/AGENTS.md",
+      "workspace-task-runner-template/TOOLS.md",
+      "workspace-task-runner-template/control/runner-policy.md",
+      "workspace-task-runner-template/control/artifact-contract.md",
+      "schemas/host-change-request.schema.json",
+      "schemas/task-runner-summary.schema.json",
+      "scripts/validate-host-change-request.py",
+      "scripts/validate-task-runner-summary.py",
+      "scripts/check-workspace-task-runner-template.sh"
+    ],
+    "diff_path": "outputs/diff.patch"
+  },
+  "validation_results": [
+    {
+      "name": "host-change-request fixture validation",
+      "status": "passed",
+      "artifact_path": "outputs/host-change-request-validation.log"
+    },
+    {
+      "name": "task-runner-summary fixture validation",
+      "status": "passed",
+      "artifact_path": "outputs/task-runner-summary-validation.log"
+    },
+    {
+      "name": "workspace-task-runner-template static check",
+      "status": "passed",
+      "artifact_path": "outputs/workspace-task-runner-template-check.log"
+    }
+  ],
+  "outputs": {
+    "summary_md": "outputs/summary.md",
+    "summary_json": "outputs/summary.json",
+    "diff_patch": "outputs/diff.patch",
+    "host_change_request": "outputs/host-change-request.json",
+    "logs": [
+      "outputs/host-change-request-validation.log",
+      "outputs/task-runner-summary-validation.log",
+      "outputs/workspace-task-runner-template-check.log"
+    ]
+  },
+  "requires_operator_approval": true,
+  "forbidden_actions": [
+    "direct_host_shell",
+    "direct_openclaw_config_edit",
+    "direct_systemd_control",
+    "direct_docker_control",
+    "direct_snapshot_manipulation",
+    "direct_vault_manipulation",
+    "unstructured_operator_commands",
+    "user_level_gateway_start"
+  ],
+  "evidence_refs": [
+    {
+      "id": "design-v3",
+      "kind": "design_doc",
+      "path": "docs/design-v3.md",
+      "description": "Design target for the task-runner workspace and output contract."
+    },
+    {
+      "id": "host-sop",
+      "kind": "sop_doc",
+      "path": "docs/host-sop.md",
+      "description": "Authority for host facts and safety limits."
+    },
+    {
+      "id": "template-contract",
+      "kind": "repo_file",
+      "path": "workspace-task-runner-template/control/artifact-contract.md",
+      "description": "Repo-side contract text for runner outputs."
+    }
+  ],
+  "next_handoff": {
+    "consumer": "main",
+    "action": "review_host_change_request",
+    "host_change_request_path": "outputs/host-change-request.json"
+  }
+}
