@@ -1,4 +1,4 @@
-# OpenClaw Host 状态记录（2026-03-21 边界冻结）
+# OpenClaw Host 状态记录（2026-03-22 边界冻结）
 
 > 适用范围：Ubuntu 24.04 LTS 宿主机裸机安装 OpenClaw（非 Docker），Btrfs 根（subvolid=5），使用 `/.snapshots` + 离线 Vault（`/mnt/vault`, `noauto`）做增量 `send/receive`；OpenClaw 以 systemd **system-level** 服务运行（`User=openclaw`），并严格遵循目录边界：
 >
@@ -7,7 +7,7 @@
 > - 数据：`/var/lib/openclaw`（btrfs 独立子卷，`openclaw:openclaw`，`700`）
 > - 日志：`/var/log/openclaw`（`openclaw:openclaw`）
 >
-> **当前阶段：Phase 1 + Phase 2 全部完成，agent-facing host_ops 8/8 live E2E verified（2026-03-17）。OpenClaw 已从 2026.3.2 升级到 2026.3.13（2026-03-18），P0 focused regression 19/19 PASS，rollback 未触发。升级后 capability probe 已执行并在 P5 FAIL；`2026-03-21` temporary restricted proxy feasibility window 已在 proxy start 前 `HARD_STOP`；当前直接下一刀是 `hello-world-image-prerequisite-window-2026-03-21`，Phase 3 仍为 NO-GO。** 当前真实边界详见 `docs/current-boundary.md`，逐 action 证据见 `docs/records/README.md`。
+> **当前阶段：Phase 1 + Phase 2 全部完成，agent-facing host_ops 8/8 live E2E verified（2026-03-17）。OpenClaw 已从 2026.3.2 升级到 2026.3.13（2026-03-18），P0 focused regression 19/19 PASS，rollback 未触发。升级后 capability probe 已执行并在 P5 FAIL；`2026-03-21` temporary restricted proxy feasibility window 已在 proxy start 前 `HARD_STOP`；`2026-03-22` prerequisite-only remediation 已补齐 `hello-world` blocker；当前直接下一刀是返回 temporary restricted proxy feasibility execution 的进入评审，Phase 3 仍为 NO-GO。** 当前真实边界详见 `docs/current-boundary.md`，逐 action 证据见 `docs/records/README.md`。
 
 ## ⛔ 禁止操作清单（优先阅读）
 
@@ -87,7 +87,7 @@ sudo mv /var/lib/openclaw/.openclaw/extensions/<plugin>.bak-* /var/lib/openclaw/
 
 ### 0.1 当前时间与主机
 - 时区：CST (+0800)
-- 日期：2026-03-21（2026-03-18 升级完成；2026-03-21 边界冻结）
+- 日期：2026-03-22（2026-03-18 升级完成；2026-03-22 边界冻结）
 - 主机：`nick-MS-7D73`（管理用户：`nick`，服务用户：`openclaw`）
 - OpenClaw 版本：**2026.3.13**（2026-03-18 从 2026.3.2 升级，P0 19/19 PASS，rollback 未触发）
 
@@ -99,7 +99,8 @@ sudo mv /var/lib/openclaw/.openclaw/extensions/<plugin>.bak-* /var/lib/openclaw/
 - **Phase 3（task-runner / Docker sandbox）、Phase 4+ 均未开始**。
 - **OpenClaw 2026.3.13 升级已完成**（2026-03-18）：pre/post snapshot + vault_sync 完成，P0 focused regression 19/19 PASS，Phase 2 host_ops 8/8 升级后回归全部通过。升级记录见 `docs/records/openclaw-2026.3.13-upgrade-activation-2026-03-18.md`。
 - **升级后 capability probe 已执行**（2026-03-19）：在 `P5 Docker / task-runner prerequisites` 处 hard gate FAIL，结论为 `P5 FAIL / Phase 3 = NO-GO`。执行记录见 `docs/records/post-upgrade-capability-probe-execution-2026-03-19.md`。
-- **`2026-03-21` temporary restricted proxy feasibility window 已收口为 `HARD_STOP before proxy start`**：唯一 hard-stop reason = `hello-world image missing`；`proxy not started`；`audit jsonl not created`；gateway / broker remained active。当前直接下一刀是 `hello-world-image-prerequisite-window-2026-03-21`。执行记录见 `docs/records/temporary-restricted-proxy-feasibility-window-execution-2026-03-21.md`。
+- **`2026-03-21` temporary restricted proxy feasibility window 已收口为 `HARD_STOP before proxy start`**：唯一 hard-stop reason = `hello-world image missing`；`proxy not started`；`audit jsonl not created`；gateway / broker remained active。执行记录见 `docs/records/temporary-restricted-proxy-feasibility-window-execution-2026-03-21.md`。
+- **`2026-03-22` hello-world prerequisite remediation 微窗口已 PASS 收口**：`hello-world` prerequisite 已补齐；`proxy not started`；`audit jsonl not created`；`proxy execution not validated`。当前直接下一刀是返回 temporary restricted proxy feasibility execution 的进入评审。执行记录见 `docs/records/hello-world-image-prerequisite-remediation-micro-window-2026-03-22.md`。
 
 ### 0.2.1 升级窗口事实记录（2026-03-18）
 - Pre snapshot：`root-pre-upgrade-2026.3.13-20260318-1530`

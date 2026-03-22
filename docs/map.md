@@ -68,6 +68,7 @@
 | `docs/checklists/deploy-candidate-route-c-checklist.md` | Route C deploy 操作清单 |
 | `docs/checklists/hello-world-image-prerequisite-window-preflight-2026-03-21.md` | **hello-world prerequisite-only live-side window 的执行前门禁清单（draft）** |
 | `docs/checklists/temporary-restricted-proxy-feasibility-execution-preflight-2026-03-22.md` | **temporary restricted proxy feasibility execution 的 operator-facing 执行前门禁清单（draft）；用于进入评审与 operator preflight，不是 implementation completion** |
+| `docs/checklists/temporary-restricted-proxy-feasibility-execution-readonly-evidence-pack-2026-03-22.md` | **temporary restricted proxy feasibility execution 的 operator-facing 一次性只读取证包；仅用于 execution 前 fresh evidence 回收** |
 | `docs/checklists/openclaw-upgrade-focused-regression-2026.3.13.md` | 2026.3.13 升级 focused regression checklist |
 | `docs/checklists/post-upgrade-capability-probe-matrix-2026.3.13.md` | **升级后 capability probe matrix（对应已执行 probe，不代表当前 active planning）** |
 | `docs/records/README.md` | records 目录索引 |

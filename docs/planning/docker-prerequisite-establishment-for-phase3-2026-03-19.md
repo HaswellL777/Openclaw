@@ -13,7 +13,7 @@
 OpenClaw 已完成 `2026.3.13` 升级，focused regression 与 Phase 2 host_ops 回归均已通过。  
 升级后 capability probe 也已实际执行，并在 `P5 Docker / task-runner prerequisites` 处 hard gate FAIL。
 
-`2026-03-21` 的 temporary restricted proxy feasibility window execution evidence 又把 Docker prerequisite establishment 的当前边界进一步收口为：
+`2026-03-21` 的 temporary restricted proxy feasibility window execution evidence 与 `2026-03-22` 的 prerequisite-only remediation record 共同把 Docker prerequisite establishment 的当前边界收口为：
 
 - Docker 已安装；
 - `docker.service` / `docker.socket` 已为 `active`；
@@ -21,14 +21,15 @@ OpenClaw 已完成 `2026.3.13` 升级，focused regression 与 Phase 2 host_ops 
 - `openclaw` 不在 `docker` 组；
 - validate-only candidate 已通过 config validate；
 - temporary restricted proxy helper payload 已生成并编译；
-- 但 execution 尚未启动，并在 proxy start 前因 `hello-world image missing` `HARD_STOP`。
+- `hello-world` prerequisite 已补齐；
+- 但 execution 尚未启动，当前仍停在返回 temporary restricted proxy feasibility execution 的进入评审 / operator preflight。
 
 这意味着：
 
 - Phase 3 当前仍 **不得开始**；
 - temporary restricted proxy execution 仍 **尚未启动**；
 - `docker-prerequisite-establishment-for-phase3` 继续作为 **active parent slice** 存在；
-- 当前 direct next child window 必须先切到 `hello-world-image-prerequisite-window-2026-03-21`。
+- 当前 direct next child window 已从 `hello-world-image-prerequisite-window-2026-03-21` 收口返回到 `temporary restricted proxy feasibility execution` 的进入评审。
 
 因此，本文件的定位不是实施记录，而是 **repo-side planning 文档**，用于定义当前 active parent slice 及其子窗口边界。
 
@@ -44,7 +45,7 @@ OpenClaw 已完成 `2026.3.13` 升级，focused regression 与 Phase 2 host_ops 
 因此当前应按两层理解：
 
 - active parent slice = `docker-prerequisite-establishment-for-phase3`
-- current direct next child window = `hello-world-image-prerequisite-window-2026-03-21`
+- current direct next child window = 返回 `temporary restricted proxy feasibility execution` 的进入评审
 
 在该 parent slice 完成前：
 
@@ -74,7 +75,7 @@ OpenClaw 已完成 `2026.3.13` 升级，focused regression 与 Phase 2 host_ops 
 本 parent slice 的目标仅限于为 Phase 3 建立最小 Docker prerequisite，具体包括：
 
 1. 固化当前已知 prerequisite baseline：Docker 已安装，`docker.service` / `docker.socket` active，`/var/run/docker.sock = root:docker`，`openclaw` 不在 `docker` 组；
-2. 明确当前 direct next child window 是 `hello-world-image-prerequisite-window-2026-03-21`，并保持其 prerequisite-only 边界；
+2. 明确当前 direct next child window 已回到 `temporary restricted proxy feasibility execution` 的进入评审，并保持 preflight-only 边界；
 3. 明确 validate-only candidate、helper payload、temporary restricted proxy 候选都只是准备物或候选，不写成长期终态；
 4. 明确 capability probe 后续重试 `P5 / P4 / P3` 所需的剩余最小前置条件；
 5. 形成可审计、可回滚、可验证的 repo-side 文档与实施准备包。
@@ -105,8 +106,8 @@ OpenClaw 已完成 `2026.3.13` 升级，focused regression 与 Phase 2 host_ops 
 建议顺序如下：
 
 1. 固化当前边界
-2. 先完成 `hello-world-image-prerequisite-window-2026-03-21`
-3. 再回到 temporary restricted proxy feasibility execution 的进入评审
+2. `hello-world-image-prerequisite-window-2026-03-21` 已完成并作为 prerequisite-only 窗口收口
+3. 当前回到 temporary restricted proxy feasibility execution 的进入评审
 4. 继续明确 `openclaw` 用户访问 Docker 的安全方案候选与剩余风险项
 5. 定义实施后必须满足的验证标准
 6. 在 prerequisite establishment 完成后，再决定是否重启 capability probe 的 `P5 / P4 / P3`
@@ -148,7 +149,7 @@ OpenClaw 已完成 `2026.3.13` 升级，focused regression 与 Phase 2 host_ops 
    - `P5 FAIL`
    - `Phase 3 = NO-GO`
    - active parent slice = `docker-prerequisite-establishment-for-phase3`
-   - current direct next child window = `hello-world-image-prerequisite-window-2026-03-21`
+   - current direct next child window = 返回 `temporary restricted proxy feasibility execution` 的进入评审
 2. planning 索引与文档地图已能正确指向本文件
 3. 本文件清楚区分：
    - planning
@@ -175,4 +176,4 @@ OpenClaw 已完成 `2026.3.13` 升级，focused regression 与 Phase 2 host_ops 
 它的作用，是把当前 `P5 FAIL / Phase 3 = NO-GO` 之后的 Docker prerequisite establishment 明确定义为：
 
 - active parent slice：`docker-prerequisite-establishment-for-phase3`
-- current direct next child window：`hello-world-image-prerequisite-window-2026-03-21`
+- current direct next child window：返回 `temporary restricted proxy feasibility execution` 的进入评审

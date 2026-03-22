@@ -1,7 +1,7 @@
 # OpenClaw 多 Agent + Claude Code 协作体系设计稿 v3.1
 
 > 初版编写日期：2026-03-07
-> 本次修订日期：2026-03-21（2026-03-21 HARD_STOP 后边界收口 + Codex repo-side 接手文档化）
+> 本次修订日期：2026-03-22（2026-03-22 prerequisite remediation 收口后切回 temporary restricted proxy feasibility execution 的进入评审）
 > 适用宿主机：当前单机 Ubuntu 24.04 LTS / Btrfs / systemd / OpenClaw 2026.3.13 基线
 > 上游输入：`openclaw-host-sop-2026-03-06.md`、`1.md`、`openclaw-design-v2-2026-03-07.md`、本轮 Phase 1A 实际落地结果、Phase 1B 开发仓候选产物
 > 文档定位：**可实施规格稿 + 落地状态稿**，用于后续继续开发、验证、回滚、审计与发布
@@ -21,8 +21,8 @@
 7. **Codex 当前已可接手 repo-side 主执行者角色。** 其适用范围是开发仓 `~/projects/openclaw-dev/` 内的文档、脚本、候选产物与 repo-local 配置工作；这不代表 live-side 执行器发生切换。
 8. **OpenClaw 2026.3.13 升级已完成（2026-03-18）。** live baseline 已从 2026.3.2 切换到 2026.3.13，P0 focused regression 19/19 PASS，rollback 未触发。`2026.3.13` 已在当前宿主机完成 live 验证。升级记录见 `docs/records/openclaw-2026.3.13-upgrade-activation-2026-03-18.md`。
 9. **升级后 capability probe 已在 2026.3.13 上执行，并在 P5 因 Docker prerequisite 缺失而 hard gate FAIL。** 当前 Phase 3 结论是 **NO-GO**；`P2 / P1 / P4 / P3` 为 deferred / not executed。执行记录见 `docs/records/post-upgrade-capability-probe-execution-2026-03-19.md`。
-10. **当前 active parent slice 是 `docker-prerequisite-establishment-for-phase3`；current direct next window 是 `hello-world-image-prerequisite-window-2026-03-21`。** `2026-03-21` 的 temporary restricted proxy feasibility window 已在 proxy start 前以 `HARD_STOP` 收口，唯一 hard-stop reason = `hello-world image missing`。
-11. **Phase 3 当前仍是 NO-GO；temporary restricted proxy execution 尚未启动。** `proxy not started`、`audit jsonl not created`；在 hello-world prerequisite-only window 完成前，不继续 proxy execution，不进入 `phase3-docker-sandbox-foundation`。
+10. **当前 active parent slice 是 `docker-prerequisite-establishment-for-phase3`；current direct next window 是返回 `temporary restricted proxy feasibility execution` 的进入评审。** `2026-03-21` 的 temporary restricted proxy feasibility window 已在 proxy start 前以 `HARD_STOP` 收口，唯一 hard-stop reason = `hello-world image missing`；`2026-03-22` 的 prerequisite-only remediation 已补齐该 blocker。
+11. **Phase 3 当前仍是 NO-GO；temporary restricted proxy execution 尚未启动。** `proxy not started`、`audit jsonl not created`、`proxy execution not validated`；当前只允许停留在 operator preflight / 进入评审层，不进入 `phase3-docker-sandbox-foundation`。
 12. **task-runner / Docker sandbox 仍是后续阶段目标，尚未进入生产执行链。** 除非特别注明“已验证”，否则不得写成当前事实。
 13. **任何宿主机副作用仍必须坚持“快照 → 变更 → 健康检查 → post 快照 → Vault 入库”的纪律。**
 14. **`/var/lib/openclaw` 已是独立 Btrfs 子卷**，不在 root snapshot 保护范围内。
@@ -1759,12 +1759,12 @@ Scrapling 是 Python 3.10+ 的自适应 Web 抓取框架，需要网络访问和
 
 ## Phase 3：Docker sandbox capability probe 与 task-runner 上线
 
-> **前置条件（2026-03-21 同步）：当前仍不得直接进入 Phase 3 implementation。**
+> **前置条件（2026-03-22 同步）：当前仍不得直接进入 Phase 3 implementation。**
 > `(1) baseline rebase -> (2) OpenClaw 升级到 >= 2026.3.12 -> (3) 升级后 focused regression -> (4) post-upgrade capability probe` 均已完成，其中 `(4)` 已在 `P5 Docker / task-runner prerequisites` 处 hard gate FAIL。
 >
-> **当前进度（2026-03-21）：** `2026-03-19` capability probe 已执行，结论为 `P5 FAIL / Phase 3 = NO-GO`。`2026-03-21` 的 temporary restricted proxy feasibility window 又在 proxy start 前 `HARD_STOP`，唯一 hard-stop reason = `hello-world image missing`；`proxy not started`，`audit jsonl not created`。
-> 当前 active parent slice = `docker-prerequisite-establishment-for-phase3`，current direct next window = `hello-world-image-prerequisite-window-2026-03-21`。
-> 在该 prerequisite-only window 完成前，不继续 temporary restricted proxy execution，不进入 `phase3-docker-sandbox-foundation`。相关记录见 `docs/records/post-upgrade-capability-probe-execution-2026-03-19.md` 与 `docs/records/temporary-restricted-proxy-feasibility-window-execution-2026-03-21.md`。
+> **当前进度（2026-03-22）：** `2026-03-19` capability probe 已执行，结论为 `P5 FAIL / Phase 3 = NO-GO`。`2026-03-21` 的 temporary restricted proxy feasibility window 在 proxy start 前 `HARD_STOP`，唯一 hard-stop reason = `hello-world image missing`；`2026-03-22` 的 prerequisite-only remediation 已补齐该 blocker，但 `proxy not started`，`audit jsonl not created`，`proxy execution not validated`。
+> 当前 active parent slice = `docker-prerequisite-establishment-for-phase3`，current direct next window = 返回 `temporary restricted proxy feasibility execution` 的进入评审。
+> 在 operator preflight 形成 fresh evidence 并通过门禁前，不继续 temporary restricted proxy execution，不进入 `phase3-docker-sandbox-foundation`。相关记录见 `docs/records/post-upgrade-capability-probe-execution-2026-03-19.md`、`docs/records/temporary-restricted-proxy-feasibility-window-execution-2026-03-21.md` 与 `docs/records/hello-world-image-prerequisite-remediation-micro-window-2026-03-22.md`。
 
 ### 目标
 

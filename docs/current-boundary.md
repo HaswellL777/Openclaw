@@ -111,7 +111,8 @@
 - Probe matrix：`docs/checklists/post-upgrade-capability-probe-matrix-2026.3.13.md`
 - Operator runbook：`docs/runbook-post-upgrade-capability-probe-2026.3.13.md`
 - 父切片 planning：`docs/planning/docker-prerequisite-establishment-for-phase3-2026-03-19.md`
-- 当前直接下一刀 planning：`docs/planning/hello-world-image-prerequisite-window-2026-03-21.md`
+- 当前直接下一刀 preflight checklist：`docs/checklists/temporary-restricted-proxy-feasibility-execution-preflight-2026-03-22.md`
+- 当前直接下一刀 readonly evidence pack：`docs/checklists/temporary-restricted-proxy-feasibility-execution-readonly-evidence-pack-2026-03-22.md`
 - feasibility definition：`docs/planning/docker-access-model-feasibility-experiment-for-openclaw-2026.3.13-2026-03-21.md`
 
 ## 当前 repo-side 执行器状态

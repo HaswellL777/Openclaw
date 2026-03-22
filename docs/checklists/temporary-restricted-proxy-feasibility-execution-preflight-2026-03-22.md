@@ -15,6 +15,7 @@
 - 本清单只服务于下一次 `temporary restricted proxy feasibility execution` 的进入评审与 operator preflight。
 - 本窗口只是 feasibility execution，不等于 `Phase 3 = GO`，不等于 implementation completion，也不等于 `phase3-docker-sandbox-foundation` 已放行。
 - 本清单中的命令只能写成检查项或建议命令骨架，不能视为已批准的直接执行步骤。
+- 如需一次性回收 execution 前 fresh evidence，配套只读取证包见：`docs/checklists/temporary-restricted-proxy-feasibility-execution-readonly-evidence-pack-2026-03-22.md`。
 - 每一项都应由 operator 在执行前标记 `PASS / FAIL / N/A`，并补充证据位置或人工备注；任一硬门禁未满足时，不得进入 execution。
 - 成功判据、失败分类、evidence points、stop conditions 必须在 execution 开始前写清楚；若仍存在模糊项，应停在 repo-side 审查层。
 
