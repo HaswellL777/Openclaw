@@ -143,7 +143,7 @@ precheck PASS 的出口语义只能是：
 
 - 允许进入 `temporary restricted proxy feasibility execution` 的 readonly evidence pack
 - 允许进入后续 operator preflight 审阅
-- 允许继续评估是否可进入 live-side pre-snapshot gate
+- 允许继续进入 blocked-state 审阅与 `Approved Direct Proxy Execution Block` 补齐
 
 它不等于：
 
@@ -177,7 +177,7 @@ precheck PASS 的出口语义只能是：
 
 - `current-run artifact pre-generation + alignment precheck established`
 - `temporary restricted proxy feasibility execution` 可回到 readonly evidence / operator preflight 层继续评审
-- 只有在 readonly evidence 同样 fresh 通过后，才允许进入 live-side pre-snapshot
+- `readonly evidence green` 只说明 Gate 0-3 已绿；在 `APPROVED_PROXY_EXEC_CMD=NO` 时，仍不得进入 live-side pre-snapshot，必须继续补齐并单独批准 `Approved Direct Proxy Execution Block`
 
 不能写成：
 

@@ -16,9 +16,9 @@
 - 本包开始前，repo-side 必须已经完成 current-run artifact pre-generation 且 alignment precheck 已 PASS；本包不负责补生成 helper / validate-only candidate，只负责只读复核。
 - 本包允许 operator 仅为回收 `hello-world` fresh existence evidence 使用 `sudo docker image inspect/ls`；该 `sudo` 只服务于只读取证，不等于放开长期 direct Docker access，也不改变 `openclaw` 仍不在 `docker` 组这一权限边界。
 - 本包回收完成后，repo-side 可直接依据输出做二分判断：
-  - 是否允许进入 live-side pre-snapshot gate
-  - 或继续 `HARD_STOP`
-- 若任一命令输出显示权限边界漂移、服务健康退化、`hello-world` 不存在、或需要借助解释性推断才能维持结论，则不得进入 pre-snapshot，更不得进入 execution。
+  - 是否继续维持 `BLOCKED_BEFORE_HOST_SIDE_CHANGE`
+  - 或返回 repo-side 补齐 `Approved Direct Proxy Execution Block`
+- 若任一命令输出显示权限边界漂移、服务健康退化、`hello-world` 不存在、或需要借助解释性推断才能维持结论，则不得释放 blocked-state，更不得进入 pre-snapshot 或 execution。
 
 ## 1. repo-side 基线证据
 
@@ -262,7 +262,7 @@ fresh 要求：
 
 本包的出口语义只允许写成：
 
-- **允许进入 live-side pre-snapshot gate**
+- **维持 `BLOCKED_BEFORE_HOST_SIDE_CHANGE`，并返回 repo-side 补齐 `Approved Direct Proxy Execution Block`**
 - **维持 `HARD_STOP` 并返回 repo-side 收口**
 
 - 继续 `HARD_STOP` 的任一条件：

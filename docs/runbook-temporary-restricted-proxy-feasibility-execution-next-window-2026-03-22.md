@@ -39,7 +39,7 @@
 
 因此，下一次窗口的第一条硬规则是：
 
-- **只有 current-run artifact alignment PASS 后，才允许进入 live-side pre-snapshot。**
+- **只有 current-run artifact alignment PASS 后，才允许进入下一层 blocked-state 审阅；在 `Approved Direct Proxy Execution Block` 被单独批准前，仍不得进入 live-side pre-snapshot。**
 
 ## 3. Exact Gate Chain
 
@@ -124,7 +124,7 @@ scripts/precheck-temporary-restricted-proxy-artifact-alignment.sh \
 2. repo-side 运行 `prepare` 生成 current-run helper / validate-only candidate / freeze-card / manifest / expected layout
 3. repo-side 运行 `precheck`，必须得到 `PREFLIGHT PASSED`
 4. operator 运行 readonly evidence pack，回收 fresh 服务健康、`hello-world` 存在性与权限边界证据
-5. 只有在 steps 1-4 全部通过后，才允许进入 live-side pre-snapshot
+5. 只有在 steps 1-4 全部通过后，才表示 `GATE0_3=GREEN`、prepared state 与 readonly evidence 已形成；在 `APPROVED_PROXY_EXEC_CMD=NO` 时，仍不得进入 live-side pre-snapshot
 6. live-side 执行 pre-change snapshot
 7. live-side 执行 pre-change Vault sync
 8. live-side 进入 change phase：
