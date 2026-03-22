@@ -1,0 +1,168 @@
+# Temporary Restricted Proxy Feasibility Execution Preflight Checklist
+
+> 日期：2026-03-22
+> 文档类型：operator-facing preflight checklist draft
+> 当前状态：**draft / 仅用于进入评审与执行前门禁，不构成已批准直接执行 runbook**
+> 父切片：`docker-prerequisite-establishment-for-phase3`
+> baseline：OpenClaw `2026.3.13`
+> 直接前置证据：`docs/records/temporary-restricted-proxy-feasibility-window-execution-2026-03-21.md`；`docs/records/hello-world-image-prerequisite-remediation-micro-window-2026-03-22.md`
+> 文档性质：**这是 temporary restricted proxy feasibility execution 的执行前门禁清单，不是 execution record，不是 operator runbook，不是 Phase 3 implementation completion record**
+
+---
+
+## 使用说明
+
+- 本清单只服务于下一次 `temporary restricted proxy feasibility execution` 的进入评审与 operator preflight。
+- 本窗口只是 feasibility execution，不等于 `Phase 3 = GO`，不等于 implementation completion，也不等于 `phase3-docker-sandbox-foundation` 已放行。
+- 本清单中的命令只能写成检查项或建议命令骨架，不能视为已批准的直接执行步骤。
+- 每一项都应由 operator 在执行前标记 `PASS / FAIL / N/A`，并补充证据位置或人工备注；任一硬门禁未满足时，不得进入 execution。
+- 成功判据、失败分类、evidence points、stop conditions 必须在 execution 开始前写清楚；若仍存在模糊项，应停在 repo-side 审查层。
+
+## 1. 文档基线确认
+
+| 检查项 | 通过标准 | 建议命令骨架 / 核对方式 | 结论备注 |
+|------|------|------|------|
+| 当前 direct next window 已写为进入评审 | 文档一致写明当前 direct next 是返回 temporary restricted proxy feasibility execution 的进入评审 | `sed -n '<start>,<end>p' docs/current-boundary.md` |  |
+| Phase 3 仍为 NO-GO | 边界与设计文档均未把当前状态写成 GO | `sed -n '<start>,<end>p' docs/current-boundary.md`；`sed -n '<start>,<end>p' docs/design-v3.md` |  |
+| 本窗口性质无漂移 | 文档明确写成 feasibility execution，不是 implementation，不是 establishment completion | 人工核对本清单头部、planning 文档与 records 文档 |  |
+| 权威事实源未被替换 | `/etc/openclaw/openclaw.json` 仍被表述为唯一 system gateway 生效配置源 | `sed -n '<start>,<end>p' docs/design-v3.md`；`sed -n '<start>,<end>p' docs/host-sop.md` |  |
+
+## 2. 当前 blocker 解除确认
+
+| 检查项 | 通过标准 | 建议命令骨架 / 核对方式 | 结论备注 |
+|------|------|------|------|
+| `2026-03-21` 唯一 hard-stop reason 已被准确识别 | 仍只接受 `hello-world image missing` 作为上次唯一 blocker | `sed -n '<start>,<end>p' docs/records/temporary-restricted-proxy-feasibility-window-execution-2026-03-21.md` |  |
+| `hello-world` prerequisite 已补齐 | remediation record 明确写回 `hello-world image prerequisite established` | `sed -n '<start>,<end>p' docs/records/hello-world-image-prerequisite-remediation-micro-window-2026-03-22.md` |  |
+| blocker 解除没有被误写成 execution 已开始 | remediation record 仍明确写回 `proxy 未启动`、`audit jsonl 未创建`、`proxy execution 未验证` | `sed -n '<start>,<end>p' docs/records/hello-world-image-prerequisite-remediation-micro-window-2026-03-22.md` |  |
+| blocker 解除没有越界 | remediation record 仍明确写回未修改 `/etc/openclaw/openclaw.json`、未修改 `openclaw.live.json`、未变更 `openclaw` 用户组归属 | `sed -n '<start>,<end>p' docs/records/hello-world-image-prerequisite-remediation-micro-window-2026-03-22.md` |  |
+
+## 3. git / repo 基线确认
+
+| 检查项 | 通过标准 | 建议命令骨架 / 核对方式 | 结论备注 |
+|------|------|------|------|
+| 当前分支正确 | 分支仍为 `feat/phase1b-workspace-foundation` | `git rev-parse --abbrev-ref HEAD` |  |
+| 最近已推送基线未漂移 | 最近提交链顶部仍包含 `a58567c` 作为已知基线 | `git log --oneline -n 5` |  |
+| 本轮 repo-side 补文可审计 | 本清单已纳入 git 跟踪，且除允许范围外无额外改动 | `git status --short` |  |
+| 本轮未把 local draft 纳入执行包 | 那两个未跟踪 local draft 仍保持未跟踪，且不纳入本窗口事实源 | `git status --short` |  |
+
+## 4. 快照 / Vault / 回滚前提
+
+| 检查项 | 通过标准 | 建议命令骨架 / 核对方式 | 结论备注 |
+|------|------|------|------|
+| operator 已接受 host-affecting change 纪律 | 执行前明确采用 `pre snapshot -> Vault sync -> change -> health validation -> post snapshot -> Vault sync` | 人工逐条宣读并记录 |  |
+| 快照边界被正确理解 | 明确 root snapshot 不覆盖 `/var/lib/openclaw` 运行态子卷 | `sed -n '<start>,<end>p' docs/design-v3.md`；`sed -n '<start>,<end>p' docs/host-sop.md` |  |
+| 回滚边界先于 execution 写清 | 若 execution 失败，回滚对象只限实验临时对象，不扩展为 Phase 3 rollback | `sed -n '<start>,<end>p' docs/planning/docker-access-model-feasibility-experiment-for-openclaw-2026.3.13-2026-03-21.md` |  |
+| 未形成保护包不得开窗 | 若快照、Vault、健康校验路径未先确认，则本窗口不得开始 | 人工门禁判断 |  |
+
+## 5. 当前运行态确认
+
+| 检查项 | 通过标准 | 建议命令骨架 / 核对方式 | 结论备注 |
+|------|------|------|------|
+| `docker.service` 状态可复核 | execution 开始前可再次确认 `active` | `systemctl status docker.service --no-pager` |  |
+| `docker.socket` 状态可复核 | execution 开始前可再次确认 `active` | `systemctl status docker.socket --no-pager` |  |
+| gateway 状态可复核 | execution 开始前 gateway 保持健康 | `systemctl status openclaw-gateway.service --no-pager` |  |
+| broker 状态可复核 | execution 开始前 broker 保持健康 | `systemctl status openclaw-broker.service --no-pager` |  |
+| `hello-world` image 直接存在证据可复核 | execution 开始前仍可证明 `hello-world` 已存在 | `sudo docker image inspect hello-world`；`sudo docker image ls hello-world` |  |
+| 当前权限边界未漂移 | `openclaw` 仍不在 `docker` 组，且不是通过长期放权直接访问 Docker daemon | `id openclaw`；`getent group docker`；只读核对既有 evidence |  |
+
+## 6. candidate execution path 确认
+
+| 检查项 | 通过标准 | 建议命令骨架 / 核对方式 | 结论备注 |
+|------|------|------|------|
+| candidate 仍是唯一存活候选 | 当前仅讨论“受限 proxy + 显式 endpoint”，不引入新候选混跑 | `sed -n '<start>,<end>p' docs/planning/docker-access-model-feasibility-experiment-for-openclaw-2026.3.13-2026-03-21.md` |  |
+| validate-only candidate 已存在基线 | 上次 bundle 已证明 candidate 可通过 config validate | 只读核对 `docs/records/temporary-restricted-proxy-feasibility-window-execution-2026-03-21.md` |  |
+| helper payload 已存在基线 | 上次 bundle 已证明 helper 已生成并编译 | 只读核对 `docs/records/temporary-restricted-proxy-feasibility-window-execution-2026-03-21.md` |  |
+| success criteria 已写清 | 最低通过标准必须是 OpenClaw 发起并完成最小 sandbox lifecycle 闭环 | 只读核对 feasibility definition；人工签字确认 |  |
+| evidence points 已写清 | preflight、proxy start、audit jsonl、backend connect、create/start、task end、cleanup、post-check 均有证据位 | 人工逐条确认并登记预期证据路径 |  |
+| stop conditions 已写清 | 出现权限漂移、配置越界、运行态异常、闭环失败即停 | 人工逐条确认并登记 |  |
+
+## 7. 本窗口允许事项
+
+- 只验证 OpenClaw `2026.3.13` 在“受限 proxy + 显式 endpoint”下，能否完成最小 sandbox lifecycle 闭环。
+- 只收集与 feasibility execution 直接相关的最小 evidence。
+- 只允许围绕以下节点做验证与收口：
+  - preflight baseline
+  - proxy / endpoint 可达性
+  - OpenClaw 对 candidate `sandbox.docker` 配置的接受情况
+  - lifecycle 的 `create / start / run / cleanup` 最小闭环
+  - post-check 与结果归类
+- 允许把结果收口为通过或失败分类，但即使通过，也只能写成“当前候选模型具备进入后续 establishment 细化的证据基础”，不能写成 `Phase 3 = GO`。
+
+## 8. 本窗口禁止事项
+
+- 不触碰 `/etc/openclaw/openclaw.json`。
+- 不触碰 `openclaw.live.json`。
+- 不变更 `openclaw` 用户组归属。
+- 不把 `openclaw` 加入 `docker` 组。
+- 不引入 rootless Docker。
+- 不修改 systemd 单元终态设计。
+- 不把 task-runner / image / network / workspace 的正式实施混入本窗口。
+- 不把 feasibility execution 写成 implementation completion。
+- 不把 proxy + endpoint 写成冻结终态。
+- 不在证据不足时把结果写成“基本可行”或“等同放行”。
+
+## 9. 必须回收的最小 evidence
+
+### 9.1 execution 前最小基线 evidence
+
+| evidence 点 | 最低要求 | 建议命令骨架 / 核对方式 | 备注 |
+|------|------|------|------|
+| 工作树与提交基线 | 本轮文档变更可审计；未混入无关文件 | `git status --short`；`git log --oneline -n 5` |  |
+| 服务健康 | `docker.service`、`docker.socket`、gateway、broker 的 pre-check | `systemctl status <unit> --no-pager` |  |
+| `hello-world` prerequisite | 直接存在证据可复核 | `sudo docker image inspect hello-world`；`sudo docker image ls hello-world` |  |
+| 权限边界 | `openclaw` 不在 `docker` 组，未改长期权限模型 | `id openclaw`；`getent group docker` |  |
+
+### 9.2 execution 中最小 evidence
+
+| evidence 点 | 最低要求 | 建议命令骨架 / 核对方式 | 备注 |
+|------|------|------|------|
+| candidate config accepted | OpenClaw 接受相关 `sandbox.docker` 配置，而非 schema/config 级拒绝 | 保留 validate / load / start 相关输出 |  |
+| proxy actually started | 有 socket、unit/进程、journal 等直接证据 | `systemctl status <proxy-unit> --no-pager`；`journalctl -u <proxy-unit> --no-pager`；相关文件存在性检查 |  |
+| audit jsonl actually created | audit jsonl 存在且非空 | `test -s <audit-jsonl-path>`；只读查看头尾 |  |
+| backend reachable via explicit endpoint | 证据能表明 OpenClaw 走的是显式 endpoint，而非默认本地 socket 假设 | 保留配置快照与运行输出 |  |
+| lifecycle create / start / run / cleanup | 至少一次最小任务执行到可判定结束，并完成清理 | 保留 gateway / backend / proxy 相关日志与结果摘要 |  |
+
+### 9.3 execution 后最小收口 evidence
+
+| evidence 点 | 最低要求 | 建议命令骨架 / 核对方式 | 备注 |
+|------|------|------|------|
+| post-check 服务健康 | `docker.service`、`docker.socket`、gateway、broker 仍健康 | `systemctl status <unit> --no-pager` |  |
+| 结果归类 | 结果必须明确落入 success 或 failure class | 人工写回结果摘要 |  |
+| 边界说明 | 明确写回本窗口只是 feasibility execution，不等于 Phase 3 GO，不等于 implementation completion | 人工写回结果摘要 |  |
+
+### 9.4 本窗口最低成功判据
+
+- OpenClaw `2026.3.13` 接受 candidate `sandbox.docker` 配置。
+- OpenClaw 通过受限 proxy + 显式 endpoint 发起最小 sandbox lifecycle。
+- 至少一次最小任务完成 `create / start / run / cleanup` 闭环。
+- execution 前后关键服务保持健康。
+- 结果能够以直接证据支撑，而不是仅凭 `docker version`、`docker info`、proxy 健康检查或单独 endpoint 连通性。
+
+## 10. 失败分类
+
+| 分类 | 含义 | 收口要求 |
+|------|------|------|
+| `config rejected` | OpenClaw 不接受 candidate `sandbox.docker` 配置，或在校验阶段即被拒绝 | 保留配置与校验输出，不得写成 backend 问题 |
+| `backend unreachable` | 配置被接受，但显式 endpoint 无法触达受限 proxy | 保留 endpoint、proxy、连通性证据 |
+| `lifecycle operation unsupported` | backend 可达，但 `create / start / run / wait` 中关键步骤无法完成 | 保留生命周期关键日志与失败点 |
+| `cleanup/teardown unsupported` | 前置步骤成功，但 cleanup / teardown 无法稳定完成 | 保留残留资源与清理失败证据 |
+
+## 11. HARD_STOP 条件
+
+- 进入窗口前仍无法再次形成 `hello-world` image 直接存在证据。
+- 需要触碰 `/etc/openclaw/openclaw.json` 或 `openclaw.live.json`。
+- 需要变更 `openclaw` 用户组归属，或把 `openclaw` 加入 `docker` 组。
+- 需要引入 rootless Docker。
+- 操作开始滑向 task-runner / image / network / workspace 的正式实施。
+- 操作开始滑向 systemd 单元终态设计、secrets handling 或其他未审查系统变更。
+- 成功判据、失败分类、evidence points、stop conditions 仍未在 execution 前写清。
+- gateway、broker、`docker.service` 或 `docker.socket` 出现非预期健康退化。
+- execution 只能证明“配置可读”或“endpoint 可连”，却不能推进最小 lifecycle 闭环。
+- 任何结果需要靠解释性推断而非直接证据才能维持“可继续”结论。
+
+---
+
+本清单的出口语义只能是二选一：
+
+- **允许 operator 进入 temporary restricted proxy feasibility execution preflight**
+- **维持 `Phase 3 = NO-GO` 并返回 repo-side 收口**
