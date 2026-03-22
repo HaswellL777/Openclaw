@@ -4,6 +4,7 @@
 > 文档类型：operator-facing readonly evidence pack
 > 适用范围：`temporary restricted proxy feasibility execution` 开始前的最后一轮只读取证
 > baseline：OpenClaw `2026.3.13`
+> 配套 operator runbook：`docs/runbook-temporary-restricted-proxy-feasibility-execution-next-window-2026-03-22.md`
 > 文档性质：**本文件只定义 execution 前必须回收的 fresh readonly evidence，不是 execution runbook，不是 implementation completion record**
 
 ---
@@ -12,12 +13,12 @@
 
 - 本包只用于 operator 在正式 feasibility execution 之前，一次性回收 fresh evidence。
 - 本包内命令必须保持只读；不得启动 proxy，不得创建 audit jsonl，不得修改配置，不得改变用户组归属，不得写系统状态。
-- 本包开始前，repo-side 必须已经完成 current-run artifact pre-generation；本包不负责补生成 helper / validate-only candidate，只负责只读复核。
+- 本包开始前，repo-side 必须已经完成 current-run artifact pre-generation 且 alignment precheck 已 PASS；本包不负责补生成 helper / validate-only candidate，只负责只读复核。
 - 本包允许 operator 仅为回收 `hello-world` fresh existence evidence 使用 `sudo docker image inspect/ls`；该 `sudo` 只服务于只读取证，不等于放开长期 direct Docker access，也不改变 `openclaw` 仍不在 `docker` 组这一权限边界。
 - 本包回收完成后，repo-side 可直接依据输出做二分判断：
-  - 是否允许进入 temporary restricted proxy feasibility execution
+  - 是否允许进入 live-side pre-snapshot gate
   - 或继续 `HARD_STOP`
-- 若任一命令输出显示权限边界漂移、服务健康退化、`hello-world` 不存在、或需要借助解释性推断才能维持结论，则不得进入 execution。
+- 若任一命令输出显示权限边界漂移、服务健康退化、`hello-world` 不存在、或需要借助解释性推断才能维持结论，则不得进入 pre-snapshot，更不得进入 execution。
 
 ## 1. repo-side 基线证据
 
@@ -50,7 +51,7 @@ fresh 要求：
 
 判读：
 - 若返回 `RESULT: PREFLIGHT PASSED`，说明 current-run artifact alignment 已建立
-- 若返回 `RESULT: PREFLIGHT FAILED`，则当前应直接维持 `HARD_STOP`，不得继续 live-side evidence 回收
+- 若返回 `RESULT: PREFLIGHT FAILED`，则当前应直接维持 `HARD_STOP`，不得继续 live-side evidence 回收，更不得进入 pre-snapshot
 
 ```bash
 sed -n '1,220p' /tmp/openclaw-docker-access-feasibility/<run-id>/freeze-card.env
@@ -258,6 +259,11 @@ fresh 要求：
   - `hello-world` fresh 直接存在证据可由当前 operator 通过只读 `sudo docker image inspect/ls` 回收
   - `openclaw` 仍不在 `docker` 组
   - 未出现需要触碰 `/etc/openclaw/openclaw.json`、`openclaw.live.json`、systemd 终态设计或长期权限模型的迹象
+
+本包的出口语义只允许写成：
+
+- **允许进入 live-side pre-snapshot gate**
+- **维持 `HARD_STOP` 并返回 repo-side 收口**
 
 - 继续 `HARD_STOP` 的任一条件：
   - current-run artifact precheck 未通过，或 helper / validate-only candidate 仍缺失

@@ -6,6 +6,7 @@
 > 父切片：`docker-prerequisite-establishment-for-phase3`
 > baseline：OpenClaw `2026.3.13`
 > 直接前置证据：`docs/records/temporary-restricted-proxy-feasibility-window-execution-2026-03-21.md`；`docs/records/hello-world-image-prerequisite-remediation-micro-window-2026-03-22.md`；`docs/records/temporary-restricted-proxy-feasibility-execution-hard-stop-exp-docker-access-feasibility-20260322-111033.md`
+> 配套 operator runbook：`docs/runbook-temporary-restricted-proxy-feasibility-execution-next-window-2026-03-22.md`
 > 文档性质：**这是 temporary restricted proxy feasibility execution 的执行前门禁清单，不是 execution record，不是 operator runbook，不是 Phase 3 implementation completion record**
 
 ---
@@ -16,6 +17,7 @@
 - 本窗口只是 feasibility execution，不等于 `Phase 3 = GO`，不等于 implementation completion，也不等于 `phase3-docker-sandbox-foundation` 已放行。
 - 本清单中的命令只能写成检查项或建议命令骨架，不能视为已批准的直接执行步骤。
 - 进入任何 live-side readonly evidence / operator preflight 之前，必须先完成 current-run artifact pre-generation 与 alignment precheck；不得再把 previous-run baseline 当作 current-run 已就绪的替代物。
+- `2026-03-22` 的 hard-stop lesson 已升级为硬门禁：只有 current-run artifact alignment PASS 后，才允许进入 live-side pre-snapshot。
 - 如需一次性回收 execution 前 fresh evidence，配套只读取证包见：`docs/checklists/temporary-restricted-proxy-feasibility-execution-readonly-evidence-pack-2026-03-22.md`。
 - 每一项都应由 operator 在执行前标记 `PASS / FAIL / N/A`，并补充证据位置或人工备注；任一硬门禁未满足时，不得进入 execution。
 - 成功判据、失败分类、evidence points、stop conditions 必须在 execution 开始前写清楚；若仍存在模糊项，应停在 repo-side 审查层。
@@ -58,12 +60,14 @@
 | expected layout 已形成 | current-run `rc_base` 下不再只有 `freeze-card.env`、`evidence/`、`runtime/` 空壳 | `sed -n '1,120p' <rc-base>/expected-artifact-layout.txt`；`find <rc-base> -maxdepth 1 -mindepth 1 | sort` |  |
 | alignment precheck 已 PASS | 只读 precheck 明确返回 `current-run artifact alignment established` | `scripts/precheck-temporary-restricted-proxy-artifact-alignment.sh --rc-base <rc-base>` |  |
 | previous-run baseline 未被误写成 current-run ready | 文档与预检结果都明确区分 historical baseline 与 current-run prepared artifacts | 人工核对 precheck 输出与 hard-stop record |  |
+| live-side pre-snapshot 仍被锁住直到 alignment PASS | 在 current-run artifact alignment PASS 前，不得开始任何 live-side pre-snapshot | 人工核对 precheck 输出；对照 `2026-03-22` hard-stop record |  |
 
 ## 5. 快照 / Vault / 回滚前提
 
 | 检查项 | 通过标准 | 建议命令骨架 / 核对方式 | 结论备注 |
 |------|------|------|------|
 | operator 已接受 host-affecting change 纪律 | 执行前明确采用 `pre snapshot -> Vault sync -> change -> health validation -> post snapshot -> Vault sync` | 人工逐条宣读并记录 |  |
+| pre-snapshot gate 顺序正确 | 只有在 current-run alignment PASS 且 readonly evidence green 后，才允许进入 live-side pre-snapshot | 对照配套 runbook 与 readonly evidence pack 逐条核对 |  |
 | 快照边界被正确理解 | 明确 root snapshot 不覆盖 `/var/lib/openclaw` 运行态子卷 | `sed -n '<start>,<end>p' docs/design-v3.md`；`sed -n '<start>,<end>p' docs/host-sop.md` |  |
 | 回滚边界先于 execution 写清 | 若 execution 失败，回滚对象只限实验临时对象，不扩展为 Phase 3 rollback | `sed -n '<start>,<end>p' docs/planning/docker-access-model-feasibility-experiment-for-openclaw-2026.3.13-2026-03-21.md` |  |
 | 未形成保护包不得开窗 | 若快照、Vault、健康校验路径未先确认，则本窗口不得开始 | 人工门禁判断 |  |
@@ -125,7 +129,7 @@
 |------|------|------|------|
 | 工作树与提交基线 | 本轮文档变更可审计；未混入无关文件 | `git status --short`；`git log --oneline -n 5` |  |
 | current-run artifact pack | current-run freeze card、helper、validate-only candidate、manifest、expected layout 已落盘 | `scripts/prepare-temporary-restricted-proxy-feasibility-artifacts.sh --run-id <run-id> --rc-base <rc-base>`；`sed -n '1,220p' <rc-base>/current-run-artifact-manifest.json` |  |
-| current-run alignment precheck | precheck 明确返回 `PREFLIGHT PASSED` | `scripts/precheck-temporary-restricted-proxy-artifact-alignment.sh --rc-base <rc-base>` |  |
+| current-run alignment precheck | precheck 明确返回 `PREFLIGHT PASSED`，并作为进入 live-side pre-snapshot 的锁释放条件 | `scripts/precheck-temporary-restricted-proxy-artifact-alignment.sh --rc-base <rc-base>` |  |
 | 服务健康 | `docker.service`、`docker.socket`、gateway、broker 的 pre-check | `systemctl status <unit> --no-pager` |  |
 | `hello-world` prerequisite | 直接存在证据可复核 | `sudo docker image inspect hello-world`；`sudo docker image ls hello-world` |  |
 | 权限边界 | `openclaw` 不在 `docker` 组，未改长期权限模型 | `id openclaw`；`getent group docker` |  |

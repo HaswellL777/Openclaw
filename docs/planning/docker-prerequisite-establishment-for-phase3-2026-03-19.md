@@ -23,14 +23,14 @@ OpenClaw 已完成 `2026.3.13` 升级，focused regression 与 Phase 2 host_ops 
 - previous-run temporary restricted proxy helper payload 曾生成并编译；
 - `hello-world` prerequisite 已补齐；
 - 但 current-run helper / current-run validate-only candidate 未自动形成；
-- execution 尚未启动，当前仍停在 repo-side current-run artifact pre-generation + alignment precheck 之后，才可返回 readonly evidence / operator preflight。
+- execution 尚未启动，当前仍停在 repo-side current-run artifact pre-generation + alignment precheck 之后，才可返回 readonly evidence / operator preflight；只有 current-run artifact alignment PASS 且 readonly evidence green 后，才允许进入 live-side pre-snapshot。
 
 这意味着：
 
 - Phase 3 当前仍 **不得开始**；
 - temporary restricted proxy execution 仍 **尚未启动**；
 - `docker-prerequisite-establishment-for-phase3` 继续作为 **active parent slice** 存在；
-- 当前 direct next child window 已从 `hello-world-image-prerequisite-window-2026-03-21` 收口返回到 `temporary restricted proxy feasibility execution` 的进入评审，但在进入 live-side readonly evidence 之前，必须先补齐 repo-side current-run artifact pre-generation + alignment precheck。
+- 当前 direct next child window 已从 `hello-world-image-prerequisite-window-2026-03-21` 收口返回到 `temporary restricted proxy feasibility execution` 的进入评审，但在进入 live-side readonly evidence 与 live-side pre-snapshot 之前，必须先补齐 repo-side current-run artifact pre-generation + alignment precheck。
 
 因此，本文件的定位不是实施记录，而是 **repo-side planning 文档**，用于定义当前 active parent slice 及其子窗口边界。
 
@@ -116,9 +116,10 @@ OpenClaw 已完成 `2026.3.13` 升级，focused regression 与 Phase 2 host_ops 
 3. current-run helper / validate-only candidate 的 repo-side 预生成
 4. current-run artifact alignment precheck
 5. 仅在 precheck PASS 后，回到 temporary restricted proxy feasibility execution 的 readonly evidence / 进入评审
-6. 继续明确 `openclaw` 用户访问 Docker 的安全方案候选与剩余风险项
-7. 定义实施后必须满足的验证标准
-8. 在 prerequisite establishment 完成后，再决定是否重启 capability probe 的 `P5 / P4 / P3`
+6. 仅在 readonly evidence 也为 green 后，才允许进入 live-side pre-snapshot
+7. 继续明确 `openclaw` 用户访问 Docker 的安全方案候选与剩余风险项
+8. 定义实施后必须满足的验证标准
+9. 在 prerequisite establishment 完成后，再决定是否重启 capability probe 的 `P5 / P4 / P3`
 
 其中 parent slice 收口时至少应回答：
 
@@ -159,7 +160,7 @@ OpenClaw 已完成 `2026.3.13` 升级，focused regression 与 Phase 2 host_ops 
    - `Phase 3 = NO-GO`
    - active parent slice = `docker-prerequisite-establishment-for-phase3`
    - current direct next child window = 返回 `temporary restricted proxy feasibility execution` 的进入评审
-   - current-run artifact pre-generation + alignment precheck 是进入 live-side readonly evidence 之前的 repo-side 硬门禁
+   - current-run artifact pre-generation + alignment precheck 是进入 live-side readonly evidence 与 live-side pre-snapshot 之前的 repo-side 硬门禁
 2. planning 索引与文档地图已能正确指向本文件
 3. 本文件清楚区分：
    - planning

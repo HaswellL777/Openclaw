@@ -6,6 +6,7 @@
 > 适用窗口：`temporary restricted proxy feasibility execution` 进入评审之前的 repo-side repair slice
 > 父切片：`docker-prerequisite-establishment-for-phase3`
 > 直接前置事实：`2026-03-22` hard-stop record 明确写回唯一原因 = `current-run artifact alignment not established`
+> 配套 operator runbook：`docs/runbook-temporary-restricted-proxy-feasibility-execution-next-window-2026-03-22.md`
 > 文档性质：**本包只处理 current-run helper / validate-only candidate 的预生成与只读对齐预检；不启动 proxy，不创建 audit jsonl，不继续 deployment，不把 feasibility 写成 implementation**
 
 ---
@@ -31,7 +32,7 @@
 
 - 以 current-run `run_id` 驱动准备物重生成。
 - 明确 current-run helper / candidate / endpoint / evidence sink 的冻结路径。
-- 在进入任何 live-side readonly evidence 或 operator preflight 前，先做只读 alignment precheck。
+- 在进入任何 live-side readonly evidence、operator preflight 或 live-side pre-snapshot 前，先做只读 alignment precheck。
 - 用 repo-side 产物说明 expected artifact layout，避免再次出现 `RC_BASE` 下只有 `freeze-card.env`、`evidence/`、`runtime/` 的空壳状态。
 
 ## 3. 范围外事项
@@ -69,9 +70,14 @@ scripts/precheck-temporary-restricted-proxy-artifact-alignment.sh
 建议骨架：
 
 ```bash
-RUN_ID=exp-docker-access-feasibility-20260322-111033
+RUN_ID=exp-docker-access-feasibility-<YYYYMMDD-HHMMSS>
 RC_BASE=/tmp/openclaw-docker-access-feasibility/${RUN_ID}
 ```
+
+要求：
+
+- 必须使用 fresh `run_id`。
+- 不得复用 `exp-docker-access-feasibility-20260322-111033` 这次 hard-stop 的失败 run。
 
 ### Step 1. 生成 current-run artifact
 
@@ -137,10 +143,12 @@ precheck PASS 的出口语义只能是：
 
 - 允许进入 `temporary restricted proxy feasibility execution` 的 readonly evidence pack
 - 允许进入后续 operator preflight 审阅
+- 允许继续评估是否可进入 live-side pre-snapshot gate
 
 它不等于：
 
 - 允许立即开始 live execution
+- 允许直接进入 live-side pre-snapshot
 - 允许启动 proxy
 - 允许创建 audit jsonl
 
@@ -169,9 +177,27 @@ precheck PASS 的出口语义只能是：
 
 - `current-run artifact pre-generation + alignment precheck established`
 - `temporary restricted proxy feasibility execution` 可回到 readonly evidence / operator preflight 层继续评审
+- 只有在 readonly evidence 同样 fresh 通过后，才允许进入 live-side pre-snapshot
 
 不能写成：
 
 - temporary restricted proxy execution 已开始
 - validate-only candidate 已完成 live validate
 - Phase 3 = GO
+
+## 9. 2026-03-22 Repo-Side Validation Reference
+
+本轮 dev repo 收口已用 fresh `run_id` 完整跑通一遍：
+
+- `RUN_ID=exp-docker-access-feasibility-20260322-123530`
+- `RC_BASE=/tmp/openclaw-docker-access-feasibility/exp-docker-access-feasibility-20260322-123530`
+- `scripts/prepare-temporary-restricted-proxy-feasibility-artifacts.sh` 已生成：
+  - `freeze-card.env`
+  - `docker_restricted_proxy.py`
+  - `openclaw.docker-access-feasibility.exp-docker-access-feasibility-20260322-123530.validate-only.json`
+  - `current-run-artifact-manifest.json`
+  - `expected-artifact-layout.txt`
+- `scripts/precheck-temporary-restricted-proxy-artifact-alignment.sh` 已返回：
+  - `RESULT: PREFLIGHT PASSED — current-run artifact alignment established.`
+
+这组 evidence 只证明 repo-side prep/precheck 机制已可用，不代表下一次 live-side window 可以复用同一个 `run_id` 直接开窗。下一次 operator window 仍应重新生成 fresh `run_id` 并重跑 prepare/precheck。
