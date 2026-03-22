@@ -57,7 +57,7 @@
 | Phase 6 (备份扩展 / 长期收口) | **未开始** |
 | Scrapling 接入 | **未开始** |
 
-## 当前下一步：temporary restricted proxy feasibility execution 的进入评审
+## 当前下一步：repo-side `Approved Direct Proxy Execution Block` 来源条件 / 批准路径补齐
 
 `2026-03-19` 的 capability probe 已在 `P5 Docker / task-runner prerequisites` 处 hard gate FAIL，结论仍是 `Phase 3 = NO-GO`。
 
@@ -92,27 +92,40 @@
 
 这些 dated facts 只说明 `hello-world` prerequisite 已补齐，不构成 `Phase 3 = GO`，也不构成 temporary restricted proxy execution 已开始。
 
-因此当前新的直接下一刀不是直接进入 `phase3-docker-sandbox-foundation`，而是回到：
+在此之后，`2026-03-22` 的 blocked-check authoritative 状态又进一步收口为：
 
-- `temporary restricted proxy feasibility execution` 的进入评审
+- `RESULT=BLOCKED_BEFORE_HOST_SIDE_CHANGE`
+- `GATE0_3=GREEN`
+- `PREPARED_STATE_PASS=YES`
+- `READONLY_EVIDENCE_GREEN=YES`
+- `APPROVED_PROXY_EXEC_CMD=NO`
+
+这意味着 repo-side prepare / precheck 与 readonly evidence 已经收口，但当前仍**没有**可执行的 `Approved Direct Proxy Execution Block`。
+
+因此当前新的直接下一刀不是直接进入 `phase3-docker-sandbox-foundation`，也不是继续把叙述停在“返回 execution 进入评审”，而是：
+
+- repo-side 补齐 `Approved Direct Proxy Execution Block` 的来源条件、命令-证据绑定与批准路径
 
 其目标应严格收敛为：
 
-1. 只评估是否允许重新进入 temporary restricted proxy feasibility execution。
+1. 明确写清 `Approved Direct Proxy Execution Block` 的来源条件、批准主体与批准结果落点。
 2. 保持 `Phase 3 = NO-GO`，直到后续 execution evidence 另行形成通过结论。
 3. 不把 prerequisite remediation 写成 temporary restricted proxy execution 已开始。
-4. 不把当前状态写成 `phase3-docker-sandbox-foundation` 已放行。
-5. 不触碰 `/etc/openclaw/openclaw.json` 或 `openclaw.live.json`。
+4. 明确当前仍无 approved operator block，因而仍不得进入 live-side pre-snapshot。
+5. 不把当前状态写成 `phase3-docker-sandbox-foundation` 已放行。
+6. 不触碰 `/etc/openclaw/openclaw.json` 或 `openclaw.live.json`。
 
 - 执行记录：`docs/records/post-upgrade-capability-probe-execution-2026-03-19.md`
 - 本次 HARD_STOP evidence record：`docs/records/temporary-restricted-proxy-feasibility-window-execution-2026-03-21.md`
 - prerequisite remediation record：`docs/records/hello-world-image-prerequisite-remediation-micro-window-2026-03-22.md`
+- blocked-state hard-stop record：`docs/records/temporary-restricted-proxy-feasibility-execution-hard-stop-exp-docker-access-feasibility-20260322-111033.md`
 - 设计文档：`docs/planning/post-upgrade-capability-probe-2026.3.13-slice-design-2026-03-18.md`
 - Probe matrix：`docs/checklists/post-upgrade-capability-probe-matrix-2026.3.13.md`
-- Operator runbook：`docs/runbook-post-upgrade-capability-probe-2026.3.13.md`
+- next-window runbook：`docs/runbook-temporary-restricted-proxy-feasibility-execution-next-window-2026-03-22.md`
 - 父切片 planning：`docs/planning/docker-prerequisite-establishment-for-phase3-2026-03-19.md`
-- 当前直接下一刀 preflight checklist：`docs/checklists/temporary-restricted-proxy-feasibility-execution-preflight-2026-03-22.md`
-- 当前直接下一刀 readonly evidence pack：`docs/checklists/temporary-restricted-proxy-feasibility-execution-readonly-evidence-pack-2026-03-22.md`
+- repo-side artifact preparation pack：`docs/execution-pack-temporary-restricted-proxy-feasibility-artifact-preparation-2026-03-22.md`
+- 已形成 green 的 preflight checklist：`docs/checklists/temporary-restricted-proxy-feasibility-execution-preflight-2026-03-22.md`
+- 已形成 green 的 readonly evidence pack：`docs/checklists/temporary-restricted-proxy-feasibility-execution-readonly-evidence-pack-2026-03-22.md`
 - feasibility definition：`docs/planning/docker-access-model-feasibility-experiment-for-openclaw-2026.3.13-2026-03-21.md`
 
 ## 当前 repo-side 执行器状态

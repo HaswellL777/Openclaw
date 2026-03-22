@@ -3,7 +3,7 @@
 > 日期：2026-03-19
 > 文档类型：planning / active parent slice design
 > 当前状态：**active / parent slice**
-> 前置事实：`2026-03-19` post-upgrade capability probe 已在 OpenClaw 2026.3.13 baseline 上执行，并在 `P5 Docker / task-runner prerequisites` hard gate FAIL；`2026-03-21` temporary restricted proxy feasibility window 已在 proxy start 前 `HARD_STOP`；`2026-03-22` 又因 `current-run artifact alignment not established` 再次停在 `before_proxy_start`
+> 前置事实：`2026-03-19` post-upgrade capability probe 已在 OpenClaw 2026.3.13 baseline 上执行，并在 `P5 Docker / task-runner prerequisites` hard gate FAIL；`2026-03-21` temporary restricted proxy feasibility window 已在 proxy start 前 `HARD_STOP`；`2026-03-22` 曾因 `current-run artifact alignment not established` 停在 `before_proxy_start`，随后 repo-side prepared state 与 readonly evidence 已补齐，但当前仍 `BLOCKED_BEFORE_HOST_SIDE_CHANGE`
 > 相关执行记录：`docs/records/post-upgrade-capability-probe-execution-2026-03-19.md`；`docs/records/temporary-restricted-proxy-feasibility-window-execution-2026-03-21.md`；`docs/records/temporary-restricted-proxy-feasibility-execution-hard-stop-exp-docker-access-feasibility-20260322-111033.md`
 
 ---
@@ -22,15 +22,16 @@ OpenClaw 已完成 `2026.3.13` 升级，focused regression 与 Phase 2 host_ops 
 - previous-run validate-only candidate 曾通过 config validate；
 - previous-run temporary restricted proxy helper payload 曾生成并编译；
 - `hello-world` prerequisite 已补齐；
-- 但 current-run helper / current-run validate-only candidate 未自动形成；
-- execution 尚未启动，当前仍停在 repo-side current-run artifact pre-generation + alignment precheck 之后，才可返回 readonly evidence / operator preflight；只有 current-run artifact alignment PASS 且 readonly evidence green 后，才允许进入 live-side pre-snapshot。
+- current-run helper / current-run validate-only candidate 已可由 repo-side prepare / precheck 形成，且 prepared state 已通过；
+- readonly evidence green 已形成；
+- 但 `Approved Direct Proxy Execution Block` 仍未形成批准版本，当前 authoritative 状态仍是 `BLOCKED_BEFORE_HOST_SIDE_CHANGE`，因此 execution 尚未启动，且仍不得进入 live-side pre-snapshot。
 
 这意味着：
 
 - Phase 3 当前仍 **不得开始**；
 - temporary restricted proxy execution 仍 **尚未启动**；
 - `docker-prerequisite-establishment-for-phase3` 继续作为 **active parent slice** 存在；
-- 当前 direct next child window 已从 `hello-world-image-prerequisite-window-2026-03-21` 收口返回到 `temporary restricted proxy feasibility execution` 的进入评审，但在进入 live-side readonly evidence 与 live-side pre-snapshot 之前，必须先补齐 repo-side current-run artifact pre-generation + alignment precheck。
+- 当前 direct next child slice 已从 `hello-world-image-prerequisite-window-2026-03-21` 与 repo-side artifact repair 收口，进一步收敛为 repo-side `Approved Direct Proxy Execution Block` 来源条件 / 批准路径补齐；在该批准块形成前，不得进入 live-side pre-snapshot。
 
 因此，本文件的定位不是实施记录，而是 **repo-side planning 文档**，用于定义当前 active parent slice 及其子窗口边界。
 
@@ -47,8 +48,8 @@ OpenClaw 已完成 `2026.3.13` 升级，focused regression 与 Phase 2 host_ops 
 因此当前应按两层理解：
 
 - active parent slice = `docker-prerequisite-establishment-for-phase3`
-- current direct next child window = 返回 `temporary restricted proxy feasibility execution` 的进入评审
-- current repo-side repair slice = `current-run artifact pre-generation + alignment precheck`
+- current direct next child slice = repo-side `Approved Direct Proxy Execution Block` 来源条件 / 批准路径补齐
+- current repo-side repair slice = `Approved Direct Proxy Execution Block` 的命令-证据绑定与批准路径收口
 
 在该 parent slice 完成前：
 
@@ -78,12 +79,13 @@ OpenClaw 已完成 `2026.3.13` 升级，focused regression 与 Phase 2 host_ops 
 本 parent slice 的目标仅限于为 Phase 3 建立最小 Docker prerequisite，具体包括：
 
 1. 固化当前已知 prerequisite baseline：Docker 已安装，`docker.service` / `docker.socket` active，`/var/run/docker.sock = root:docker`，`openclaw` 不在 `docker` 组；
-2. 明确当前 direct next child window 已回到 `temporary restricted proxy feasibility execution` 的进入评审，并保持 preflight-only 边界；
+2. 明确当前 direct next child slice 已收敛为 repo-side `Approved Direct Proxy Execution Block` 来源条件 / 批准路径补齐，而不是 live-side pre-snapshot；
 3. 建立 current-run helper / validate-only candidate 的 repo-side 预生成能力，不再依赖 previous-run baseline 假定可复用；
-4. 建立 current-run artifact alignment precheck，把 `MISSING / DRIFT / PASS` 在 live-side 之前先打出来；
-5. 明确 validate-only candidate、helper payload、temporary restricted proxy 候选都只是准备物或候选，不写成长期终态；
-6. 明确 capability probe 后续重试 `P5 / P4 / P3` 所需的剩余最小前置条件；
-7. 形成可审计、可回滚、可验证的 repo-side 文档与实施准备包。
+4. 建立 current-run artifact alignment precheck，把 `MISSING / DRIFT / PASS` 在 live-side 之前先打出来，并把通过结果沉淀为 blocked-state 的前置条件；
+5. 补齐 `Approved Direct Proxy Execution Block` 的来源条件、命令-证据绑定与批准路径；
+6. 明确 validate-only candidate、helper payload、temporary restricted proxy 候选都只是准备物或候选，不写成长期终态；
+7. 明确 capability probe 后续重试 `P5 / P4 / P3` 所需的剩余最小前置条件；
+8. 形成可审计、可回滚、可验证的 repo-side 文档与实施准备包。
 
 ## 5. 非目标
 
@@ -105,7 +107,8 @@ OpenClaw 已完成 `2026.3.13` 升级，focused regression 与 Phase 2 host_ops 
 3. `2026-03-21` temporary restricted proxy feasibility window execution evidence 已存在，且结论明确为 `HARD_STOP before proxy start`
 4. `docs/current-boundary.md`、`docs/design-v3.md`、`docs/map.md` 与 `docs/planning/README.md` 已同步到当前边界
 5. `2026-03-22` current-run artifact alignment hard-stop record 已存在，且结论明确为 `before_proxy_start`
-6. 本 slice 仅在 repo-side 文档与计划层推进，不夹带 live-side 实施
+6. authoritative blocked-state 已固定为：`RESULT=BLOCKED_BEFORE_HOST_SIDE_CHANGE`、`GATE0_3=GREEN`、`PREPARED_STATE_PASS=YES`、`READONLY_EVIDENCE_GREEN=YES`、`APPROVED_PROXY_EXEC_CMD=NO`
+7. 本 slice 仅在 repo-side 文档与计划层推进，不夹带 live-side 实施
 
 ## 7. 实施顺序
 
@@ -115,17 +118,18 @@ OpenClaw 已完成 `2026.3.13` 升级，focused regression 与 Phase 2 host_ops 
 2. `hello-world-image-prerequisite-window-2026-03-21` 已完成并作为 prerequisite-only 窗口收口
 3. current-run helper / validate-only candidate 的 repo-side 预生成
 4. current-run artifact alignment precheck
-5. 仅在 precheck PASS 后，回到 temporary restricted proxy feasibility execution 的 readonly evidence / 进入评审
-6. 仅在 readonly evidence 也为 green 后，才允许进入 live-side pre-snapshot
-7. 继续明确 `openclaw` 用户访问 Docker 的安全方案候选与剩余风险项
-8. 定义实施后必须满足的验证标准
-9. 在 prerequisite establishment 完成后，再决定是否重启 capability probe 的 `P5 / P4 / P3`
+5. readonly evidence green
+6. repo-side 补齐 `Approved Direct Proxy Execution Block` 的来源条件、命令-证据绑定与批准路径
+7. 仅在该批准块形成并单独批准后，才允许进入 live-side pre-snapshot
+8. 继续明确 `openclaw` 用户访问 Docker 的安全方案候选与剩余风险项
+9. 定义实施后必须满足的验证标准
+10. 在 prerequisite establishment 完成后，再决定是否重启 capability probe 的 `P5 / P4 / P3`
 
 其中 parent slice 收口时至少应回答：
 
 - hello-world image prerequisite 是否已形成直接证据
 - current-run helper / validate-only candidate 是否已形成准备物并完成对齐预检
-- 是否允许进入 temporary restricted proxy feasibility execution
+- 是否已形成可审阅的 `Approved Direct Proxy Execution Block`
 - `openclaw` 用户是否需要通过某种受控路径访问 Docker
 - 该访问路径是否会改变当前权限边界
 
@@ -159,8 +163,8 @@ OpenClaw 已完成 `2026.3.13` 升级，focused regression 与 Phase 2 host_ops 
    - `P5 FAIL`
    - `Phase 3 = NO-GO`
    - active parent slice = `docker-prerequisite-establishment-for-phase3`
-   - current direct next child window = 返回 `temporary restricted proxy feasibility execution` 的进入评审
-   - current-run artifact pre-generation + alignment precheck 是进入 live-side readonly evidence 与 live-side pre-snapshot 之前的 repo-side 硬门禁
+   - current direct next child slice = repo-side `Approved Direct Proxy Execution Block` 来源条件 / 批准路径补齐
+   - current-run artifact pre-generation + alignment precheck 与 readonly evidence green 已形成，但在 `APPROVED_PROXY_EXEC_CMD=NO` 时仍不得进入 live-side pre-snapshot
 2. planning 索引与文档地图已能正确指向本文件
 3. 本文件清楚区分：
    - planning
@@ -187,4 +191,4 @@ OpenClaw 已完成 `2026.3.13` 升级，focused regression 与 Phase 2 host_ops 
 它的作用，是把当前 `P5 FAIL / Phase 3 = NO-GO` 之后的 Docker prerequisite establishment 明确定义为：
 
 - active parent slice：`docker-prerequisite-establishment-for-phase3`
-- current direct next child window：返回 `temporary restricted proxy feasibility execution` 的进入评审
+- current direct next child slice：repo-side `Approved Direct Proxy Execution Block` 来源条件 / 批准路径补齐

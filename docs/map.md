@@ -29,7 +29,7 @@
 | `docs/planning/README.md` | planning 目录索引 |
 | `docs/planning/hello-world-image-prerequisite-window-2026-03-21.md` | **hello-world image prerequisite-only window（已完成 / 已收口；不是 implementation completion）** |
 | `docs/planning/docker-prerequisite-establishment-for-phase3-2026-03-19.md` | **当前 active 父切片：Docker prerequisite establishment** |
-| `docs/planning/docker-access-model-feasibility-experiment-for-openclaw-2026.3.13-2026-03-21.md` | **feasibility definition；`hello-world` prerequisite 已于 `2026-03-22` 补齐，当前可返回进入评审** |
+| `docs/planning/docker-access-model-feasibility-experiment-for-openclaw-2026.3.13-2026-03-21.md` | **feasibility definition；`hello-world` prerequisite 已于 `2026-03-22` 补齐，但当前仍缺 `Approved Direct Proxy Execution Block`** |
 | `docs/planning/openclaw-upgrade-readiness-2026-03-18.md` | OpenClaw 升级就绪评估（已完成） |
 | `docs/planning/openclaw-2026.3.13-upgrade-slice-design-2026-03-18.md` | 2026.3.13 升级 slice 设计（已完成） |
 | `docs/planning/openclaw-2026.3.13-upgrade-rollback-design-2026-03-18.md` | 2026.3.13 升级 rollback 设计（已完成） |
@@ -66,8 +66,7 @@
 | 文件 | 描述 |
 |------|------|
 | `docs/checklists/deploy-candidate-route-c-checklist.md` | Route C deploy 操作清单 |
-| `docs/checklists/hello-world-image-prerequisite-window-preflight-2026-03-21.md` | **hello-world prerequisite-only live-side window 的执行前门禁清单（draft）** |
-| `docs/checklists/temporary-restricted-proxy-feasibility-execution-preflight-2026-03-22.md` | **temporary restricted proxy feasibility execution 的 operator-facing 执行前门禁清单（draft）；用于进入评审与 operator preflight，不是 implementation completion** |
+| `docs/checklists/temporary-restricted-proxy-feasibility-execution-preflight-2026-03-22.md` | **temporary restricted proxy feasibility execution 的 operator-facing 执行前门禁清单（draft）；当前仅证明 Gate 0-3 已绿，不等于已批准 direct operator block** |
 | `docs/checklists/temporary-restricted-proxy-feasibility-execution-readonly-evidence-pack-2026-03-22.md` | **temporary restricted proxy feasibility execution 的 operator-facing 一次性只读取证包；仅用于 execution 前 fresh evidence 回收** |
 | `docs/checklists/openclaw-upgrade-focused-regression-2026.3.13.md` | 2026.3.13 升级 focused regression checklist |
 | `docs/checklists/post-upgrade-capability-probe-matrix-2026.3.13.md` | **升级后 capability probe matrix（对应已执行 probe，不代表当前 active planning）** |
@@ -75,6 +74,7 @@
 | `docs/records/hello-world-image-prerequisite-remediation-micro-window-2026-03-22.md` | **受限 remediation 微窗口执行证据；补齐 `hello-world` prerequisite；不是 proxy execution，也不是 Phase 3 implementation** |
 | `docs/records/post-upgrade-capability-probe-execution-2026-03-19.md` | **P5 FAIL / Phase 3 = NO-GO 执行证据；不是当前 active planning** |
 | `docs/records/temporary-restricted-proxy-feasibility-window-execution-2026-03-21.md` | **temporary restricted proxy feasibility window 执行证据；`HARD_STOP`，唯一原因 = `hello-world image missing`；不是 Phase 3 implementation** |
+| `docs/records/temporary-restricted-proxy-feasibility-execution-hard-stop-exp-docker-access-feasibility-20260322-111033.md` | **temporary restricted proxy feasibility execution 的 `before_proxy_start` hard-stop 证据；当前 blocked-state 的直接锚点之一** |
 
 ## 活跃参考 `[active]`
 
@@ -110,13 +110,13 @@
 
 | 文件 | 描述 |
 |------|------|
-| `docs/runbook-post-upgrade-capability-probe-2026.3.13.md` | **[active]** 升级后 capability probe operator runbook |
+| `docs/runbook-temporary-restricted-proxy-feasibility-execution-next-window-2026-03-22.md` | **[active]** blocked-state 下的 next-window runbook；当前仍缺 `Approved Direct Proxy Execution Block` |
 
 ## 执行包 `[active]`
 
 | 文件 | 描述 |
 |------|------|
-| `docs/execution-pack-hello-world-image-prerequisite-window-2026-03-21.md` | **hello-world prerequisite-only live-side window 的 operator-facing execution pack draft** |
+| `docs/execution-pack-temporary-restricted-proxy-feasibility-artifact-preparation-2026-03-22.md` | **repo-side current-run artifact preparation / alignment precheck execution pack；不是 live-side execution pack** |
 
 ## 已用 Runbook 与执行包 `[archived]`
 
@@ -127,6 +127,7 @@
 | `docs/execution-pack-first-live-publish.md` | Phase 1B 执行包 |
 | `docs/runbook-phase2-broker-deployment.md` | Phase 2 broker 部署 runbook |
 | `docs/execution-pack-phase2-broker-deployment.md` | Phase 2 执行包 |
+| `docs/runbook-post-upgrade-capability-probe-2026.3.13.md` | 升级后 capability probe operator runbook（对应已执行 probe） |
 
 ## 已归档规划 `[archived]`
 

@@ -274,7 +274,7 @@
 - `docker-prerequisite-establishment-for-phase3`
   的前置判定子包
 
-父切片仍处于 active 状态；`hello-world-image-prerequisite-window-2026-03-21` 已作为 prerequisite-only 窗口收口，当前直接下一刀已回到 temporary restricted proxy feasibility execution 的进入评审。本文件只保留为 prerequisite establishment 内的 feasibility definition 子包：
+父切片仍处于 active 状态；`hello-world-image-prerequisite-window-2026-03-21` 已作为 prerequisite-only 窗口收口，current-run prepared state 与 readonly evidence 也已形成，但当前仍缺 `Approved Direct Proxy Execution Block`。本文件只保留为 prerequisite establishment 内的 feasibility definition 子包：
 
 - `docker access model feasibility experiment definition`
 
