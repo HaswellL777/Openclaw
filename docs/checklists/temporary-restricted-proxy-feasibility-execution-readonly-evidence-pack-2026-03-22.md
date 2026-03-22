@@ -12,6 +12,7 @@
 
 - 本包只用于 operator 在正式 feasibility execution 之前，一次性回收 fresh evidence。
 - 本包内命令必须保持只读；不得启动 proxy，不得创建 audit jsonl，不得修改配置，不得改变用户组归属，不得写系统状态。
+- 本包开始前，repo-side 必须已经完成 current-run artifact pre-generation；本包不负责补生成 helper / validate-only candidate，只负责只读复核。
 - 本包允许 operator 仅为回收 `hello-world` fresh existence evidence 使用 `sudo docker image inspect/ls`；该 `sudo` 只服务于只读取证，不等于放开长期 direct Docker access，也不改变 `openclaw` 仍不在 `docker` 组这一权限边界。
 - 本包回收完成后，repo-side 可直接依据输出做二分判断：
   - 是否允许进入 temporary restricted proxy feasibility execution
@@ -32,6 +33,35 @@ git status --short
 
 fresh 要求：
 - 必须 fresh 回收
+
+### 1.2 current-run artifact pack
+
+```bash
+scripts/precheck-temporary-restricted-proxy-artifact-alignment.sh \
+  --rc-base /tmp/openclaw-docker-access-feasibility/<run-id>
+```
+
+目的：
+- 在进入 live-side readonly evidence 之前，先只读确认 current-run helper / validate-only candidate / manifest 已经对齐
+- 避免再把 previous-run baseline 错认成 current-run prepared state
+
+fresh 要求：
+- 必须 fresh 回收
+
+判读：
+- 若返回 `RESULT: PREFLIGHT PASSED`，说明 current-run artifact alignment 已建立
+- 若返回 `RESULT: PREFLIGHT FAILED`，则当前应直接维持 `HARD_STOP`，不得继续 live-side evidence 回收
+
+```bash
+sed -n '1,220p' /tmp/openclaw-docker-access-feasibility/<run-id>/freeze-card.env
+sed -n '1,220p' /tmp/openclaw-docker-access-feasibility/<run-id>/current-run-artifact-manifest.json
+```
+
+目的：
+- 只读核对 current-run `run_id`、endpoint、candidate path、evidence sink 与 helper / candidate 实物路径
+
+fresh 要求：
+- 本轮 repo-side 收口后回收一次即可
 
 ```bash
 git rev-parse --abbrev-ref HEAD
@@ -208,16 +238,29 @@ sed -n '44,124p' docs/records/hello-world-image-prerequisite-remediation-micro-w
 fresh 要求：
 - 本轮 repo-side 收口后回收一次即可
 
+```bash
+sed -n '55,170p' docs/records/temporary-restricted-proxy-feasibility-execution-hard-stop-exp-docker-access-feasibility-20260322-111033.md
+```
+
+目的：
+- 回看本次新的 hard-stop 根因确实是 `current-run artifact alignment not established`
+- 回看 `current-run helper missing` 与 `current-run validate-only candidate missing` 不能再在下一轮重演
+
+fresh 要求：
+- 本轮 repo-side 收口后回收一次即可
+
 ## 6. preflight 出口判读
 
 - 允许进入 execution 的最小条件：
   - `git` 基线无额外漂移，且两个 local draft 仍保持未跟踪
+  - current-run artifact precheck 已返回 `PREFLIGHT PASSED`
   - 四个关键服务 fresh 状态未出现退化
   - `hello-world` fresh 直接存在证据可由当前 operator 通过只读 `sudo docker image inspect/ls` 回收
   - `openclaw` 仍不在 `docker` 组
   - 未出现需要触碰 `/etc/openclaw/openclaw.json`、`openclaw.live.json`、systemd 终态设计或长期权限模型的迹象
 
 - 继续 `HARD_STOP` 的任一条件：
+  - current-run artifact precheck 未通过，或 helper / validate-only candidate 仍缺失
   - 任一关键服务 fresh 状态不是健康可继续状态
   - `hello-world` 无法形成 fresh 直接存在证据
   - fresh 输出显示 `openclaw` 已进入 `docker` 组，或权限边界发生未审查漂移
