@@ -254,7 +254,7 @@ fresh 要求：
 
 ## 6. preflight 出口判读
 
-- 允许进入 execution 的最小条件：
+- 允许继续维持 Gate 0-3 green 的最小条件：
   - `git` 基线无额外漂移，且两个 local draft 仍保持未跟踪
   - current-run artifact precheck 已返回 `PREFLIGHT PASSED`
   - 四个关键服务 fresh 状态未出现退化
@@ -272,6 +272,6 @@ fresh 要求：
   - 任一关键服务 fresh 状态不是健康可继续状态
   - `hello-world` 无法形成 fresh 直接存在证据
   - fresh 输出显示 `openclaw` 已进入 `docker` 组，或权限边界发生未审查漂移
-  - 需要使用写操作、高权限变更或临时解释才能维持“可进入 execution”结论
+  - 需要使用写操作、高权限变更或临时解释才能维持“可继续保持 green”结论
 
-- 本包回收的输出足够支持 repo-side 做下一步二分判断；即使 Gate 0-3 继续为绿，下一步也仍只能是 repo-side `Approved Direct Proxy Execution Block` 来源条件 / 批准路径补齐，而不是直接释放 execution。
+- 本包回收的输出足够支持 repo-side 做下一步二分判断；即使 Gate 0-3 继续为绿，也仍不得进入 live-side pre-snapshot 或 execution。当前 direct next work 仍只能是 repo-side `Approved Direct Proxy Execution Block` 来源条件 / 批准路径补齐。

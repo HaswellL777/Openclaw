@@ -111,11 +111,19 @@ scripts/precheck-temporary-restricted-proxy-artifact-alignment.sh \
 - `HARD_STOP`
 - 不进入 live-side pre-snapshot
 
-### Gate 4. Only Then May Operator Enter Live-Side Pre-Snapshot
+### Gate 4. Current State Remains Blocked Before Host-Side Change
 
-只有 Gate 0 到 Gate 3 全部为绿，才允许开始 host-affecting sequence 的第一步：
+只有 Gate 0 到 Gate 3 全部为绿，只能说明 repo-side prepare/precheck 与 readonly evidence 已形成；在当前 authoritative 状态
 
-- live-side pre-snapshot
+- `RESULT=BLOCKED_BEFORE_HOST_SIDE_CHANGE`
+- `GATE0_3=GREEN`
+- `PREPARED_STATE_PASS=YES`
+- `READONLY_EVIDENCE_GREEN=YES`
+- `APPROVED_PROXY_EXEC_CMD=NO`
+
+下，Gate 0-3 green **不释放** live-side pre-snapshot，当前 direct next work 仍然只限于：
+
+- repo-side `Approved Direct Proxy Execution Block` 来源条件 / 批准路径补齐
 
 ## 4. Exact Execution Order
 
@@ -125,7 +133,7 @@ scripts/precheck-temporary-restricted-proxy-artifact-alignment.sh \
 2. repo-side 运行 `prepare` 生成 current-run helper / validate-only candidate / freeze-card / manifest / expected layout
 3. repo-side 运行 `precheck`，必须得到 `PREFLIGHT PASSED`
 4. operator 运行 readonly evidence pack，回收 fresh 服务健康、`hello-world` 存在性与权限边界证据
-5. 只有在 steps 1-4 全部通过后，才表示 `GATE0_3=GREEN`、prepared state 与 readonly evidence 已形成；在 `APPROVED_PROXY_EXEC_CMD=NO` 时，仍不得进入 live-side pre-snapshot
+5. 只有在 steps 1-4 全部通过后，才表示 `GATE0_3=GREEN`、prepared state 与 readonly evidence 已形成；这仍只把窗口维持在 `BLOCKED_BEFORE_HOST_SIDE_CHANGE`，在 `APPROVED_PROXY_EXEC_CMD=NO` 时仍不得进入 live-side pre-snapshot
 6. live-side 执行 pre-change snapshot
 7. live-side 执行 pre-change Vault sync
 8. live-side 进入 change phase：
