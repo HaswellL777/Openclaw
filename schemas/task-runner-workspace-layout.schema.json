@@ -1,0 +1,206 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TaskRunnerWorkspaceLayout",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "layout_id",
+    "task_id",
+    "workspace_mode",
+    "container_root",
+    "control_surface",
+    "mounts",
+    "writable_paths",
+    "tmpfs_paths",
+    "artifact_export",
+    "retained_artifacts",
+    "boundary_carry_forward"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "openclaw.task-runner.workspace-layout.v1alpha1"
+    },
+    "layout_id": {
+      "$ref": "#/$defs/id_string"
+    },
+    "task_id": {
+      "$ref": "#/$defs/id_string"
+    },
+    "workspace_mode": {
+      "type": "string",
+      "enum": [
+        "readonly",
+        "dev"
+      ]
+    },
+    "container_root": {
+      "const": "/workspace"
+    },
+    "control_surface": {
+      "type": "object",
+      "required": [
+        "policy_files"
+      ],
+      "properties": {
+        "policy_files": {
+          "type": "array",
+          "minItems": 4,
+          "items": {
+            "$ref": "#/$defs/relative_path"
+          },
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "mounts": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "$ref": "#/$defs/mount"
+      }
+    },
+    "writable_paths": {
+      "type": "array",
+      "minItems": 4,
+      "items": {
+        "$ref": "#/$defs/container_path"
+      },
+      "uniqueItems": true
+    },
+    "tmpfs_paths": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "$ref": "#/$defs/container_path"
+      },
+      "uniqueItems": true
+    },
+    "artifact_export": {
+      "type": "object",
+      "required": [
+        "container_path",
+        "source_relpath",
+        "access",
+        "required"
+      ],
+      "properties": {
+        "container_path": {
+          "const": "/workspace/outputs/export"
+        },
+        "source_relpath": {
+          "$ref": "#/$defs/relative_path"
+        },
+        "access": {
+          "const": "rw"
+        },
+        "required": {
+          "const": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "retained_artifacts": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "type": "string",
+        "enum": [
+          "summary.md",
+          "summary.json",
+          "diff.patch",
+          "host-change-request.json",
+          "test.log",
+          "lint.log",
+          "gate-events.jsonl"
+        ]
+      },
+      "uniqueItems": true
+    },
+    "boundary_carry_forward": {
+      "type": "object",
+      "required": [
+        "repo_side_only",
+        "live_side_publish_performed",
+        "broker_dispatch_performed",
+        "real_docker_run_required",
+        "openclaw_runtime_modified"
+      ],
+      "properties": {
+        "repo_side_only": {
+          "const": true
+        },
+        "live_side_publish_performed": {
+          "const": false
+        },
+        "broker_dispatch_performed": {
+          "const": false
+        },
+        "real_docker_run_required": {
+          "const": false
+        },
+        "openclaw_runtime_modified": {
+          "const": false
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "id_string": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$"
+    },
+    "relative_path": {
+      "type": "string",
+      "pattern": "^(?!/)(?!.*\\.\\.)[^\\n]+$"
+    },
+    "container_path": {
+      "type": "string",
+      "pattern": "^/(workspace|tmp|var/tmp|run)(?:/[^\\n]+)?$"
+    },
+    "mount": {
+      "type": "object",
+      "required": [
+        "name",
+        "source_relpath",
+        "container_path",
+        "access",
+        "required"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "enum": [
+            "repo",
+            "inputs",
+            "outputs"
+          ]
+        },
+        "source_relpath": {
+          "$ref": "#/$defs/relative_path"
+        },
+        "container_path": {
+          "type": "string",
+          "enum": [
+            "/workspace/repo",
+            "/workspace/inputs",
+            "/workspace/outputs"
+          ]
+        },
+        "access": {
+          "type": "string",
+          "enum": [
+            "ro",
+            "rw"
+          ]
+        },
+        "required": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}
