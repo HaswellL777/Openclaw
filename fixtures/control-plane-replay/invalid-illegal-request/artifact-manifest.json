@@ -1,0 +1,118 @@
+{
+  "schema_version": "openclaw.main.control-plane-artifact-manifest.v1alpha1",
+  "manifest_id": "manifest:run-20260322-intake-invalid-boundary",
+  "run_id": "run-20260322-intake-invalid-boundary",
+  "replay_mode": "repo_side_control_plane_dry_run",
+  "source": {
+    "kind": "fixture_case",
+    "case_name": "invalid-illegal-request",
+    "input_dir": "fixtures/task-runner-intake/invalid-illegal-request",
+    "summary_path": "fixtures/task-runner-intake/invalid-illegal-request/summary.json",
+    "host_change_request_path": "fixtures/task-runner-intake/invalid-illegal-request/host-change-request.json"
+  },
+  "builder_exit_codes": {
+    "intake": 1,
+    "routing": 1,
+    "submission": 0,
+    "review": 0,
+    "dispatch_intent": 0
+  },
+  "route_summary": {
+    "decision": "LOCAL_REFUSE",
+    "dispatch_scope": "host_affecting",
+    "dispatch_status": "refused",
+    "requires_operator_approval": false
+  },
+  "boundary_assertions": {
+    "repo_side_only": true,
+    "live_side_publish_performed": false,
+    "broker_dispatch_performed": false,
+    "openclaw_runtime_modified": false,
+    "operator_command_blocks_present": false
+  },
+  "expected_layout": {
+    "required_artifacts": [
+      "summary.json",
+      "request.normalized.json",
+      "intake-report.json",
+      "routing-decision.json",
+      "dispatch-intent-ledger.json"
+    ],
+    "forbidden_artifacts": [
+      "broker-submission-envelope.json",
+      "operator-approval-envelope.json",
+      "broker-review-bundle.json",
+      "operator-review-bundle.json"
+    ]
+  },
+  "artifacts": [
+    {
+      "name": "summary",
+      "path": "summary.json",
+      "required": true,
+      "present": true,
+      "validator": "scripts/validate-task-runner-summary.py",
+      "sha256": "0d946f36c24936f5911805460192d43678a5117c40618f0d453c21cf5b05dfbb"
+    },
+    {
+      "name": "request_normalized",
+      "path": "request.normalized.json",
+      "required": true,
+      "present": true,
+      "validator": "scripts/validate-broker-ready-request.py",
+      "sha256": "a03b110cfa817cfc6e665f7bd842eabab12007906bc56802ada5de23cef97787"
+    },
+    {
+      "name": "intake_report",
+      "path": "intake-report.json",
+      "required": true,
+      "present": true,
+      "validator": "scripts/validate-task-runner-intake-report.py",
+      "sha256": "098dc361f55bd6f04154e19d827004e65678d46fbe7215456270e0ce0b4c152b"
+    },
+    {
+      "name": "routing_decision",
+      "path": "routing-decision.json",
+      "required": true,
+      "present": true,
+      "validator": "scripts/validate-main-routing-decision.py",
+      "sha256": "28f989f91ea9a68e1ed1456b2ebaf9818a8def81e652ee0466c3d1dc8f488502"
+    },
+    {
+      "name": "broker_submission_envelope",
+      "path": "broker-submission-envelope.json",
+      "required": false,
+      "present": false,
+      "validator": "scripts/validate-broker-submission-envelope.py"
+    },
+    {
+      "name": "operator_approval_envelope",
+      "path": "operator-approval-envelope.json",
+      "required": false,
+      "present": false,
+      "validator": "scripts/validate-operator-approval-envelope.py"
+    },
+    {
+      "name": "broker_review_bundle",
+      "path": "broker-review-bundle.json",
+      "required": false,
+      "present": false,
+      "validator": "scripts/validate-broker-review-bundle.py"
+    },
+    {
+      "name": "operator_review_bundle",
+      "path": "operator-review-bundle.json",
+      "required": false,
+      "present": false,
+      "validator": "scripts/validate-operator-review-bundle.py"
+    },
+    {
+      "name": "dispatch_intent_ledger",
+      "path": "dispatch-intent-ledger.json",
+      "required": true,
+      "present": true,
+      "validator": "scripts/validate-dispatch-intent-ledger.py",
+      "sha256": "c6e73f05b22bbd87ac51dc525fe607ff77b37ff48dd7d1344cd633984be5849d"
+    }
+  ]
+}

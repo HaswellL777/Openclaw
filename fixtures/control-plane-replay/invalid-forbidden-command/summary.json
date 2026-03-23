@@ -1,0 +1,61 @@
+{
+  "schema_version": "openclaw.task-runner.summary.v1alpha1",
+  "task_id": "task-intake-invalid-forbidden-command",
+  "run_id": "run-20260323-intake-invalid-forbidden-command",
+  "status": "completed_with_followup",
+  "summary": {
+    "goal": "Exercise intake refusal for a request that smuggles an imperative command field.",
+    "outcome": "The runner emitted a broker-shaped request with an illegal command key that main-side routing must keep local and refuse.",
+    "host_change_needed": true
+  },
+  "repo_changes": {
+    "changed_files": [
+      "scripts/build-main-routing-decision.py",
+      "scripts/build-submission-envelopes.py"
+    ],
+    "diff_path": "outputs/diff.patch"
+  },
+  "validation_results": [
+    {
+      "name": "negative-case",
+      "status": "passed"
+    }
+  ],
+  "outputs": {
+    "summary_md": "outputs/summary.md",
+    "summary_json": "outputs/summary.json",
+    "diff_patch": "outputs/diff.patch",
+    "host_change_request": "outputs/host-change-request.json"
+  },
+  "requires_operator_approval": false,
+  "forbidden_actions": [
+    "direct_docker_control",
+    "direct_host_shell",
+    "direct_openclaw_config_edit",
+    "direct_secret_handling",
+    "direct_snapshot_manipulation",
+    "direct_systemd_control",
+    "direct_vault_manipulation",
+    "unstructured_operator_commands",
+    "user_level_gateway_start"
+  ],
+  "evidence_refs": [
+    {
+      "id": "design-v3",
+      "kind": "design_doc",
+      "path": "docs/design-v3.md",
+      "description": "Negative-case design anchor for routing refusal."
+    },
+    {
+      "id": "host-sop",
+      "kind": "sop_doc",
+      "path": "docs/host-sop.md",
+      "description": "Authority for rejecting direct shell style payloads."
+    }
+  ],
+  "next_handoff": {
+    "consumer": "main",
+    "action": "review_host_change_request",
+    "host_change_request_path": "outputs/host-change-request.json"
+  }
+}

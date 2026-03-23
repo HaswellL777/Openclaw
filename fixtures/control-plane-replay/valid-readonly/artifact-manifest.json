@@ -1,0 +1,120 @@
+{
+  "schema_version": "openclaw.main.control-plane-artifact-manifest.v1alpha1",
+  "manifest_id": "manifest:run-20260322-intake-readonly",
+  "run_id": "run-20260322-intake-readonly",
+  "replay_mode": "repo_side_control_plane_dry_run",
+  "source": {
+    "kind": "fixture_case",
+    "case_name": "valid-readonly",
+    "input_dir": "fixtures/task-runner-intake/valid-readonly",
+    "summary_path": "fixtures/task-runner-intake/valid-readonly/summary.json",
+    "host_change_request_path": "fixtures/task-runner-intake/valid-readonly/host-change-request.json"
+  },
+  "builder_exit_codes": {
+    "intake": 0,
+    "routing": 0,
+    "submission": 0,
+    "review": 0,
+    "dispatch_intent": 0
+  },
+  "route_summary": {
+    "decision": "BROKER_SUBMISSION_CANDIDATE",
+    "dispatch_scope": "readonly",
+    "dispatch_status": "broker_ready",
+    "requires_operator_approval": false
+  },
+  "boundary_assertions": {
+    "repo_side_only": true,
+    "live_side_publish_performed": false,
+    "broker_dispatch_performed": false,
+    "openclaw_runtime_modified": false,
+    "operator_command_blocks_present": false
+  },
+  "expected_layout": {
+    "required_artifacts": [
+      "summary.json",
+      "request.normalized.json",
+      "intake-report.json",
+      "routing-decision.json",
+      "dispatch-intent-ledger.json",
+      "broker-submission-envelope.json",
+      "broker-review-bundle.json"
+    ],
+    "forbidden_artifacts": [
+      "operator-approval-envelope.json",
+      "operator-review-bundle.json"
+    ]
+  },
+  "artifacts": [
+    {
+      "name": "summary",
+      "path": "summary.json",
+      "required": true,
+      "present": true,
+      "validator": "scripts/validate-task-runner-summary.py",
+      "sha256": "0423b6b211b21f6ec8ee2ef42cb402ac4b6b367b3ec09b2d0e83458d515db454"
+    },
+    {
+      "name": "request_normalized",
+      "path": "request.normalized.json",
+      "required": true,
+      "present": true,
+      "validator": "scripts/validate-broker-ready-request.py",
+      "sha256": "b80f9db376be932fd2b253232f3f85869c0f405dfc7711ba04482ec6a20ba615"
+    },
+    {
+      "name": "intake_report",
+      "path": "intake-report.json",
+      "required": true,
+      "present": true,
+      "validator": "scripts/validate-task-runner-intake-report.py",
+      "sha256": "625c1ddb0dc3b2d68b135df29942643a4e958876406b2660b1f60e6a0821d492"
+    },
+    {
+      "name": "routing_decision",
+      "path": "routing-decision.json",
+      "required": true,
+      "present": true,
+      "validator": "scripts/validate-main-routing-decision.py",
+      "sha256": "5f2600c3c1bb7e8e94e97c6cc6668cc2f811243587553dd0b77bf506aacf7694"
+    },
+    {
+      "name": "broker_submission_envelope",
+      "path": "broker-submission-envelope.json",
+      "required": true,
+      "present": true,
+      "validator": "scripts/validate-broker-submission-envelope.py",
+      "sha256": "0e16b75aa143b16d6ab0b79934b71f22c20425a9c72773330714f59dbc2ccf52"
+    },
+    {
+      "name": "operator_approval_envelope",
+      "path": "operator-approval-envelope.json",
+      "required": false,
+      "present": false,
+      "validator": "scripts/validate-operator-approval-envelope.py"
+    },
+    {
+      "name": "broker_review_bundle",
+      "path": "broker-review-bundle.json",
+      "required": true,
+      "present": true,
+      "validator": "scripts/validate-broker-review-bundle.py",
+      "sha256": "16444f719df2e60c978a3ada573f0ab3d47c3af4644a487a64750a8f4a8a47ac"
+    },
+    {
+      "name": "operator_review_bundle",
+      "path": "operator-review-bundle.json",
+      "required": false,
+      "present": false,
+      "validator": "scripts/validate-operator-review-bundle.py"
+    },
+    {
+      "name": "dispatch_intent_ledger",
+      "path": "dispatch-intent-ledger.json",
+      "required": true,
+      "present": true,
+      "validator": "scripts/validate-dispatch-intent-ledger.py",
+      "sha256": "a53228919eb39136b9c8cf8677ff1e469f0eea19da3761ad3ac1111bb0f04b2d"
+    }
+  ]
+}

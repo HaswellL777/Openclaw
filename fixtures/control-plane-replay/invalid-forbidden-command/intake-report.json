@@ -1,0 +1,77 @@
+{
+  "schema_version": "openclaw.main.task-runner-intake-report.v1alpha1",
+  "intake_id": "intake:hcr-20260323-intake-invalid-forbidden-command",
+  "task_id": "task-intake-invalid-forbidden-command",
+  "run_id": "run-20260323-intake-invalid-forbidden-command",
+  "source_request_id": "hcr-20260323-intake-invalid-forbidden-command",
+  "status": "refused",
+  "dispatch_scope": "readonly",
+  "dispatch_status": "refused",
+  "requires_operator_approval": false,
+  "source_artifacts": {
+    "summary_path": "fixtures/task-runner-intake/invalid-forbidden-command/summary.json",
+    "host_change_request_path": "fixtures/task-runner-intake/invalid-forbidden-command/host-change-request.json"
+  },
+  "validation_results": [
+    {
+      "name": "summary",
+      "status": "passed",
+      "issues": []
+    },
+    {
+      "name": "host_change_request",
+      "status": "failed",
+      "issues": [
+        "/home/nick/projects/openclaw-dev/fixtures/task-runner-intake/invalid-forbidden-command/host-change-request.json.requested_host_ops[0].inputs must not contain imperative command keys: command",
+        "/home/nick/projects/openclaw-dev/fixtures/task-runner-intake/invalid-forbidden-command/host-change-request.json.requested_host_ops[0].inputs: unexpected key 'command'"
+      ]
+    },
+    {
+      "name": "cross_document",
+      "status": "passed",
+      "issues": []
+    }
+  ],
+  "refusal_reasons": [
+    "/home/nick/projects/openclaw-dev/fixtures/task-runner-intake/invalid-forbidden-command/host-change-request.json.requested_host_ops[0].inputs must not contain imperative command keys: command",
+    "/home/nick/projects/openclaw-dev/fixtures/task-runner-intake/invalid-forbidden-command/host-change-request.json.requested_host_ops[0].inputs: unexpected key 'command'"
+  ],
+  "forbidden_actions": [
+    "direct_docker_control",
+    "direct_host_shell",
+    "direct_openclaw_config_edit",
+    "direct_secret_handling",
+    "direct_snapshot_manipulation",
+    "direct_systemd_control",
+    "direct_vault_manipulation",
+    "unstructured_operator_commands",
+    "user_level_gateway_start"
+  ],
+  "boundary_carry_forward": {
+    "repo_side_only": true,
+    "live_side_publish_performed": false,
+    "broker_dispatch_performed": false,
+    "openclaw_runtime_modified": false,
+    "operator_command_blocks_present": false
+  },
+  "evidence_refs": [
+    {
+      "id": "design-v3",
+      "kind": "design_doc",
+      "path": "docs/design-v3.md",
+      "description": "Negative-case design anchor for routing refusal."
+    },
+    {
+      "id": "host-sop",
+      "kind": "sop_doc",
+      "path": "docs/host-sop.md",
+      "description": "Authority for rejecting direct shell style payloads."
+    },
+    {
+      "id": "runner-policy",
+      "kind": "repo_file",
+      "path": "workspace-task-runner-template/control/runner-policy.md",
+      "description": "Runner policy forbids exact shell command surfaces."
+    }
+  ]
+}

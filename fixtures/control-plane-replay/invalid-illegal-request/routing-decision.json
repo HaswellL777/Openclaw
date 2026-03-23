@@ -1,0 +1,61 @@
+{
+  "schema_version": "openclaw.main.routing-decision.v1alpha1",
+  "routing_decision_id": "route:intake:hcr-20260322-intake-invalid-boundary",
+  "routing_mode": "repo_side_dry_run",
+  "intake_id": "intake:hcr-20260322-intake-invalid-boundary",
+  "task_id": "task-intake-invalid-boundary",
+  "run_id": "run-20260322-intake-invalid-boundary",
+  "source_request_id": "hcr-20260322-intake-invalid-boundary",
+  "decision": "LOCAL_REFUSE",
+  "submission_target": "none",
+  "intake_status": "refused",
+  "dispatch_scope": "host_affecting",
+  "dispatch_status": "refused",
+  "requires_operator_approval": false,
+  "source_artifacts": {
+    "normalized_request_path": "request.normalized.json",
+    "intake_report_path": "intake-report.json"
+  },
+  "summary_context": {
+    "goal": "Exercise intake refusal for an illegal host-affecting request.",
+    "outcome": "The runner emitted a host-affecting request without operator approval, which main-side intake must refuse.",
+    "request_title": "Illegal host-affecting request without operator approval",
+    "request_scope": "Negative validation path only."
+  },
+  "validation_status": {
+    "normalized_request": "passed",
+    "intake_report": "passed",
+    "cross_document": "passed"
+  },
+  "broker_request_count": 0,
+  "refusal_reasons": [
+    "/home/nick/projects/openclaw-dev/fixtures/task-runner-intake/invalid-illegal-request/host-change-request.json.requested_host_ops: host-affecting requested_host_ops require requires_operator_approval=true"
+  ],
+  "forbidden_actions": [
+    "direct_docker_control",
+    "direct_host_shell",
+    "direct_openclaw_config_edit",
+    "direct_secret_handling",
+    "direct_snapshot_manipulation",
+    "direct_systemd_control",
+    "direct_vault_manipulation",
+    "unstructured_operator_commands",
+    "user_level_gateway_start"
+  ],
+  "boundary_carry_forward": {
+    "repo_side_only": true,
+    "live_side_publish_performed": false,
+    "broker_dispatch_performed": false,
+    "openclaw_runtime_modified": false,
+    "operator_command_blocks_present": false
+  },
+  "evidence_refs": [
+    {
+      "id": "design-v3",
+      "kind": "design_doc",
+      "path": "docs/design-v3.md",
+      "description": "Negative-case design anchor."
+    }
+  ],
+  "reasoning": "Main keeps the request local because intake or cross-document validation refused it."
+}

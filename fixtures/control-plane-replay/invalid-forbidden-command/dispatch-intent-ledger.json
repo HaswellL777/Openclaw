@@ -1,0 +1,90 @@
+{
+  "schema_version": "openclaw.main.dispatch-intent-ledger.v1alpha1",
+  "ledger_id": "ledger:intake:hcr-20260323-intake-invalid-forbidden-command",
+  "routing_decision_id": "route:intake:hcr-20260323-intake-invalid-forbidden-command",
+  "intake_id": "intake:hcr-20260323-intake-invalid-forbidden-command",
+  "task_id": "task-intake-invalid-forbidden-command",
+  "run_id": "run-20260323-intake-invalid-forbidden-command",
+  "source_request_id": "hcr-20260323-intake-invalid-forbidden-command",
+  "decision": "LOCAL_REFUSE",
+  "submission_target": "none",
+  "submission_envelope_present": false,
+  "submission_envelope_id": null,
+  "submission_envelope_type": null,
+  "review_target": "none",
+  "review_bundle_present": false,
+  "review_bundle_id": null,
+  "review_bundle_type": null,
+  "intent_status": "refused_no_dispatch",
+  "dispatch_scope": "readonly",
+  "dispatch_status": "refused",
+  "requires_operator_approval": false,
+  "rationale": "Main keeps the request local because intake or cross-document validation refused it.",
+  "approval_required_reason": null,
+  "refusal_reason": "/home/nick/projects/openclaw-dev/fixtures/task-runner-intake/invalid-forbidden-command/host-change-request.json.requested_host_ops[0].inputs must not contain imperative command keys: command",
+  "refusal_reasons": [
+    "/home/nick/projects/openclaw-dev/fixtures/task-runner-intake/invalid-forbidden-command/host-change-request.json.requested_host_ops[0].inputs must not contain imperative command keys: command",
+    "/home/nick/projects/openclaw-dev/fixtures/task-runner-intake/invalid-forbidden-command/host-change-request.json.requested_host_ops[0].inputs: unexpected key 'command'"
+  ],
+  "source_artifacts": {
+    "normalized_request_path": "request.normalized.json",
+    "intake_report_path": "intake-report.json",
+    "routing_decision_path": "routing-decision.json"
+  },
+  "summary_context": {
+    "goal": "Exercise intake refusal for a request that smuggles an imperative command field.",
+    "outcome": "The runner emitted a broker-shaped request with an illegal command key that main-side routing must keep local and refuse.",
+    "request_title": "Illegal request with embedded command input",
+    "request_scope": "Negative validation path only."
+  },
+  "validation_status": {
+    "normalized_request": "passed",
+    "intake_report": "passed",
+    "routing_decision": "passed",
+    "submission_envelope": "not_applicable",
+    "review_bundle": "not_applicable"
+  },
+  "dispatch_intents": [],
+  "forbidden_actions": [
+    "direct_docker_control",
+    "direct_host_shell",
+    "direct_openclaw_config_edit",
+    "direct_secret_handling",
+    "direct_snapshot_manipulation",
+    "direct_systemd_control",
+    "direct_vault_manipulation",
+    "unstructured_operator_commands",
+    "user_level_gateway_start"
+  ],
+  "boundary_carry_forward": {
+    "repo_side_only": true,
+    "live_side_publish_performed": false,
+    "broker_dispatch_performed": false,
+    "openclaw_runtime_modified": false,
+    "operator_command_blocks_present": false
+  },
+  "dispatch_performed": false,
+  "approval_granted": false,
+  "runtime_changed": false,
+  "operator_command_blocks_present": false,
+  "evidence_refs": [
+    {
+      "id": "design-v3",
+      "kind": "design_doc",
+      "path": "docs/design-v3.md",
+      "description": "Negative-case design anchor for routing refusal."
+    },
+    {
+      "id": "host-sop",
+      "kind": "sop_doc",
+      "path": "docs/host-sop.md",
+      "description": "Authority for rejecting direct shell style payloads."
+    },
+    {
+      "id": "runner-policy",
+      "kind": "repo_file",
+      "path": "workspace-task-runner-template/control/runner-policy.md",
+      "description": "Runner policy forbids exact shell command surfaces."
+    }
+  ]
+}

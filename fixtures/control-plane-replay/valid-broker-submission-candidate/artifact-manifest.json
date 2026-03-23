@@ -1,0 +1,120 @@
+{
+  "schema_version": "openclaw.main.control-plane-artifact-manifest.v1alpha1",
+  "manifest_id": "manifest:run-20260323-intake-broker-submission-candidate",
+  "run_id": "run-20260323-intake-broker-submission-candidate",
+  "replay_mode": "repo_side_control_plane_dry_run",
+  "source": {
+    "kind": "fixture_case",
+    "case_name": "valid-broker-submission-candidate",
+    "input_dir": "fixtures/task-runner-intake/valid-broker-submission-candidate",
+    "summary_path": "fixtures/task-runner-intake/valid-broker-submission-candidate/summary.json",
+    "host_change_request_path": "fixtures/task-runner-intake/valid-broker-submission-candidate/host-change-request.json"
+  },
+  "builder_exit_codes": {
+    "intake": 0,
+    "routing": 0,
+    "submission": 0,
+    "review": 0,
+    "dispatch_intent": 0
+  },
+  "route_summary": {
+    "decision": "BROKER_SUBMISSION_CANDIDATE",
+    "dispatch_scope": "readonly",
+    "dispatch_status": "broker_ready",
+    "requires_operator_approval": false
+  },
+  "boundary_assertions": {
+    "repo_side_only": true,
+    "live_side_publish_performed": false,
+    "broker_dispatch_performed": false,
+    "openclaw_runtime_modified": false,
+    "operator_command_blocks_present": false
+  },
+  "expected_layout": {
+    "required_artifacts": [
+      "summary.json",
+      "request.normalized.json",
+      "intake-report.json",
+      "routing-decision.json",
+      "dispatch-intent-ledger.json",
+      "broker-submission-envelope.json",
+      "broker-review-bundle.json"
+    ],
+    "forbidden_artifacts": [
+      "operator-approval-envelope.json",
+      "operator-review-bundle.json"
+    ]
+  },
+  "artifacts": [
+    {
+      "name": "summary",
+      "path": "summary.json",
+      "required": true,
+      "present": true,
+      "validator": "scripts/validate-task-runner-summary.py",
+      "sha256": "c0859f720c61625158448af51c0c8a6f481af9307b34e2fa1e3bf7ef1cac0ad9"
+    },
+    {
+      "name": "request_normalized",
+      "path": "request.normalized.json",
+      "required": true,
+      "present": true,
+      "validator": "scripts/validate-broker-ready-request.py",
+      "sha256": "e74425d492aaa993945ea79e799029b01de4e02531e4c14dbe11dfef67586223"
+    },
+    {
+      "name": "intake_report",
+      "path": "intake-report.json",
+      "required": true,
+      "present": true,
+      "validator": "scripts/validate-task-runner-intake-report.py",
+      "sha256": "49035c87e67dc15f6e514f9e056898b995bdebc4dd0eafd89f0fd217036dd1d9"
+    },
+    {
+      "name": "routing_decision",
+      "path": "routing-decision.json",
+      "required": true,
+      "present": true,
+      "validator": "scripts/validate-main-routing-decision.py",
+      "sha256": "b80c82c3636fd23abe57ad0271e813995d9d992f0c8ce3ecafa708b7d8d506dc"
+    },
+    {
+      "name": "broker_submission_envelope",
+      "path": "broker-submission-envelope.json",
+      "required": true,
+      "present": true,
+      "validator": "scripts/validate-broker-submission-envelope.py",
+      "sha256": "dcb47b1f7852dc60643fc489ef387171e2693f101f762609c45b67032c17879c"
+    },
+    {
+      "name": "operator_approval_envelope",
+      "path": "operator-approval-envelope.json",
+      "required": false,
+      "present": false,
+      "validator": "scripts/validate-operator-approval-envelope.py"
+    },
+    {
+      "name": "broker_review_bundle",
+      "path": "broker-review-bundle.json",
+      "required": true,
+      "present": true,
+      "validator": "scripts/validate-broker-review-bundle.py",
+      "sha256": "63d50f584d4ce689e902220f599ddb79667a07632eff86292543e8f9d77fca7d"
+    },
+    {
+      "name": "operator_review_bundle",
+      "path": "operator-review-bundle.json",
+      "required": false,
+      "present": false,
+      "validator": "scripts/validate-operator-review-bundle.py"
+    },
+    {
+      "name": "dispatch_intent_ledger",
+      "path": "dispatch-intent-ledger.json",
+      "required": true,
+      "present": true,
+      "validator": "scripts/validate-dispatch-intent-ledger.py",
+      "sha256": "36db670335626df158570cac4918cae9b5a5d4222ddcf532719fbdea6313c54e"
+    }
+  ]
+}

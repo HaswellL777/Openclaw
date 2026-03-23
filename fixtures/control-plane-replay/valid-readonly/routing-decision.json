@@ -1,0 +1,77 @@
+{
+  "schema_version": "openclaw.main.routing-decision.v1alpha1",
+  "routing_decision_id": "route:intake:hcr-20260322-intake-readonly",
+  "routing_mode": "repo_side_dry_run",
+  "intake_id": "intake:hcr-20260322-intake-readonly",
+  "task_id": "task-intake-readonly",
+  "run_id": "run-20260322-intake-readonly",
+  "source_request_id": "hcr-20260322-intake-readonly",
+  "decision": "BROKER_SUBMISSION_CANDIDATE",
+  "submission_target": "broker_submission_envelope",
+  "intake_status": "accepted",
+  "dispatch_scope": "readonly",
+  "dispatch_status": "broker_ready",
+  "requires_operator_approval": false,
+  "source_artifacts": {
+    "normalized_request_path": "request.normalized.json",
+    "intake_report_path": "intake-report.json"
+  },
+  "summary_context": {
+    "goal": "Prepare a repo-side readonly intake path for reviewed broker dry-runs.",
+    "outcome": "The runner produced only readonly broker-aligned follow-up so main can validate evidence and boundary carry-forward without any host mutation.",
+    "request_title": "Assemble a readonly broker-ready intake dry-run",
+    "request_scope": "Readonly validation and preparation only, with no live-side publish, broker call, or runtime mutation."
+  },
+  "validation_status": {
+    "normalized_request": "passed",
+    "intake_report": "passed",
+    "cross_document": "passed"
+  },
+  "broker_request_count": 3,
+  "refusal_reasons": [],
+  "forbidden_actions": [
+    "direct_docker_control",
+    "direct_host_shell",
+    "direct_openclaw_config_edit",
+    "direct_secret_handling",
+    "direct_snapshot_manipulation",
+    "direct_systemd_control",
+    "direct_vault_manipulation",
+    "unstructured_operator_commands",
+    "user_level_gateway_start"
+  ],
+  "boundary_carry_forward": {
+    "repo_side_only": true,
+    "live_side_publish_performed": false,
+    "broker_dispatch_performed": false,
+    "openclaw_runtime_modified": false,
+    "operator_command_blocks_present": false
+  },
+  "evidence_refs": [
+    {
+      "id": "design-v3",
+      "kind": "design_doc",
+      "path": "docs/design-v3.md",
+      "description": "Authoritative design for the future task-runner to main to broker flow."
+    },
+    {
+      "id": "current-boundary",
+      "kind": "boundary_doc",
+      "path": "docs/current-boundary.md",
+      "description": "Confirms the current slice remains repo-side and Phase 3 is not live-enabled."
+    },
+    {
+      "id": "host-sop",
+      "kind": "sop_doc",
+      "path": "docs/host-sop.md",
+      "description": "Authority for host facts, readonly boundaries, and forbidden operations."
+    },
+    {
+      "id": "summary-json",
+      "kind": "output_file",
+      "path": "outputs/summary.json",
+      "description": "Structured summary that accompanies this readonly request."
+    }
+  ],
+  "reasoning": "Main preserves the accepted readonly request as a dry-run broker submission candidate without dispatching it."
+}

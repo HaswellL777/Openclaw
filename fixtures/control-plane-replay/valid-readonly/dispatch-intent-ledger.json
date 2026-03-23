@@ -1,0 +1,138 @@
+{
+  "schema_version": "openclaw.main.dispatch-intent-ledger.v1alpha1",
+  "ledger_id": "ledger:intake:hcr-20260322-intake-readonly",
+  "routing_decision_id": "route:intake:hcr-20260322-intake-readonly",
+  "intake_id": "intake:hcr-20260322-intake-readonly",
+  "task_id": "task-intake-readonly",
+  "run_id": "run-20260322-intake-readonly",
+  "source_request_id": "hcr-20260322-intake-readonly",
+  "decision": "BROKER_SUBMISSION_CANDIDATE",
+  "submission_target": "broker_submission_envelope",
+  "submission_envelope_present": true,
+  "submission_envelope_id": "submission:intake:hcr-20260322-intake-readonly",
+  "submission_envelope_type": "BROKER_SUBMISSION_CANDIDATE",
+  "review_target": "broker",
+  "review_bundle_present": true,
+  "review_bundle_id": "review:broker:intake:hcr-20260322-intake-readonly",
+  "review_bundle_type": "BROKER_REVIEW_BUNDLE",
+  "intent_status": "pending_broker_review",
+  "dispatch_scope": "readonly",
+  "dispatch_status": "broker_ready",
+  "requires_operator_approval": false,
+  "rationale": "Main preserves the accepted readonly request as a dry-run broker submission candidate without dispatching it.",
+  "approval_required_reason": null,
+  "refusal_reason": null,
+  "refusal_reasons": [],
+  "source_artifacts": {
+    "normalized_request_path": "request.normalized.json",
+    "intake_report_path": "intake-report.json",
+    "routing_decision_path": "routing-decision.json",
+    "submission_envelope_path": "broker-submission-envelope.json",
+    "review_bundle_path": "broker-review-bundle.json"
+  },
+  "summary_context": {
+    "goal": "Prepare a repo-side readonly intake path for reviewed broker dry-runs.",
+    "outcome": "The runner produced only readonly broker-aligned follow-up so main can validate evidence and boundary carry-forward without any host mutation.",
+    "request_title": "Assemble a readonly broker-ready intake dry-run",
+    "request_scope": "Readonly validation and preparation only, with no live-side publish, broker call, or runtime mutation."
+  },
+  "validation_status": {
+    "normalized_request": "passed",
+    "intake_report": "passed",
+    "routing_decision": "passed",
+    "submission_envelope": "passed",
+    "review_bundle": "passed"
+  },
+  "dispatch_intents": [
+    {
+      "sequence": 1,
+      "action": "gateway_health",
+      "justification": "Confirm the gateway health contract shape for a readonly dry-run.",
+      "broker_request": {
+        "action": "gateway_health",
+        "request_id": "hcr-20260322-intake-readonly:op1",
+        "task_id": "task-intake-readonly",
+        "requested_by": "main:intake",
+        "inputs": {}
+      }
+    },
+    {
+      "sequence": 2,
+      "action": "validate_openclaw_json_candidate",
+      "justification": "Exercise readonly candidate validation without proposing a deploy.",
+      "broker_request": {
+        "action": "validate_openclaw_json_candidate",
+        "request_id": "hcr-20260322-intake-readonly:op2",
+        "task_id": "task-intake-readonly",
+        "requested_by": "main:intake",
+        "inputs": {
+          "candidate_path": "/var/lib/openclaw/approvals/candidates/openclaw.task-runner.intake-readonly.json",
+          "expected_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+        }
+      }
+    },
+    {
+      "sequence": 3,
+      "action": "rollback_prepare",
+      "justification": "Prepare rollback metadata as readonly evidence only, without executing any rollback.",
+      "broker_request": {
+        "action": "rollback_prepare",
+        "request_id": "hcr-20260322-intake-readonly:op3",
+        "task_id": "task-intake-readonly",
+        "requested_by": "main:intake",
+        "inputs": {
+          "target_snapshot": "root-pre-phase3-readonly-reference",
+          "reason": "Readonly dry-run reference only"
+        }
+      }
+    }
+  ],
+  "forbidden_actions": [
+    "direct_docker_control",
+    "direct_host_shell",
+    "direct_openclaw_config_edit",
+    "direct_secret_handling",
+    "direct_snapshot_manipulation",
+    "direct_systemd_control",
+    "direct_vault_manipulation",
+    "unstructured_operator_commands",
+    "user_level_gateway_start"
+  ],
+  "boundary_carry_forward": {
+    "repo_side_only": true,
+    "live_side_publish_performed": false,
+    "broker_dispatch_performed": false,
+    "openclaw_runtime_modified": false,
+    "operator_command_blocks_present": false
+  },
+  "dispatch_performed": false,
+  "approval_granted": false,
+  "runtime_changed": false,
+  "operator_command_blocks_present": false,
+  "evidence_refs": [
+    {
+      "id": "design-v3",
+      "kind": "design_doc",
+      "path": "docs/design-v3.md",
+      "description": "Authoritative design for the future task-runner to main to broker flow."
+    },
+    {
+      "id": "current-boundary",
+      "kind": "boundary_doc",
+      "path": "docs/current-boundary.md",
+      "description": "Confirms the current slice remains repo-side and Phase 3 is not live-enabled."
+    },
+    {
+      "id": "host-sop",
+      "kind": "sop_doc",
+      "path": "docs/host-sop.md",
+      "description": "Authority for host facts, readonly boundaries, and forbidden operations."
+    },
+    {
+      "id": "summary-json",
+      "kind": "output_file",
+      "path": "outputs/summary.json",
+      "description": "Structured summary that accompanies this readonly request."
+    }
+  ]
+}
