@@ -1,0 +1,155 @@
+{
+  "task_id": "task-intake-host-affecting",
+  "run_id": "run-20260322-intake-host-affecting",
+  "workspace_mode": "dev",
+  "reviewed_task": {
+    "bundle_id": "review:operator:intake:hcr-20260322-intake-host-affecting",
+    "bundle_type": "OPERATOR_REVIEW_BUNDLE",
+    "review_target": "operator",
+    "review_status": "pending_operator_review",
+    "dispatch_scope": "host_affecting",
+    "dispatch_status": "operator_approval_required",
+    "requires_operator_approval": true,
+    "broker_requests": [
+      {
+        "sequence": 1,
+        "action": "validate_openclaw_json_candidate",
+        "justification": "Validate the reviewed candidate before any future host-side mutation.",
+        "broker_request": {
+          "action": "validate_openclaw_json_candidate",
+          "request_id": "hcr-20260322-intake-host-affecting:op1",
+          "task_id": "task-intake-host-affecting",
+          "requested_by": "main:intake",
+          "inputs": {
+            "candidate_path": "/var/lib/openclaw/approvals/candidates/openclaw.task-runner.intake-host-affecting.json",
+            "expected_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+          }
+        }
+      },
+      {
+        "sequence": 2,
+        "action": "snapshot_pre",
+        "justification": "Preserve a rollback point before any future reviewed deploy.",
+        "broker_request": {
+          "action": "snapshot_pre",
+          "request_id": "hcr-20260322-intake-host-affecting:op2",
+          "task_id": "task-intake-host-affecting",
+          "requested_by": "main:intake",
+          "inputs": {
+            "label": "phase3-intake-host-affecting-pre",
+            "reason": "Pre-change snapshot before a future reviewed deploy"
+          }
+        }
+      },
+      {
+        "sequence": 3,
+        "action": "deploy_openclaw_json_candidate",
+        "justification": "Deploy only after later approval and validation.",
+        "broker_request": {
+          "action": "deploy_openclaw_json_candidate",
+          "request_id": "hcr-20260322-intake-host-affecting:op3",
+          "task_id": "task-intake-host-affecting",
+          "requested_by": "main:intake",
+          "inputs": {
+            "candidate_path": "/var/lib/openclaw/approvals/candidates/openclaw.task-runner.intake-host-affecting.json",
+            "expected_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+          }
+        }
+      },
+      {
+        "sequence": 4,
+        "action": "gateway_restart",
+        "justification": "Restart would only happen after a reviewed deploy.",
+        "broker_request": {
+          "action": "gateway_restart",
+          "request_id": "hcr-20260322-intake-host-affecting:op4",
+          "task_id": "task-intake-host-affecting",
+          "requested_by": "main:intake",
+          "inputs": {
+            "reason": "Post deploy restart for a future reviewed intake candidate"
+          }
+        }
+      },
+      {
+        "sequence": 5,
+        "action": "snapshot_post",
+        "justification": "Capture post-change state after a future reviewed validation.",
+        "broker_request": {
+          "action": "snapshot_post",
+          "request_id": "hcr-20260322-intake-host-affecting:op5",
+          "task_id": "task-intake-host-affecting",
+          "requested_by": "main:intake",
+          "inputs": {
+            "label": "phase3-intake-host-affecting-post",
+            "reason": "Post-change snapshot after a future reviewed deploy"
+          }
+        }
+      },
+      {
+        "sequence": 6,
+        "action": "vault_sync",
+        "justification": "Preserve the post-change snapshot in Vault after a future reviewed change.",
+        "broker_request": {
+          "action": "vault_sync",
+          "request_id": "hcr-20260322-intake-host-affecting:op6",
+          "task_id": "task-intake-host-affecting",
+          "requested_by": "main:intake",
+          "inputs": {
+            "snapshot_name": "root-post-phase3-intake-host-affecting",
+            "incremental": true
+          }
+        }
+      }
+    ]
+  },
+  "summary": {
+    "status": "completed_with_followup",
+    "goal": "Prepare a host-affecting intake path that stays dry-run and broker-ready only.",
+    "outcome": "The runner produced a host-affecting request that still stops at main-side normalization and approval gating.",
+    "changed_files": [
+      "schemas/broker-ready-request.schema.json",
+      "schemas/task-runner-intake-report.schema.json",
+      "scripts/build-broker-ready-request.py",
+      "scripts/check-task-runner-intake-flow.sh"
+    ]
+  },
+  "staged_control_plane_artifacts": [
+    {
+      "name": "reviewed_task",
+      "source_path": "fixtures/control-plane-replay/valid-host-affecting/operator-review-bundle.json",
+      "staged_relpath": "inputs/control-plane/operator-review-bundle.json"
+    },
+    {
+      "name": "summary_json",
+      "source_path": "fixtures/control-plane-replay/valid-host-affecting/summary.json",
+      "staged_relpath": "inputs/control-plane/task-runner-summary.json"
+    },
+    {
+      "name": "normalized_request_path",
+      "source_path": "fixtures/control-plane-replay/valid-host-affecting/request.normalized.json",
+      "staged_relpath": "inputs/control-plane/request.normalized.json"
+    },
+    {
+      "name": "intake_report_path",
+      "source_path": "fixtures/control-plane-replay/valid-host-affecting/intake-report.json",
+      "staged_relpath": "inputs/control-plane/intake-report.json"
+    },
+    {
+      "name": "routing_decision_path",
+      "source_path": "fixtures/control-plane-replay/valid-host-affecting/routing-decision.json",
+      "staged_relpath": "inputs/control-plane/routing-decision.json"
+    },
+    {
+      "name": "submission_envelope_path",
+      "source_path": "fixtures/control-plane-replay/valid-host-affecting/operator-approval-envelope.json",
+      "staged_relpath": "inputs/control-plane/operator-approval-envelope.json"
+    }
+  ],
+  "boundary_carry_forward": {
+    "repo_side_only": true,
+    "live_side_publish_performed": false,
+    "broker_dispatch_performed": false,
+    "real_docker_run_required": false,
+    "openclaw_runtime_modified": false
+  }
+}

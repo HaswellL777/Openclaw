@@ -1,0 +1,268 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TaskRunnerIntakeReport",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "intake_id",
+    "task_id",
+    "run_id",
+    "source_request_id",
+    "status",
+    "dispatch_scope",
+    "dispatch_status",
+    "requires_operator_approval",
+    "source_artifacts",
+    "validation_results",
+    "refusal_reasons",
+    "forbidden_actions",
+    "boundary_carry_forward",
+    "evidence_refs"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "openclaw.main.task-runner-intake-report.v1alpha1"
+    },
+    "intake_id": {
+      "$ref": "#/$defs/id_string"
+    },
+    "task_id": {
+      "$ref": "#/$defs/id_string"
+    },
+    "run_id": {
+      "$ref": "#/$defs/id_string"
+    },
+    "source_request_id": {
+      "$ref": "#/$defs/id_string"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["accepted", "refused"]
+    },
+    "dispatch_scope": {
+      "type": "string",
+      "enum": ["readonly", "host_affecting", "unclassified"]
+    },
+    "dispatch_status": {
+      "type": "string",
+      "enum": ["broker_ready", "operator_approval_required", "refused"]
+    },
+    "requires_operator_approval": {
+      "type": "boolean"
+    },
+    "source_artifacts": {
+      "type": "object",
+      "required": ["summary_path", "host_change_request_path"],
+      "properties": {
+        "summary_path": {
+          "$ref": "#/$defs/relative_path"
+        },
+        "host_change_request_path": {
+          "$ref": "#/$defs/relative_path"
+        }
+      },
+      "additionalProperties": false
+    },
+    "validation_results": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "$ref": "#/$defs/validation_result"
+      }
+    },
+    "refusal_reasons": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/non_empty_string"
+      }
+    },
+    "forbidden_actions": {
+      "$ref": "#/$defs/forbidden_actions"
+    },
+    "boundary_carry_forward": {
+      "$ref": "#/$defs/boundary_carry_forward"
+    },
+    "evidence_refs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/evidence_ref"
+      }
+    }
+  },
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "accepted"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "refusal_reasons": {
+            "maxItems": 0
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "dispatch_status": {
+            "const": "refused"
+          },
+          "refusal_reasons": {
+            "minItems": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "dispatch_status": {
+            "const": "operator_approval_required"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "requires_operator_approval": {
+            "const": true
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "dispatch_scope": {
+            "const": "unclassified"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "status": {
+            "const": "refused"
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "non_empty_string": {
+      "type": "string",
+      "minLength": 1
+    },
+    "id_string": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$"
+    },
+    "relative_path": {
+      "type": "string",
+      "pattern": "^(?!/)(?!.*\\.\\.)[^\\n]+$"
+    },
+    "validation_result": {
+      "type": "object",
+      "required": ["name", "status", "issues"],
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/non_empty_string"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["passed", "failed"]
+        },
+        "issues": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/non_empty_string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "forbidden_actions": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "enum": [
+          "direct_host_shell",
+          "direct_openclaw_config_edit",
+          "direct_systemd_control",
+          "direct_docker_control",
+          "direct_snapshot_manipulation",
+          "direct_vault_manipulation",
+          "direct_secret_handling",
+          "unstructured_operator_commands",
+          "user_level_gateway_start"
+        ]
+      }
+    },
+    "boundary_carry_forward": {
+      "type": "object",
+      "required": [
+        "repo_side_only",
+        "live_side_publish_performed",
+        "broker_dispatch_performed",
+        "openclaw_runtime_modified",
+        "operator_command_blocks_present"
+      ],
+      "properties": {
+        "repo_side_only": {
+          "const": true
+        },
+        "live_side_publish_performed": {
+          "const": false
+        },
+        "broker_dispatch_performed": {
+          "const": false
+        },
+        "openclaw_runtime_modified": {
+          "const": false
+        },
+        "operator_command_blocks_present": {
+          "const": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "evidence_ref": {
+      "type": "object",
+      "required": ["id", "kind", "path", "description"],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id_string"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "design_doc",
+            "sop_doc",
+            "boundary_doc",
+            "repo_file",
+            "output_file",
+            "schema",
+            "fixture",
+            "validator_log"
+          ]
+        },
+        "path": {
+          "$ref": "#/$defs/relative_path"
+        },
+        "description": {
+          "$ref": "#/$defs/non_empty_string"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

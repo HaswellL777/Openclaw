@@ -1,0 +1,4 @@
+{
+  "schema_version": "openclaw.main.operator-review-bundle.v1alpha1",
+  "bundle_id": "review:operator:invalid-task-handoff"
+}

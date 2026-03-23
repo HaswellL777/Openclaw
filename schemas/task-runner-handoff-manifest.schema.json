@@ -1,0 +1,305 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TaskRunnerHandoffManifest",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "manifest_id",
+    "task_id",
+    "run_id",
+    "reviewed_task",
+    "source_summary",
+    "task_dir",
+    "repo_seed",
+    "staged_inputs",
+    "execution_contract",
+    "boundary_carry_forward"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "openclaw.task-runner.handoff-manifest.v1alpha1"
+    },
+    "manifest_id": {
+      "$ref": "#/$defs/id_string"
+    },
+    "task_id": {
+      "$ref": "#/$defs/id_string"
+    },
+    "run_id": {
+      "$ref": "#/$defs/id_string"
+    },
+    "reviewed_task": {
+      "type": "object",
+      "required": [
+        "kind",
+        "bundle_id",
+        "bundle_type",
+        "review_target",
+        "review_status",
+        "dispatch_scope",
+        "dispatch_status",
+        "requires_operator_approval",
+        "broker_request_count",
+        "source_path",
+        "staged_relpath"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "broker_review_bundle",
+            "operator_review_bundle"
+          ]
+        },
+        "bundle_id": {
+          "$ref": "#/$defs/id_string"
+        },
+        "bundle_type": {
+          "type": "string",
+          "enum": [
+            "BROKER_REVIEW_BUNDLE",
+            "OPERATOR_REVIEW_BUNDLE"
+          ]
+        },
+        "review_target": {
+          "type": "string",
+          "enum": [
+            "broker",
+            "operator"
+          ]
+        },
+        "review_status": {
+          "type": "string",
+          "enum": [
+            "pending_broker_review",
+            "pending_operator_review"
+          ]
+        },
+        "dispatch_scope": {
+          "type": "string",
+          "enum": [
+            "readonly",
+            "host_affecting"
+          ]
+        },
+        "dispatch_status": {
+          "type": "string",
+          "enum": [
+            "broker_ready",
+            "operator_approval_required"
+          ]
+        },
+        "requires_operator_approval": {
+          "type": "boolean"
+        },
+        "broker_request_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "source_path": {
+          "$ref": "#/$defs/path_string"
+        },
+        "staged_relpath": {
+          "$ref": "#/$defs/task_relpath"
+        }
+      },
+      "additionalProperties": false
+    },
+    "source_summary": {
+      "type": "object",
+      "required": [
+        "source_path",
+        "staged_relpath"
+      ],
+      "properties": {
+        "source_path": {
+          "$ref": "#/$defs/path_string"
+        },
+        "staged_relpath": {
+          "$ref": "#/$defs/task_relpath"
+        }
+      },
+      "additionalProperties": false
+    },
+    "task_dir": {
+      "type": "object",
+      "required": [
+        "root_relpath",
+        "repo_relpath",
+        "inputs_relpath",
+        "outputs_relpath"
+      ],
+      "properties": {
+        "root_relpath": {
+          "$ref": "#/$defs/task_relpath"
+        },
+        "repo_relpath": {
+          "$ref": "#/$defs/task_relpath"
+        },
+        "inputs_relpath": {
+          "$ref": "#/$defs/task_relpath"
+        },
+        "outputs_relpath": {
+          "$ref": "#/$defs/task_relpath"
+        }
+      },
+      "additionalProperties": false
+    },
+    "repo_seed": {
+      "type": "object",
+      "required": [
+        "strategy",
+        "changed_files"
+      ],
+      "properties": {
+        "strategy": {
+          "const": "changed_files_subset"
+        },
+        "changed_files": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/relative_path"
+          },
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "staged_inputs": {
+      "type": "object",
+      "required": [
+        "request_md",
+        "context_json",
+        "control_plane_dir",
+        "control_plane_artifacts"
+      ],
+      "properties": {
+        "request_md": {
+          "$ref": "#/$defs/task_relpath"
+        },
+        "context_json": {
+          "$ref": "#/$defs/task_relpath"
+        },
+        "control_plane_dir": {
+          "$ref": "#/$defs/task_relpath"
+        },
+        "control_plane_artifacts": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "$ref": "#/$defs/staged_artifact"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "execution_contract": {
+      "type": "object",
+      "required": [
+        "workspace_mode",
+        "runner",
+        "network_mode",
+        "workspace_layout_path",
+        "exec_plan_path"
+      ],
+      "properties": {
+        "workspace_mode": {
+          "type": "string",
+          "enum": [
+            "readonly",
+            "dev"
+          ]
+        },
+        "runner": {
+          "type": "string",
+          "enum": [
+            "codex",
+            "claudecode"
+          ]
+        },
+        "network_mode": {
+          "type": "string",
+          "enum": [
+            "none",
+            "restricted-egress"
+          ]
+        },
+        "workspace_layout_path": {
+          "$ref": "#/$defs/task_relpath"
+        },
+        "exec_plan_path": {
+          "$ref": "#/$defs/task_relpath"
+        }
+      },
+      "additionalProperties": false
+    },
+    "boundary_carry_forward": {
+      "type": "object",
+      "required": [
+        "repo_side_only",
+        "live_side_publish_performed",
+        "broker_dispatch_performed",
+        "real_docker_run_required",
+        "openclaw_runtime_modified"
+      ],
+      "properties": {
+        "repo_side_only": {
+          "const": true
+        },
+        "live_side_publish_performed": {
+          "const": false
+        },
+        "broker_dispatch_performed": {
+          "const": false
+        },
+        "real_docker_run_required": {
+          "const": false
+        },
+        "openclaw_runtime_modified": {
+          "const": false
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "id_string": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$"
+    },
+    "path_string": {
+      "type": "string",
+      "minLength": 1
+    },
+    "relative_path": {
+      "type": "string",
+      "pattern": "^(?!/)(?!.*\\.\\.)[^\\n]+$"
+    },
+    "task_relpath": {
+      "type": "string",
+      "pattern": "^tasks/[^\\n]+$"
+    },
+    "staged_artifact": {
+      "type": "object",
+      "required": [
+        "name",
+        "source_path",
+        "staged_relpath"
+      ],
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/id_string"
+        },
+        "source_path": {
+          "$ref": "#/$defs/path_string"
+        },
+        "staged_relpath": {
+          "$ref": "#/$defs/task_relpath"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

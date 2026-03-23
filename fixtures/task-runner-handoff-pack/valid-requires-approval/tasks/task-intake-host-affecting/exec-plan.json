@@ -1,0 +1,130 @@
+{
+  "schema_version": "openclaw.task-runner.exec-plan.v1alpha1",
+  "plan_id": "tr-exec-plan:task-intake-host-affecting",
+  "task_id": "task-intake-host-affecting",
+  "image": {
+    "reference": "openclaw-task-claude:2026-03-v3",
+    "pull_policy": "never",
+    "run_as_user": "runner",
+    "workdir": "/workspace/repo",
+    "entrypoint": "/usr/local/bin/task-runner-entrypoint"
+  },
+  "workspace": {
+    "layout_mode": "dev",
+    "layout_artifact": "tasks/task-intake-host-affecting/workspace-layout.json",
+    "root_path": "/workspace",
+    "repo_path": "/workspace/repo",
+    "inputs_path": "/workspace/inputs",
+    "outputs_path": "/workspace/outputs",
+    "artifact_export_path": "/workspace/outputs/export"
+  },
+  "inputs": {
+    "required_inputs": [
+      "/workspace/inputs/request.md",
+      "/workspace/inputs/context.json",
+      "/workspace/inputs/control-plane/task-runner-summary.json",
+      "/workspace/inputs/control-plane/operator-review-bundle.json"
+    ]
+  },
+  "outputs": {
+    "required_artifacts": [
+      "/workspace/outputs/summary.md",
+      "/workspace/outputs/summary.json",
+      "/workspace/outputs/diff.patch",
+      "/workspace/outputs/host-change-request.json",
+      "/workspace/outputs/export"
+    ],
+    "artifact_export_path": "/workspace/outputs/export",
+    "preserve_failed_run_logs": true
+  },
+  "environment": {
+    "allowed": [
+      "TASK_ID",
+      "RUN_ID",
+      "RUNNER_TOOL",
+      "RUNNER_MODE",
+      "WORKSPACE_MODE",
+      "TASK_REPO_PATH",
+      "TASK_INPUTS_PATH",
+      "TASK_OUTPUTS_PATH",
+      "ARTIFACT_EXPORT_PATH",
+      "TASK_PROMPT_PATH"
+    ],
+    "required": [
+      "TASK_ID",
+      "RUN_ID",
+      "RUNNER_TOOL",
+      "RUNNER_MODE",
+      "WORKSPACE_MODE",
+      "TASK_REPO_PATH",
+      "TASK_INPUTS_PATH",
+      "TASK_OUTPUTS_PATH",
+      "ARTIFACT_EXPORT_PATH"
+    ],
+    "forbidden": [
+      "OPENCLAW_CONFIG_PATH",
+      "OPENCLAW_STATE_DIR",
+      "DOCKER_HOST",
+      "OPENAI_API_KEY",
+      "ANTHROPIC_AUTH_TOKEN",
+      "OPENCLAW_BROKER_SOCKET"
+    ]
+  },
+  "tool_contract": {
+    "agent_tools": {
+      "allow": [
+        "read",
+        "write",
+        "edit",
+        "apply_patch",
+        "exec",
+        "process"
+      ],
+      "deny": [
+        "sessions_spawn",
+        "elevated"
+      ]
+    },
+    "container_binaries": {
+      "expected_available": [
+        "bash",
+        "git",
+        "jq",
+        "python3",
+        "rg"
+      ],
+      "expected_unavailable": [
+        "docker",
+        "sudo",
+        "systemctl",
+        "mount",
+        "umount"
+      ]
+    }
+  },
+  "invocation": {
+    "runner": "codex",
+    "mode": "non_interactive",
+    "bootstrap_path": "/usr/local/bin/bootstrap-codex",
+    "prompt_source": "file"
+  },
+  "network": {
+    "mode": "none",
+    "allow_host_network": false,
+    "allowed_endpoints": []
+  },
+  "privilege": {
+    "run_as_non_root": true,
+    "user": "runner",
+    "allow_privilege_escalation": false,
+    "read_only_rootfs": true,
+    "no_new_privileges": true
+  },
+  "boundary_carry_forward": {
+    "repo_side_only": true,
+    "live_side_publish_performed": false,
+    "broker_dispatch_performed": false,
+    "real_docker_run_required": false,
+    "openclaw_runtime_modified": false
+  }
+}

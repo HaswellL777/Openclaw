@@ -1,0 +1,88 @@
+{
+  "schema_version": "openclaw.task-runner.handoff-manifest.v1alpha1",
+  "manifest_id": "handoff:task-intake-readonly",
+  "task_id": "task-intake-readonly",
+  "run_id": "run-20260322-intake-readonly",
+  "reviewed_task": {
+    "kind": "broker_review_bundle",
+    "bundle_id": "review:broker:intake:hcr-20260322-intake-readonly",
+    "bundle_type": "BROKER_REVIEW_BUNDLE",
+    "review_target": "broker",
+    "review_status": "pending_broker_review",
+    "dispatch_scope": "readonly",
+    "dispatch_status": "broker_ready",
+    "requires_operator_approval": false,
+    "broker_request_count": 3,
+    "source_path": "fixtures/control-plane-replay/valid-readonly/broker-review-bundle.json",
+    "staged_relpath": "tasks/task-intake-readonly/inputs/control-plane/broker-review-bundle.json"
+  },
+  "source_summary": {
+    "source_path": "fixtures/control-plane-replay/valid-readonly/summary.json",
+    "staged_relpath": "tasks/task-intake-readonly/inputs/control-plane/task-runner-summary.json"
+  },
+  "task_dir": {
+    "root_relpath": "tasks/task-intake-readonly",
+    "repo_relpath": "tasks/task-intake-readonly/repo",
+    "inputs_relpath": "tasks/task-intake-readonly/inputs",
+    "outputs_relpath": "tasks/task-intake-readonly/outputs"
+  },
+  "repo_seed": {
+    "strategy": "changed_files_subset",
+    "changed_files": [
+      "schemas/broker-ready-request.schema.json",
+      "schemas/task-runner-intake-report.schema.json",
+      "scripts/build-broker-ready-request.py"
+    ]
+  },
+  "staged_inputs": {
+    "request_md": "tasks/task-intake-readonly/inputs/request.md",
+    "context_json": "tasks/task-intake-readonly/inputs/context.json",
+    "control_plane_dir": "tasks/task-intake-readonly/inputs/control-plane",
+    "control_plane_artifacts": [
+      {
+        "name": "reviewed_task",
+        "source_path": "fixtures/control-plane-replay/valid-readonly/broker-review-bundle.json",
+        "staged_relpath": "tasks/task-intake-readonly/inputs/control-plane/broker-review-bundle.json"
+      },
+      {
+        "name": "summary_json",
+        "source_path": "fixtures/control-plane-replay/valid-readonly/summary.json",
+        "staged_relpath": "tasks/task-intake-readonly/inputs/control-plane/task-runner-summary.json"
+      },
+      {
+        "name": "normalized_request_path",
+        "source_path": "fixtures/control-plane-replay/valid-readonly/request.normalized.json",
+        "staged_relpath": "tasks/task-intake-readonly/inputs/control-plane/request.normalized.json"
+      },
+      {
+        "name": "intake_report_path",
+        "source_path": "fixtures/control-plane-replay/valid-readonly/intake-report.json",
+        "staged_relpath": "tasks/task-intake-readonly/inputs/control-plane/intake-report.json"
+      },
+      {
+        "name": "routing_decision_path",
+        "source_path": "fixtures/control-plane-replay/valid-readonly/routing-decision.json",
+        "staged_relpath": "tasks/task-intake-readonly/inputs/control-plane/routing-decision.json"
+      },
+      {
+        "name": "submission_envelope_path",
+        "source_path": "fixtures/control-plane-replay/valid-readonly/broker-submission-envelope.json",
+        "staged_relpath": "tasks/task-intake-readonly/inputs/control-plane/broker-submission-envelope.json"
+      }
+    ]
+  },
+  "execution_contract": {
+    "workspace_mode": "readonly",
+    "runner": "codex",
+    "network_mode": "none",
+    "workspace_layout_path": "tasks/task-intake-readonly/workspace-layout.json",
+    "exec_plan_path": "tasks/task-intake-readonly/exec-plan.json"
+  },
+  "boundary_carry_forward": {
+    "repo_side_only": true,
+    "live_side_publish_performed": false,
+    "broker_dispatch_performed": false,
+    "real_docker_run_required": false,
+    "openclaw_runtime_modified": false
+  }
+}

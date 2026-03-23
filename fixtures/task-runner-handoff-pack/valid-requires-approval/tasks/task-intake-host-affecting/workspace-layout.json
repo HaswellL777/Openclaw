@@ -1,0 +1,70 @@
+{
+  "schema_version": "openclaw.task-runner.workspace-layout.v1alpha1",
+  "layout_id": "tr-layout:task-intake-host-affecting",
+  "task_id": "task-intake-host-affecting",
+  "workspace_mode": "dev",
+  "container_root": "/workspace",
+  "control_surface": {
+    "policy_files": [
+      "AGENTS.md",
+      "TOOLS.md",
+      "control/runner-policy.md",
+      "control/artifact-contract.md"
+    ]
+  },
+  "mounts": [
+    {
+      "name": "repo",
+      "source_relpath": "tasks/task-intake-host-affecting/repo",
+      "container_path": "/workspace/repo",
+      "access": "rw",
+      "required": true
+    },
+    {
+      "name": "inputs",
+      "source_relpath": "tasks/task-intake-host-affecting/inputs",
+      "container_path": "/workspace/inputs",
+      "access": "ro",
+      "required": true
+    },
+    {
+      "name": "outputs",
+      "source_relpath": "tasks/task-intake-host-affecting/outputs",
+      "container_path": "/workspace/outputs",
+      "access": "rw",
+      "required": true
+    }
+  ],
+  "writable_paths": [
+    "/workspace/repo",
+    "/workspace/outputs",
+    "/workspace/outputs/export",
+    "/tmp",
+    "/var/tmp",
+    "/run"
+  ],
+  "tmpfs_paths": [
+    "/tmp",
+    "/var/tmp",
+    "/run"
+  ],
+  "artifact_export": {
+    "container_path": "/workspace/outputs/export",
+    "source_relpath": "tasks/task-intake-host-affecting/outputs/export",
+    "access": "rw",
+    "required": true
+  },
+  "retained_artifacts": [
+    "summary.md",
+    "summary.json",
+    "diff.patch",
+    "host-change-request.json"
+  ],
+  "boundary_carry_forward": {
+    "repo_side_only": true,
+    "live_side_publish_performed": false,
+    "broker_dispatch_performed": false,
+    "real_docker_run_required": false,
+    "openclaw_runtime_modified": false
+  }
+}

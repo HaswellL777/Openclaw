@@ -1,0 +1,77 @@
+{
+  "schema_version": "openclaw.main.task-runner-intake-report.v1alpha1",
+  "intake_id": "intake:hcr-20260322-intake-readonly",
+  "task_id": "task-intake-readonly",
+  "run_id": "run-20260322-intake-readonly",
+  "source_request_id": "hcr-20260322-intake-readonly",
+  "status": "accepted",
+  "dispatch_scope": "readonly",
+  "dispatch_status": "broker_ready",
+  "requires_operator_approval": false,
+  "source_artifacts": {
+    "summary_path": "fixtures/task-runner-intake/valid-readonly/summary.json",
+    "host_change_request_path": "fixtures/task-runner-intake/valid-readonly/host-change-request.json"
+  },
+  "validation_results": [
+    {
+      "name": "summary",
+      "status": "passed",
+      "issues": []
+    },
+    {
+      "name": "host_change_request",
+      "status": "passed",
+      "issues": []
+    },
+    {
+      "name": "cross_document",
+      "status": "passed",
+      "issues": []
+    }
+  ],
+  "refusal_reasons": [],
+  "forbidden_actions": [
+    "direct_docker_control",
+    "direct_host_shell",
+    "direct_openclaw_config_edit",
+    "direct_secret_handling",
+    "direct_snapshot_manipulation",
+    "direct_systemd_control",
+    "direct_vault_manipulation",
+    "unstructured_operator_commands",
+    "user_level_gateway_start"
+  ],
+  "boundary_carry_forward": {
+    "repo_side_only": true,
+    "live_side_publish_performed": false,
+    "broker_dispatch_performed": false,
+    "openclaw_runtime_modified": false,
+    "operator_command_blocks_present": false
+  },
+  "evidence_refs": [
+    {
+      "id": "design-v3",
+      "kind": "design_doc",
+      "path": "docs/design-v3.md",
+      "description": "Authoritative design for the future task-runner to main to broker flow."
+    },
+    {
+      "id": "current-boundary",
+      "kind": "boundary_doc",
+      "path": "docs/current-boundary.md",
+      "description": "Confirms the current slice remains repo-side and Phase 3 is not live-enabled."
+    },
+    {
+      "id": "host-sop",
+      "kind": "sop_doc",
+      "path": "docs/host-sop.md",
+      "description": "Authority for host facts, readonly boundaries, and forbidden operations."
+    },
+    {
+      "id": "summary-json",
+      "kind": "output_file",
+      "path": "outputs/summary.json",
+      "description": "Structured summary that accompanies this readonly request."
+    }
+  ]
+}

@@ -1,0 +1,107 @@
+{
+  "task_id": "task-intake-readonly",
+  "run_id": "run-20260322-intake-readonly",
+  "workspace_mode": "readonly",
+  "reviewed_task": {
+    "bundle_id": "review:broker:intake:hcr-20260322-intake-readonly",
+    "bundle_type": "BROKER_REVIEW_BUNDLE",
+    "review_target": "broker",
+    "review_status": "pending_broker_review",
+    "dispatch_scope": "readonly",
+    "dispatch_status": "broker_ready",
+    "requires_operator_approval": false,
+    "broker_requests": [
+      {
+        "sequence": 1,
+        "action": "gateway_health",
+        "justification": "Confirm the gateway health contract shape for a readonly dry-run.",
+        "broker_request": {
+          "action": "gateway_health",
+          "request_id": "hcr-20260322-intake-readonly:op1",
+          "task_id": "task-intake-readonly",
+          "requested_by": "main:intake",
+          "inputs": {}
+        }
+      },
+      {
+        "sequence": 2,
+        "action": "validate_openclaw_json_candidate",
+        "justification": "Exercise readonly candidate validation without proposing a deploy.",
+        "broker_request": {
+          "action": "validate_openclaw_json_candidate",
+          "request_id": "hcr-20260322-intake-readonly:op2",
+          "task_id": "task-intake-readonly",
+          "requested_by": "main:intake",
+          "inputs": {
+            "candidate_path": "/var/lib/openclaw/approvals/candidates/openclaw.task-runner.intake-readonly.json",
+            "expected_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+          }
+        }
+      },
+      {
+        "sequence": 3,
+        "action": "rollback_prepare",
+        "justification": "Prepare rollback metadata as readonly evidence only, without executing any rollback.",
+        "broker_request": {
+          "action": "rollback_prepare",
+          "request_id": "hcr-20260322-intake-readonly:op3",
+          "task_id": "task-intake-readonly",
+          "requested_by": "main:intake",
+          "inputs": {
+            "target_snapshot": "root-pre-phase3-readonly-reference",
+            "reason": "Readonly dry-run reference only"
+          }
+        }
+      }
+    ]
+  },
+  "summary": {
+    "status": "completed_with_followup",
+    "goal": "Prepare a repo-side readonly intake path for reviewed broker dry-runs.",
+    "outcome": "The runner produced only readonly broker-aligned follow-up so main can validate evidence and boundary carry-forward without any host mutation.",
+    "changed_files": [
+      "schemas/broker-ready-request.schema.json",
+      "schemas/task-runner-intake-report.schema.json",
+      "scripts/build-broker-ready-request.py"
+    ]
+  },
+  "staged_control_plane_artifacts": [
+    {
+      "name": "reviewed_task",
+      "source_path": "fixtures/control-plane-replay/valid-readonly/broker-review-bundle.json",
+      "staged_relpath": "inputs/control-plane/broker-review-bundle.json"
+    },
+    {
+      "name": "summary_json",
+      "source_path": "fixtures/control-plane-replay/valid-readonly/summary.json",
+      "staged_relpath": "inputs/control-plane/task-runner-summary.json"
+    },
+    {
+      "name": "normalized_request_path",
+      "source_path": "fixtures/control-plane-replay/valid-readonly/request.normalized.json",
+      "staged_relpath": "inputs/control-plane/request.normalized.json"
+    },
+    {
+      "name": "intake_report_path",
+      "source_path": "fixtures/control-plane-replay/valid-readonly/intake-report.json",
+      "staged_relpath": "inputs/control-plane/intake-report.json"
+    },
+    {
+      "name": "routing_decision_path",
+      "source_path": "fixtures/control-plane-replay/valid-readonly/routing-decision.json",
+      "staged_relpath": "inputs/control-plane/routing-decision.json"
+    },
+    {
+      "name": "submission_envelope_path",
+      "source_path": "fixtures/control-plane-replay/valid-readonly/broker-submission-envelope.json",
+      "staged_relpath": "inputs/control-plane/broker-submission-envelope.json"
+    }
+  ],
+  "boundary_carry_forward": {
+    "repo_side_only": true,
+    "live_side_publish_performed": false,
+    "broker_dispatch_performed": false,
+    "real_docker_run_required": false,
+    "openclaw_runtime_modified": false
+  }
+}
