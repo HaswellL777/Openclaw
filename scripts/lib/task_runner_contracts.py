@@ -63,6 +63,8 @@ FORBIDDEN_INPUT_KEYS = {
 ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$")
 SHA256_RE = re.compile(r"^[a-f0-9]{64}$")
 REQUESTED_BY_RE = re.compile(r"^task-runner(?:[:/][A-Za-z0-9._-]+)?$")
+VALIDATION_RESULTS = {"passed", "failed"}
+LEDGER_VALIDATION_RESULTS = {"passed", "failed", "not_applicable"}
 
 
 def load_json(path: Path) -> Any:
@@ -94,6 +96,43 @@ def is_relative_path(value: Any) -> bool:
 def reject_extra_keys(obj: dict[str, Any], allowed: set[str], errors: list[str], where: str) -> None:
     for key in sorted(obj.keys() - allowed):
         errors.append(f"{where}: unexpected key '{key}'")
+
+
+def merge_evidence_refs(*groups: object) -> list[dict[str, Any]]:
+    merged: list[dict[str, Any]] = []
+    seen: set[tuple[str, str, str]] = set()
+    for group in groups:
+        if not isinstance(group, list):
+            continue
+        for item in group:
+            if not isinstance(item, dict):
+                continue
+            marker = (
+                str(item.get("id", "")),
+                str(item.get("kind", "")),
+                str(item.get("path", "")),
+            )
+            if marker in seen:
+                continue
+            seen.add(marker)
+            merged.append(item)
+    return merged
+
+
+def merge_strings(*groups: object) -> list[str]:
+    merged: list[str] = []
+    seen: set[str] = set()
+    for group in groups:
+        if not isinstance(group, list):
+            continue
+        for item in group:
+            if not isinstance(item, str):
+                continue
+            if item in seen:
+                continue
+            seen.add(item)
+            merged.append(item)
+    return merged
 
 
 def validate_schema_file(schema_path: Path, expected_title: str, expected_const: str) -> list[str]:

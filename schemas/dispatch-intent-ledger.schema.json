@@ -1,0 +1,432 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DispatchIntentLedger",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "ledger_id",
+    "routing_decision_id",
+    "intake_id",
+    "task_id",
+    "run_id",
+    "source_request_id",
+    "decision",
+    "submission_target",
+    "submission_envelope_present",
+    "submission_envelope_id",
+    "submission_envelope_type",
+    "review_target",
+    "review_bundle_present",
+    "review_bundle_id",
+    "review_bundle_type",
+    "intent_status",
+    "dispatch_scope",
+    "dispatch_status",
+    "requires_operator_approval",
+    "rationale",
+    "approval_required_reason",
+    "refusal_reason",
+    "refusal_reasons",
+    "source_artifacts",
+    "summary_context",
+    "validation_status",
+    "dispatch_intents",
+    "forbidden_actions",
+    "boundary_carry_forward",
+    "dispatch_performed",
+    "approval_granted",
+    "runtime_changed",
+    "operator_command_blocks_present",
+    "evidence_refs"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "openclaw.main.dispatch-intent-ledger.v1alpha1"
+    },
+    "ledger_id": {
+      "$ref": "#/$defs/id_string"
+    },
+    "routing_decision_id": {
+      "$ref": "#/$defs/id_string"
+    },
+    "intake_id": {
+      "$ref": "#/$defs/id_string"
+    },
+    "task_id": {
+      "$ref": "#/$defs/id_string"
+    },
+    "run_id": {
+      "$ref": "#/$defs/id_string"
+    },
+    "source_request_id": {
+      "$ref": "#/$defs/id_string"
+    },
+    "decision": {
+      "type": "string",
+      "enum": [
+        "LOCAL_REFUSE",
+        "REQUIRES_OPERATOR_APPROVAL",
+        "BROKER_SUBMISSION_CANDIDATE"
+      ]
+    },
+    "submission_target": {
+      "type": "string",
+      "enum": [
+        "none",
+        "operator_approval_envelope",
+        "broker_submission_envelope"
+      ]
+    },
+    "submission_envelope_present": {
+      "type": "boolean"
+    },
+    "submission_envelope_id": {
+      "$ref": "#/$defs/nullable_id"
+    },
+    "submission_envelope_type": {
+      "type": ["string", "null"],
+      "enum": [
+        "REQUIRES_OPERATOR_APPROVAL",
+        "BROKER_SUBMISSION_CANDIDATE",
+        null
+      ]
+    },
+    "review_target": {
+      "type": "string",
+      "enum": ["none", "operator", "broker"]
+    },
+    "review_bundle_present": {
+      "type": "boolean"
+    },
+    "review_bundle_id": {
+      "$ref": "#/$defs/nullable_id"
+    },
+    "review_bundle_type": {
+      "type": ["string", "null"],
+      "enum": [
+        "OPERATOR_REVIEW_BUNDLE",
+        "BROKER_REVIEW_BUNDLE",
+        null
+      ]
+    },
+    "intent_status": {
+      "type": "string",
+      "enum": [
+        "refused_no_dispatch",
+        "pending_operator_review",
+        "pending_broker_review"
+      ]
+    },
+    "dispatch_scope": {
+      "type": "string",
+      "enum": ["readonly", "host_affecting", "unclassified"]
+    },
+    "dispatch_status": {
+      "type": "string",
+      "enum": [
+        "broker_ready",
+        "operator_approval_required",
+        "refused"
+      ]
+    },
+    "requires_operator_approval": {
+      "type": "boolean"
+    },
+    "rationale": {
+      "$ref": "#/$defs/non_empty_string"
+    },
+    "approval_required_reason": {
+      "$ref": "#/$defs/nullable_non_empty_string"
+    },
+    "refusal_reason": {
+      "$ref": "#/$defs/nullable_non_empty_string"
+    },
+    "refusal_reasons": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/non_empty_string"
+      }
+    },
+    "source_artifacts": {
+      "type": "object",
+      "required": [
+        "normalized_request_path",
+        "intake_report_path",
+        "routing_decision_path"
+      ],
+      "properties": {
+        "normalized_request_path": {
+          "$ref": "#/$defs/relative_path"
+        },
+        "intake_report_path": {
+          "$ref": "#/$defs/relative_path"
+        },
+        "routing_decision_path": {
+          "$ref": "#/$defs/relative_path"
+        },
+        "submission_envelope_path": {
+          "$ref": "#/$defs/relative_path"
+        },
+        "review_bundle_path": {
+          "$ref": "#/$defs/relative_path"
+        }
+      },
+      "additionalProperties": false
+    },
+    "summary_context": {
+      "type": "object",
+      "required": [
+        "goal",
+        "outcome",
+        "request_title",
+        "request_scope"
+      ],
+      "properties": {
+        "goal": {
+          "$ref": "#/$defs/non_empty_string"
+        },
+        "outcome": {
+          "$ref": "#/$defs/non_empty_string"
+        },
+        "request_title": {
+          "$ref": "#/$defs/non_empty_string"
+        },
+        "request_scope": {
+          "$ref": "#/$defs/non_empty_string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "validation_status": {
+      "type": "object",
+      "required": [
+        "normalized_request",
+        "intake_report",
+        "routing_decision",
+        "submission_envelope",
+        "review_bundle"
+      ],
+      "properties": {
+        "normalized_request": {
+          "$ref": "#/$defs/ledger_validation_result"
+        },
+        "intake_report": {
+          "$ref": "#/$defs/ledger_validation_result"
+        },
+        "routing_decision": {
+          "$ref": "#/$defs/ledger_validation_result"
+        },
+        "submission_envelope": {
+          "$ref": "#/$defs/ledger_validation_result"
+        },
+        "review_bundle": {
+          "$ref": "#/$defs/ledger_validation_result"
+        }
+      },
+      "additionalProperties": false
+    },
+    "dispatch_intents": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/broker_request_item"
+      }
+    },
+    "forbidden_actions": {
+      "$ref": "#/$defs/forbidden_actions"
+    },
+    "boundary_carry_forward": {
+      "$ref": "#/$defs/boundary_carry_forward"
+    },
+    "dispatch_performed": {
+      "const": false
+    },
+    "approval_granted": {
+      "const": false
+    },
+    "runtime_changed": {
+      "const": false
+    },
+    "operator_command_blocks_present": {
+      "const": false
+    },
+    "evidence_refs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/evidence_ref"
+      }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "non_empty_string": {
+      "type": "string",
+      "minLength": 1
+    },
+    "nullable_non_empty_string": {
+      "type": ["string", "null"],
+      "minLength": 1
+    },
+    "id_string": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$"
+    },
+    "nullable_id": {
+      "type": ["string", "null"],
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$"
+    },
+    "relative_path": {
+      "type": "string",
+      "pattern": "^(?!/)(?!.*\\.\\.)[^\\n]+$"
+    },
+    "ledger_validation_result": {
+      "type": "string",
+      "enum": ["passed", "failed", "not_applicable"]
+    },
+    "forbidden_actions": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "enum": [
+          "direct_host_shell",
+          "direct_openclaw_config_edit",
+          "direct_systemd_control",
+          "direct_docker_control",
+          "direct_snapshot_manipulation",
+          "direct_vault_manipulation",
+          "direct_secret_handling",
+          "unstructured_operator_commands",
+          "user_level_gateway_start"
+        ]
+      }
+    },
+    "boundary_carry_forward": {
+      "type": "object",
+      "required": [
+        "repo_side_only",
+        "live_side_publish_performed",
+        "broker_dispatch_performed",
+        "openclaw_runtime_modified",
+        "operator_command_blocks_present"
+      ],
+      "properties": {
+        "repo_side_only": {
+          "const": true
+        },
+        "live_side_publish_performed": {
+          "const": false
+        },
+        "broker_dispatch_performed": {
+          "const": false
+        },
+        "openclaw_runtime_modified": {
+          "const": false
+        },
+        "operator_command_blocks_present": {
+          "const": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "evidence_ref": {
+      "type": "object",
+      "required": ["id", "kind", "path", "description"],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id_string"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "design_doc",
+            "sop_doc",
+            "boundary_doc",
+            "repo_file",
+            "output_file",
+            "schema",
+            "fixture",
+            "validator_log"
+          ]
+        },
+        "path": {
+          "$ref": "#/$defs/relative_path"
+        },
+        "description": {
+          "$ref": "#/$defs/non_empty_string"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "broker_request_item": {
+      "type": "object",
+      "required": ["sequence", "action", "justification", "broker_request"],
+      "properties": {
+        "sequence": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "action": {
+          "type": "string",
+          "enum": [
+            "gateway_health",
+            "gateway_restart",
+            "validate_openclaw_json_candidate",
+            "deploy_openclaw_json_candidate",
+            "snapshot_pre",
+            "snapshot_post",
+            "vault_sync",
+            "rollback_prepare"
+          ]
+        },
+        "justification": {
+          "$ref": "#/$defs/non_empty_string"
+        },
+        "broker_request": {
+          "type": "object",
+          "required": [
+            "action",
+            "request_id",
+            "task_id",
+            "requested_by",
+            "inputs"
+          ],
+          "properties": {
+            "action": {
+              "type": "string",
+              "enum": [
+                "gateway_health",
+                "gateway_restart",
+                "validate_openclaw_json_candidate",
+                "deploy_openclaw_json_candidate",
+                "snapshot_pre",
+                "snapshot_post",
+                "vault_sync",
+                "rollback_prepare"
+              ]
+            },
+            "request_id": {
+              "$ref": "#/$defs/id_string"
+            },
+            "task_id": {
+              "$ref": "#/$defs/id_string"
+            },
+            "requested_by": {
+              "$ref": "#/$defs/non_empty_string"
+            },
+            "inputs": {
+              "type": "object"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}
