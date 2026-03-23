@@ -135,18 +135,24 @@ def validate_document(path: Path) -> list[str]:
         ensure(next_handoff.get("action") in {"none", "review_host_change_request"}, errors, f"{path}.next_handoff.action must be none or review_host_change_request")
 
     requires_operator_approval = data.get("requires_operator_approval")
-    if requires_operator_approval is True:
-        ensure(data.get("status") == "completed_with_followup", errors, f"{path}: requires_operator_approval=true requires status completed_with_followup")
-        ensure(host_change_needed is True, errors, f"{path}: requires_operator_approval=true requires summary.host_change_needed=true")
+    if host_change_needed is True:
+        ensure(data.get("status") == "completed_with_followup", errors, f"{path}: summary.host_change_needed=true requires status completed_with_followup")
         if isinstance(outputs, dict):
-            ensure(outputs.get("host_change_request") == "outputs/host-change-request.json", errors, f"{path}: requires_operator_approval=true requires outputs.host_change_request")
+            ensure(outputs.get("host_change_request") == "outputs/host-change-request.json", errors, f"{path}: summary.host_change_needed=true requires outputs.host_change_request")
         if isinstance(next_handoff, dict):
-            ensure(next_handoff.get("consumer") == "main", errors, f"{path}: requires_operator_approval=true requires next_handoff.consumer=main")
-            ensure(next_handoff.get("action") == "review_host_change_request", errors, f"{path}: requires_operator_approval=true requires next_handoff.action=review_host_change_request")
-            ensure(next_handoff.get("host_change_request_path") == "outputs/host-change-request.json", errors, f"{path}: requires_operator_approval=true requires next_handoff.host_change_request_path")
-    elif requires_operator_approval is False:
+            ensure(next_handoff.get("consumer") == "main", errors, f"{path}: summary.host_change_needed=true requires next_handoff.consumer=main")
+            ensure(next_handoff.get("action") == "review_host_change_request", errors, f"{path}: summary.host_change_needed=true requires next_handoff.action=review_host_change_request")
+            ensure(next_handoff.get("host_change_request_path") == "outputs/host-change-request.json", errors, f"{path}: summary.host_change_needed=true requires next_handoff.host_change_request_path")
+    elif host_change_needed is False:
         if isinstance(outputs, dict):
-            ensure("host_change_request" not in outputs, errors, f"{path}: requires_operator_approval=false must not include outputs.host_change_request")
+            ensure("host_change_request" not in outputs, errors, f"{path}: summary.host_change_needed=false must not include outputs.host_change_request")
+        if isinstance(next_handoff, dict):
+            ensure(next_handoff.get("consumer") == "none", errors, f"{path}: summary.host_change_needed=false requires next_handoff.consumer=none")
+            ensure(next_handoff.get("action") == "none", errors, f"{path}: summary.host_change_needed=false requires next_handoff.action=none")
+            ensure("host_change_request_path" not in next_handoff, errors, f"{path}: summary.host_change_needed=false must not include next_handoff.host_change_request_path")
+
+    if requires_operator_approval is True:
+        ensure(host_change_needed is True, errors, f"{path}: requires_operator_approval=true requires summary.host_change_needed=true")
 
     return errors
 

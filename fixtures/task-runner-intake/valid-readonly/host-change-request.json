@@ -1,0 +1,93 @@
+{
+  "schema_version": "openclaw.task-runner.host-change-request.v1alpha1",
+  "request_id": "hcr-20260322-intake-readonly",
+  "task_id": "task-intake-readonly",
+  "requested_by": "task-runner",
+  "status": "proposed",
+  "summary": {
+    "title": "Assemble a readonly broker-ready intake dry-run",
+    "why": "Main needs a structured readonly request so it can validate evidence, normalization, and boundary carry-forward without entering any host-affecting path.",
+    "scope": "Readonly validation and preparation only, with no live-side publish, broker call, or runtime mutation.",
+    "impact": "The resulting artifact remains repo-side and can be reviewed without operator approval because every requested host op is readonly."
+  },
+  "repo_context": {
+    "repo_relpath": "repo/",
+    "branch": "feat/phase1b-workspace-foundation",
+    "changed_files": [
+      "schemas/broker-ready-request.schema.json",
+      "schemas/task-runner-intake-report.schema.json",
+      "scripts/build-broker-ready-request.py"
+    ]
+  },
+  "requires_operator_approval": false,
+  "requested_host_ops": [
+    {
+      "sequence": 1,
+      "action": "gateway_health",
+      "justification": "Confirm the gateway health contract shape for a readonly dry-run.",
+      "inputs": {}
+    },
+    {
+      "sequence": 2,
+      "action": "validate_openclaw_json_candidate",
+      "justification": "Exercise readonly candidate validation without proposing a deploy.",
+      "inputs": {
+        "candidate_path": "/var/lib/openclaw/approvals/candidates/openclaw.task-runner.intake-readonly.json",
+        "expected_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+      }
+    },
+    {
+      "sequence": 3,
+      "action": "rollback_prepare",
+      "justification": "Prepare rollback metadata as readonly evidence only, without executing any rollback.",
+      "inputs": {
+        "target_snapshot": "root-pre-phase3-readonly-reference",
+        "reason": "Readonly dry-run reference only"
+      }
+    }
+  ],
+  "forbidden_actions": [
+    "direct_docker_control",
+    "direct_host_shell",
+    "direct_openclaw_config_edit",
+    "direct_secret_handling",
+    "direct_snapshot_manipulation",
+    "direct_systemd_control",
+    "direct_vault_manipulation",
+    "unstructured_operator_commands",
+    "user_level_gateway_start"
+  ],
+  "evidence_refs": [
+    {
+      "id": "design-v3",
+      "kind": "design_doc",
+      "path": "docs/design-v3.md",
+      "description": "Design anchor for task-runner to main to broker dry-runs."
+    },
+    {
+      "id": "host-sop",
+      "kind": "sop_doc",
+      "path": "docs/host-sop.md",
+      "description": "Authority for readonly boundaries and no-live-side discipline."
+    },
+    {
+      "id": "summary-json",
+      "kind": "output_file",
+      "path": "outputs/summary.json",
+      "description": "Structured summary that accompanies this readonly request."
+    }
+  ],
+  "required_evidence": [
+    {
+      "id": "readonly-contract-validation",
+      "when": "before_main_review",
+      "description": "Validation output for readonly task-runner summary and host-change request inputs."
+    }
+  ],
+  "handoff": {
+    "next_consumer": "main",
+    "delivery_artifact": "outputs/host-change-request.json",
+    "broker_request_ready": true,
+    "review_required": true
+  }
+}

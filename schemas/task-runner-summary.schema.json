@@ -169,8 +169,13 @@
     {
       "if": {
         "properties": {
-          "requires_operator_approval": {
-            "const": true
+          "summary": {
+            "required": ["host_change_needed"],
+            "properties": {
+              "host_change_needed": {
+                "const": true
+              }
+            }
           }
         }
       },
@@ -178,13 +183,6 @@
         "properties": {
           "status": {
             "const": "completed_with_followup"
-          },
-          "summary": {
-            "properties": {
-              "host_change_needed": {
-                "const": true
-              }
-            }
           },
           "outputs": {
             "required": ["host_change_request"]
@@ -204,9 +202,46 @@
       },
       "else": {
         "properties": {
+          "status": {
+            "enum": [
+              "completed",
+              "failed",
+              "blocked"
+            ]
+          },
           "outputs": {
             "not": {
               "required": ["host_change_request"]
+            }
+          },
+          "next_handoff": {
+            "properties": {
+              "consumer": {
+                "const": "none"
+              },
+              "action": {
+                "const": "none"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "requires_operator_approval": {
+            "const": true
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "summary": {
+            "properties": {
+              "host_change_needed": {
+                "const": true
+              }
             }
           }
         }

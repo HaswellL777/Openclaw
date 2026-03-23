@@ -1,0 +1,62 @@
+{
+  "schema_version": "openclaw.task-runner.host-change-request.v1alpha1",
+  "request_id": "hcr-20260322-intake-invalid-boundary",
+  "task_id": "task-intake-invalid-boundary",
+  "requested_by": "task-runner",
+  "status": "proposed",
+  "summary": {
+    "title": "Illegal host-affecting request without operator approval",
+    "why": "This fixture proves that main-side intake refuses host-affecting requests that drop the approval requirement.",
+    "scope": "Negative validation path only.",
+    "impact": "Should be refused during intake."
+  },
+  "repo_context": {
+    "repo_relpath": "repo/",
+    "changed_files": [
+      "scripts/build-broker-ready-request.py"
+    ]
+  },
+  "requires_operator_approval": false,
+  "requested_host_ops": [
+    {
+      "sequence": 1,
+      "action": "gateway_restart",
+      "justification": "Illegal example only.",
+      "inputs": {
+        "reason": "This host-affecting request should be refused"
+      }
+    }
+  ],
+  "forbidden_actions": [
+    "direct_docker_control",
+    "direct_host_shell",
+    "direct_openclaw_config_edit",
+    "direct_secret_handling",
+    "direct_snapshot_manipulation",
+    "direct_systemd_control",
+    "direct_vault_manipulation",
+    "unstructured_operator_commands",
+    "user_level_gateway_start"
+  ],
+  "evidence_refs": [
+    {
+      "id": "design-v3",
+      "kind": "design_doc",
+      "path": "docs/design-v3.md",
+      "description": "Negative-case evidence."
+    }
+  ],
+  "required_evidence": [
+    {
+      "id": "illegal-approval-negative-case",
+      "when": "before_main_review",
+      "description": "Expected refusal during intake."
+    }
+  ],
+  "handoff": {
+    "next_consumer": "main",
+    "delivery_artifact": "outputs/host-change-request.json",
+    "broker_request_ready": true,
+    "review_required": true
+  }
+}

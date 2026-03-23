@@ -1,0 +1,128 @@
+{
+  "schema_version": "openclaw.task-runner.host-change-request.v1alpha1",
+  "request_id": "hcr-20260322-intake-host-affecting",
+  "task_id": "task-intake-host-affecting",
+  "requested_by": "task-runner",
+  "status": "proposed",
+  "summary": {
+    "title": "Assemble a host-affecting broker-ready request dry-run",
+    "why": "Main needs a normalized host-affecting request so it can preserve approval, evidence, and boundary carry-forward without calling the broker.",
+    "scope": "Static dry-run only: validate, normalize, and shape future broker requests without any live dispatch.",
+    "impact": "If ever reviewed and approved later, the action chain would touch OpenClaw config publication, gateway lifecycle, snapshots, and Vault sync."
+  },
+  "repo_context": {
+    "repo_relpath": "repo/",
+    "branch": "feat/phase1b-workspace-foundation",
+    "changed_files": [
+      "schemas/broker-ready-request.schema.json",
+      "schemas/task-runner-intake-report.schema.json",
+      "scripts/build-broker-ready-request.py",
+      "scripts/check-task-runner-intake-flow.sh"
+    ]
+  },
+  "requires_operator_approval": true,
+  "requested_host_ops": [
+    {
+      "sequence": 1,
+      "action": "validate_openclaw_json_candidate",
+      "justification": "Validate the reviewed candidate before any future host-side mutation.",
+      "inputs": {
+        "candidate_path": "/var/lib/openclaw/approvals/candidates/openclaw.task-runner.intake-host-affecting.json",
+        "expected_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+      }
+    },
+    {
+      "sequence": 2,
+      "action": "snapshot_pre",
+      "justification": "Preserve a rollback point before any future reviewed deploy.",
+      "inputs": {
+        "label": "phase3-intake-host-affecting-pre",
+        "reason": "Pre-change snapshot before a future reviewed deploy"
+      }
+    },
+    {
+      "sequence": 3,
+      "action": "deploy_openclaw_json_candidate",
+      "justification": "Deploy only after later approval and validation.",
+      "inputs": {
+        "candidate_path": "/var/lib/openclaw/approvals/candidates/openclaw.task-runner.intake-host-affecting.json",
+        "expected_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+      }
+    },
+    {
+      "sequence": 4,
+      "action": "gateway_restart",
+      "justification": "Restart would only happen after a reviewed deploy.",
+      "inputs": {
+        "reason": "Post deploy restart for a future reviewed intake candidate"
+      }
+    },
+    {
+      "sequence": 5,
+      "action": "snapshot_post",
+      "justification": "Capture post-change state after a future reviewed validation.",
+      "inputs": {
+        "label": "phase3-intake-host-affecting-post",
+        "reason": "Post-change snapshot after a future reviewed deploy"
+      }
+    },
+    {
+      "sequence": 6,
+      "action": "vault_sync",
+      "justification": "Preserve the post-change snapshot in Vault after a future reviewed change.",
+      "inputs": {
+        "snapshot_name": "root-post-phase3-intake-host-affecting",
+        "incremental": true
+      }
+    }
+  ],
+  "forbidden_actions": [
+    "direct_docker_control",
+    "direct_host_shell",
+    "direct_openclaw_config_edit",
+    "direct_secret_handling",
+    "direct_snapshot_manipulation",
+    "direct_systemd_control",
+    "direct_vault_manipulation",
+    "unstructured_operator_commands",
+    "user_level_gateway_start"
+  ],
+  "evidence_refs": [
+    {
+      "id": "design-v3",
+      "kind": "design_doc",
+      "path": "docs/design-v3.md",
+      "description": "Design anchor for task-runner to main to broker dry-runs."
+    },
+    {
+      "id": "current-boundary",
+      "kind": "boundary_doc",
+      "path": "docs/current-boundary.md",
+      "description": "Boundary freeze proving the slice remains repo-side and not live-enabled."
+    },
+    {
+      "id": "summary-json",
+      "kind": "output_file",
+      "path": "outputs/summary.json",
+      "description": "Structured summary that accompanies this host-affecting request."
+    }
+  ],
+  "required_evidence": [
+    {
+      "id": "host-affecting-contract-validation",
+      "when": "before_main_review",
+      "description": "Validation output for host-affecting task-runner summary and host-change request inputs."
+    },
+    {
+      "id": "operator-approval-carry-forward",
+      "when": "before_broker_dispatch",
+      "description": "Main-side proof that requires_operator_approval remains true after normalization."
+    }
+  ],
+  "handoff": {
+    "next_consumer": "main",
+    "delivery_artifact": "outputs/host-change-request.json",
+    "broker_request_ready": true,
+    "review_required": true
+  }
+}

@@ -20,6 +20,14 @@ ALLOWED_ACTIONS = {
     "rollback_prepare",
 }
 
+READONLY_ACTIONS = {
+    "gateway_health",
+    "validate_openclaw_json_candidate",
+    "rollback_prepare",
+}
+
+HOST_AFFECTING_ACTIONS = ALLOWED_ACTIONS - READONLY_ACTIONS
+
 FORBIDDEN_ACTIONS = {
     "direct_host_shell",
     "direct_openclaw_config_edit",
@@ -202,3 +210,37 @@ def validate_requested_host_op(op: Any, errors: list[str], where: str) -> None:
             ensure(is_non_empty_string(inputs.get("target_snapshot")), errors, f"{where}.inputs.target_snapshot must be non-empty")
             ensure(is_non_empty_string(inputs.get("reason")), errors, f"{where}.inputs.reason must be non-empty")
 
+
+def classify_requested_host_ops(requested_host_ops: Any) -> str | None:
+    if not isinstance(requested_host_ops, list) or not requested_host_ops:
+        return None
+
+    actions = {
+        op.get("action")
+        for op in requested_host_ops
+        if isinstance(op, dict) and isinstance(op.get("action"), str)
+    }
+    if not actions:
+        return None
+    if actions <= READONLY_ACTIONS:
+        return "readonly"
+    if actions <= ALLOWED_ACTIONS:
+        return "host_affecting"
+    return None
+
+
+def validate_operator_approval_for_requested_ops(
+    requested_host_ops: Any,
+    requires_operator_approval: Any,
+    errors: list[str],
+    where: str,
+) -> str | None:
+    scope = classify_requested_host_ops(requested_host_ops)
+    ensure(scope is not None, errors, f"{where} must contain at least one known requested host op")
+    if scope == "host_affecting":
+        ensure(
+            requires_operator_approval is True,
+            errors,
+            f"{where}: host-affecting requested_host_ops require requires_operator_approval=true",
+        )
+    return scope

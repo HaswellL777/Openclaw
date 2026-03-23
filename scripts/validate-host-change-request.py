@@ -20,6 +20,7 @@ from task_runner_contracts import (  # noqa: E402
     reject_extra_keys,
     validate_evidence_refs,
     validate_forbidden_actions,
+    validate_operator_approval_for_requested_ops,
     validate_requested_host_op,
     validate_schema_file,
 )
@@ -84,7 +85,7 @@ def validate_document(path: Path) -> list[str]:
     ensure(ID_RE.match(str(data.get("task_id", ""))) is not None, errors, f"{path}: task_id must match contract id format")
     ensure(REQUESTED_BY_RE.match(str(data.get("requested_by", ""))) is not None, errors, f"{path}: requested_by must start with task-runner")
     ensure(data.get("status") == "proposed", errors, f"{path}: status must be 'proposed'")
-    ensure(data.get("requires_operator_approval") is True, errors, f"{path}: requires_operator_approval must be true")
+    ensure(isinstance(data.get("requires_operator_approval"), bool), errors, f"{path}: requires_operator_approval must be boolean")
 
     summary = data.get("summary")
     if ensure_type(summary, dict, errors, f"{path}: summary must be an object"):
@@ -116,6 +117,12 @@ def validate_document(path: Path) -> list[str]:
         if sequences:
             ensure(sequences == sorted(sequences), errors, f"{path}: requested_host_ops sequences must be sorted ascending")
             ensure(len(sequences) == len(set(sequences)), errors, f"{path}: requested_host_ops sequences must be unique")
+        validate_operator_approval_for_requested_ops(
+            requested_host_ops,
+            data.get("requires_operator_approval"),
+            errors,
+            f"{path}.requested_host_ops",
+        )
 
     validate_forbidden_actions(data.get("forbidden_actions"), errors, f"{path}.forbidden_actions")
     validate_evidence_refs(data.get("evidence_refs"), errors, f"{path}.evidence_refs")

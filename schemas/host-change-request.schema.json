@@ -77,7 +77,7 @@
       "additionalProperties": false
     },
     "requires_operator_approval": {
-      "const": true
+      "type": "boolean"
     },
     "requested_host_ops": {
       "type": "array",
@@ -169,6 +169,38 @@
     }
   },
   "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "requested_host_ops": {
+            "contains": {
+              "type": "object",
+              "required": ["action"],
+              "properties": {
+                "action": {
+                  "enum": [
+                    "gateway_restart",
+                    "deploy_openclaw_json_candidate",
+                    "snapshot_pre",
+                    "snapshot_post",
+                    "vault_sync"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "requires_operator_approval": {
+            "const": true
+          }
+        }
+      }
+    }
+  ],
   "$defs": {
     "non_empty_string": {
       "type": "string",

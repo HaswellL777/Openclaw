@@ -1,0 +1,79 @@
+{
+  "schema_version": "openclaw.task-runner.summary.v1alpha1",
+  "task_id": "task-intake-host-affecting",
+  "run_id": "run-20260322-intake-host-affecting",
+  "status": "completed_with_followup",
+  "summary": {
+    "goal": "Prepare a host-affecting intake path that stays dry-run and broker-ready only.",
+    "outcome": "The runner produced a host-affecting request that still stops at main-side normalization and approval gating.",
+    "host_change_needed": true
+  },
+  "repo_changes": {
+    "changed_files": [
+      "schemas/broker-ready-request.schema.json",
+      "schemas/task-runner-intake-report.schema.json",
+      "scripts/build-broker-ready-request.py",
+      "scripts/check-task-runner-intake-flow.sh"
+    ],
+    "diff_path": "outputs/diff.patch"
+  },
+  "validation_results": [
+    {
+      "name": "task-runner contract validation",
+      "status": "passed",
+      "artifact_path": "outputs/task-runner-contract-validation.log"
+    },
+    {
+      "name": "intake dry-run validation",
+      "status": "passed",
+      "artifact_path": "outputs/intake-dry-run.log"
+    }
+  ],
+  "outputs": {
+    "summary_md": "outputs/summary.md",
+    "summary_json": "outputs/summary.json",
+    "diff_patch": "outputs/diff.patch",
+    "host_change_request": "outputs/host-change-request.json",
+    "logs": [
+      "outputs/task-runner-contract-validation.log",
+      "outputs/intake-dry-run.log"
+    ]
+  },
+  "requires_operator_approval": true,
+  "forbidden_actions": [
+    "direct_docker_control",
+    "direct_host_shell",
+    "direct_openclaw_config_edit",
+    "direct_secret_handling",
+    "direct_snapshot_manipulation",
+    "direct_systemd_control",
+    "direct_vault_manipulation",
+    "unstructured_operator_commands",
+    "user_level_gateway_start"
+  ],
+  "evidence_refs": [
+    {
+      "id": "design-v3",
+      "kind": "design_doc",
+      "path": "docs/design-v3.md",
+      "description": "Design anchor for main-side intake and broker-ready dry-runs."
+    },
+    {
+      "id": "current-boundary",
+      "kind": "boundary_doc",
+      "path": "docs/current-boundary.md",
+      "description": "Boundary freeze proving this slice remains repo-side and no-live-side."
+    },
+    {
+      "id": "host-sop",
+      "kind": "sop_doc",
+      "path": "docs/host-sop.md",
+      "description": "Host safety and snapshot discipline authority."
+    }
+  ],
+  "next_handoff": {
+    "consumer": "main",
+    "action": "review_host_change_request",
+    "host_change_request_path": "outputs/host-change-request.json"
+  }
+}
