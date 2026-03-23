@@ -1,8 +1,9 @@
 # Records 证据库索引
 
 > `docs/records/` 是 activation / deployment 的证据层。
-> 这些文件记录 live 操作的具体过程与结果，不是主叙述层。
+> 这些文件记录 live 操作的具体过程与结果。
 > 主叙述层是 `docs/host-sop.md`（运行态事实）和 `docs/design-v3.md`（设计规格）。
+> 当前状态见 `docs/current-boundary.md`。
 
 ---
 
@@ -37,22 +38,23 @@
 | `phase2-hostops-gateway-restart-activation-2026-03-16.md` | 2026-03-16 | `gateway_restart` | 两段式 E2E pass |
 | `phase2-hostops-vault-sync-activation-2026-03-17.md` | 2026-03-17 | `vault_sync` | incremental send E2E pass |
 
-**全部 8/8 action live E2E verified (2026-03-17)。** `vault_sync` 已收口。
+**全部 8/8 action live E2E verified (2026-03-17)。**
 
 ## OpenClaw 版本升级
 
 | 文件 | 日期 | 主题 |
 |------|------|------|
 | `openclaw-2026.3.13-upgrade-activation-2026-03-18.md` | 2026-03-18 | OpenClaw 2026.3.2 → 2026.3.13 升级，P0 19/19 PASS，rollback 未触发 |
-| `post-upgrade-capability-probe-execution-2026-03-19.md` | 2026-03-19 | capability probe execution attempted，P5 hard gate FAIL 后中止，结果 = NO-GO |
-| `temporary-restricted-proxy-feasibility-window-execution-2026-03-21.md` | 2026-03-21 | temporary restricted proxy feasibility window execution evidence；`HARD_STOP`，唯一原因 = `hello-world image missing`；proxy 未启动，audit jsonl 未创建 |
-| `hello-world-image-prerequisite-remediation-micro-window-2026-03-22.md` | 2026-03-22 | prerequisite-only remediation 微窗口执行证据；仅通过 `registry-mirrors` + Docker restart 补齐 `hello-world` prerequisite；proxy 未启动，audit jsonl 未创建 |
-| `temporary-restricted-proxy-feasibility-execution-hard-stop-exp-docker-access-feasibility-20260322-111033.md` | 2026-03-22 | temporary restricted proxy feasibility execution evidence；`HARD_STOP before_proxy_start`，唯一原因 = `current-run artifact alignment not established`；current-run helper 与 validate-only candidate 缺失；previous-run helper 仅作为历史参考，未复用 |
+| `post-upgrade-capability-probe-execution-2026-03-19.md` | 2026-03-19 | capability probe P5 FAIL（Docker 未安装）；P5 根因已于 2026-03-23 解决 |
 
-`post-upgrade-capability-probe-execution-2026-03-19.md` 是执行证据文件，不是 Docker prerequisite establishment 的实施记录。
+## 已归档记录
 
-`temporary-restricted-proxy-feasibility-window-execution-2026-03-21.md` 也是执行证据文件，不是 Phase 3 implementation record，不是 docker-prerequisite establishment completion record。
+Mar 19-22 期间的 proxy feasibility 执行记录已归档至 `docs/archive/records/phase3-stall/`：
 
-`hello-world-image-prerequisite-remediation-micro-window-2026-03-22.md` 也是执行证据文件，只收口 prerequisite remediation，不是 temporary restricted proxy execution record，不是 Phase 3 implementation record。
+| 文件 | 日期 | 主题 |
+|------|------|------|
+| `temporary-restricted-proxy-feasibility-window-execution-2026-03-21.md` | 2026-03-21 | HARD_STOP: hello-world image missing |
+| `hello-world-image-prerequisite-remediation-micro-window-2026-03-22.md` | 2026-03-22 | hello-world prerequisite 补齐 |
+| `temporary-restricted-proxy-feasibility-execution-hard-stop-...20260322-111033.md` | 2026-03-22 | HARD_STOP: current-run artifact alignment |
 
-`temporary-restricted-proxy-feasibility-execution-hard-stop-exp-docker-access-feasibility-20260322-111033.md` 也是执行证据文件，只收口 `before_proxy_start` 的 hard-stop，不是 temporary restricted proxy execution start 后失败，不是 Phase 3 implementation record。
+这些记录保留为历史参考。proxy 路线已放弃，改用 docker group 方案（2026-03-23 完成）。

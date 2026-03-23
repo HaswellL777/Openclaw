@@ -68,8 +68,54 @@ When asked to make implementation changes:
 ## Escalation rule
 If a requested change would:
 - alter `/etc/openclaw/openclaw.json`
-- alter systemd units
-- alter Docker privilege boundaries
+- alter systemd units (add/remove/modify unit files)
+- alter host-level privilege boundaries (user groups, sudoers, file ownership outside /var/lib/openclaw)
 - alter snapshot/backup behavior
 - alter secrets handling
 then stop and produce a plan, risk list, rollback note, and validation checklist before making the change.
+
+Docker container operations that stay within the configured `sandbox.docker` boundary
+(container create/run/stop/rm, image build/tag, network management within openclaw-task-net)
+are expected operational actions once Phase 3 is active. They do NOT require escalation.
+Only changes to Docker's host-level configuration (daemon.json, systemd overrides, group membership)
+require escalation.
+
+## Anti-stall rules
+
+### Rule 1: Options over escalation
+When facing a technical decision, default to producing "3 options + recommendation
+with reasoning" instead of "operator must decide." Only escalate to "operator must
+decide" for: (a) security boundary changes that increase attack surface,
+(b) resource authorization that incurs cost, (c) changes that cannot be rolled back
+via snapshot. Information integration and technical analysis are agent responsibilities,
+not operator responsibilities.
+
+### Rule 2: Blocker status must track technical reality
+When a blocker's technical root cause is resolved, its documentation status must be
+updated in the same commit or the immediately following commit. Do not leave
+documentation saying "BLOCKED" or "NO-GO" when the blocking condition no longer exists.
+`docs/current-boundary.md` is the single authoritative status source; other files
+reference it rather than maintaining independent status copies.
+
+### Rule 3: Planning documents have a close-by date
+Every planning document must include a "close-by" field (date or condition).
+When the condition is met or the date passes, the document must be either:
+(a) closed and archived to docs/archive/, or (b) explicitly extended with a new
+close-by. Planning documents open longer than 5 days without implementation progress
+should be reviewed for whether they are blocking rather than enabling progress.
+
+### Rule 4: Cross-sync is not work
+Updating the same status across multiple documents (design-v3.md, host-sop.md,
+current-boundary.md, map.md, planning/README.md) does not count as progress.
+Only `docs/current-boundary.md` needs real-time status updates. Other authority
+documents are updated at phase boundaries, not at every state change. A commit
+that only syncs status across documents without any implementation change should
+be questioned.
+
+### Rule 5: Repo-side scaffolding requires a live-side target
+Do not build validators, schemas, replay harnesses, or candidate packs for
+a runtime that does not yet exist. Scaffolding is justified only when: (a) the
+runtime it targets is operational or will be within the current work session,
+or (b) the scaffolding is needed to validate a design before implementation.
+Building elaborate dry-run infrastructure to avoid making a decision is
+procrastination, not engineering.

@@ -1,40 +1,31 @@
 # OpenClaw Dev Repo 文档地图
 
-> 更新日期：2026-03-23
+> 更新日期：2026-03-23（文档树重整后）
 
 ---
 
 ## 权威文档 `[authority]`
 
-这些文档是系统事实的唯一权威来源，修改必须谨慎。
+修改必须谨慎。
 
 | 文件 | 描述 |
 |------|------|
 | `docs/host-sop.md` | 宿主机状态记录——运行态事实的权威源 |
 | `docs/design-v3.md` | 架构设计规格 v3.1——实施目标与规格的权威源 |
-| `CLAUDE.md` | AI 协作规则与安全边界 |
-| `workspace-main-template/control/host-ops-api.md` | host-ops broker API 契约（agent-facing 参考） |
+| `CLAUDE.md` | AI 协作规则、安全边界与 anti-stall 规则 |
+| `docs/current-boundary.md` | 当前真实边界——唯一实时状态文件 |
 
-## 边界与导航 `[active]`
+## 导航
 
 | 文件 | 描述 |
 |------|------|
-| `docs/current-boundary.md` | 当前真实边界冻结（1–3 屏速览） |
 | `docs/map.md` | 本文件——文档总地图 |
+| `docs/planning/README.md` | planning 目录索引 |
+| `docs/records/README.md` | records 目录索引 |
 
 ## 活跃规划 `[active]`
 
-| 文件 | 描述 |
-|------|------|
-| `docs/planning/README.md` | planning 目录索引 |
-| `docs/planning/phase3-first-live-pilot-execution-seam-prep-pack-2026-03-23.md` | **当前 direct next 主文档：operator-side / future execution seam prep for first live pilot；`first-live-pilot candidate pack` 已 ready；repo-side 文档同步本身不需要 host-side 快照** |
-| `docs/planning/approved-direct-proxy-execution-block-source-closure-2026-03-22.md` | 前一轮 repo-side source closure；已并入 `2026-03-23` merged prep pack 的 direct-next 收口背景 |
-| `docs/planning/hello-world-image-prerequisite-window-2026-03-21.md` | **hello-world image prerequisite-only window（已完成 / 已收口；不是 implementation completion）** |
-| `docs/planning/docker-prerequisite-establishment-for-phase3-2026-03-19.md` | **当前 active 父切片：Docker prerequisite establishment** |
-| `docs/planning/docker-access-model-feasibility-experiment-for-openclaw-2026.3.13-2026-03-21.md` | **feasibility definition；`hello-world` prerequisite 已于 `2026-03-22` 补齐；当前 remaining blocker 已收缩为 future execution seam / operator input，不得误写成 pre-snapshot released** |
-| `docs/planning/openclaw-upgrade-readiness-2026-03-18.md` | OpenClaw 升级就绪评估（已完成） |
-| `docs/planning/openclaw-2026.3.13-upgrade-slice-design-2026-03-18.md` | 2026.3.13 升级 slice 设计（已完成） |
-| `docs/planning/openclaw-2026.3.13-upgrade-rollback-design-2026-03-18.md` | 2026.3.13 升级 rollback 设计（已完成） |
+当前无活跃 planning 文档。Phase 3 Docker prerequisite 已建立，下一步为重跑 capability probe 并进入 Phase 3 实施。
 
 ## 架构决策记录 `[active]`
 
@@ -44,7 +35,7 @@
 
 ## 冻结规格 `[frozen]`
 
-这些文档是 Phase 2 交付的协议/契约规格，处于冻结状态。
+Phase 2 交付的协议/契约规格，处于冻结状态。
 
 | 文件 | 描述 |
 |------|------|
@@ -56,36 +47,48 @@
 
 ## 证据库 `[evidence]`
 
-证据文件保留在主树中，不做归档。
-
 | 目录 | 描述 |
 |------|------|
-| `docs/records/` | Phase 1B–2 + post-upgrade probe + `2026-03-21` temporary restricted proxy feasibility window 的证据记录，见 `docs/records/README.md` |
+| `docs/records/` | Phase 1B–2 + upgrade + probe 的执行证据记录 |
 | `docs/checklists/` | 操作清单 |
 
-### 证据文件明细
+### 活跃 checklists
 
 | 文件 | 描述 |
 |------|------|
 | `docs/checklists/deploy-candidate-route-c-checklist.md` | Route C deploy 操作清单 |
-| `docs/checklists/temporary-restricted-proxy-feasibility-execution-preflight-2026-03-22.md` | **temporary restricted proxy feasibility execution 的 operator-facing 执行前门禁清单（draft）；当前仍只作为 future operator-facing 草案，不释放 first live pilot 进入 pre-snapshot** |
-| `docs/checklists/temporary-restricted-proxy-feasibility-execution-readonly-evidence-pack-2026-03-22.md` | **temporary restricted proxy feasibility execution 的 operator-facing 一次性只读取证包；当前仍只用于 Gate 0-3 fresh evidence 回收，不释放 execution** |
 | `docs/checklists/openclaw-upgrade-focused-regression-2026.3.13.md` | 2026.3.13 升级 focused regression checklist |
-| `docs/checklists/post-upgrade-capability-probe-matrix-2026.3.13.md` | **升级后 capability probe matrix（对应已执行 probe，不代表当前 active planning）** |
-| `docs/records/README.md` | records 目录索引 |
-| `docs/records/hello-world-image-prerequisite-remediation-micro-window-2026-03-22.md` | **受限 remediation 微窗口执行证据；补齐 `hello-world` prerequisite；不是 proxy execution，也不是 Phase 3 implementation** |
-| `docs/records/post-upgrade-capability-probe-execution-2026-03-19.md` | **P5 FAIL / Phase 3 = NO-GO 执行证据；不是当前 active planning** |
-| `docs/records/temporary-restricted-proxy-feasibility-window-execution-2026-03-21.md` | **temporary restricted proxy feasibility window 执行证据；`HARD_STOP`，唯一原因 = `hello-world image missing`；不是 Phase 3 implementation** |
-| `docs/records/temporary-restricted-proxy-feasibility-execution-hard-stop-exp-docker-access-feasibility-20260322-111033.md` | **temporary restricted proxy feasibility execution 的 `before_proxy_start` hard-stop 证据；当前 blocked-state 的直接锚点之一** |
+| `docs/checklists/post-upgrade-capability-probe-matrix-2026.3.13.md` | 升级后 capability probe matrix |
 
-## 活跃参考 `[active]`
+## Runbook `[active]`
+
+| 文件 | 描述 |
+|------|------|
+| `docs/runbooks/runbook-post-upgrade-capability-probe-2026.3.13.md` | 升级后 capability probe runbook — 下一步使用 |
+
+## 已用 Runbook `[archived]`
+
+| 文件 | 描述 |
+|------|------|
+| `docs/runbooks/runbook-openclaw-upgrade-2026.3.13.md` | 2026.3.13 升级 runbook（已完成） |
+| `docs/runbooks/runbook-first-live-publish.md` | Phase 1B live publish runbook |
+| `docs/runbooks/runbook-phase2-broker-deployment.md` | Phase 2 broker 部署 runbook |
+
+## 执行包 `[archived]`
+
+| 文件 | 描述 |
+|------|------|
+| `docs/execution-packs/execution-pack-first-live-publish.md` | Phase 1B 执行包 |
+| `docs/execution-packs/execution-pack-phase2-broker-deployment.md` | Phase 2 执行包 |
+
+## 参考文档 `[active]`
 
 | 文件 | 描述 |
 |------|------|
 | `docs/when-to-snapshot.md` | 快照时机指南 |
 | `docs/acceptance-tests.md` | 验收测试 |
 | `docs/runtime-allowlist-backup-draft.md` | Phase 6 输入：运行态备份 allowlist 设计 |
-| `.codex/config.toml` | repo-local Codex 配置层（非用户级接入配置） |
+| `.codex/config.toml` | repo-local Codex 配置层（当前主执行者为 Claude Code） |
 
 ## 历史里程碑 `[archived]`
 
@@ -93,56 +96,24 @@
 |------|------|
 | `docs/milestones/phase0-baseline.md` | Phase 0 基线记录 |
 
-## 活跃模板 `[active]`
+## 模板 `[reference]`
 
 | 文件 | 描述 |
 |------|------|
-| `docs/templates/post-upgrade-capability-probe-record-template.md` | **升级后 capability probe record 模板** |
-
-## 已用模板 `[archived]`
-
-| 文件 | 描述 |
-|------|------|
+| `docs/templates/post-upgrade-capability-probe-record-template.md` | capability probe record 模板 |
 | `docs/templates/first-live-publish-record-template.md` | Phase 1B live publish 记录模板 |
 | `docs/templates/phase1b-live-publish-syncback-template.md` | Phase 1B syncback 模板 |
 | `docs/templates/phase2-broker-deployment-record-template.md` | Phase 2 部署记录模板 |
 | `docs/templates/phase2-broker-deployment-syncback-template.md` | Phase 2 syncback 模板 |
 
-## Runbook `[active]`
+## 已归档 `[archived]`
 
-| 文件 | 描述 |
+| 目录 | 描述 |
 |------|------|
-| `docs/runbook-temporary-restricted-proxy-feasibility-execution-next-window-2026-03-22.md` | **[active]** blocked-state 下的 next-window runbook draft；current direct next 已切换为 first live pilot 的 operator-side / future execution seam prep |
-
-## 执行包 `[active]`
-
-| 文件 | 描述 |
-|------|------|
-| `docs/execution-pack-temporary-restricted-proxy-feasibility-artifact-preparation-2026-03-22.md` | **repo-side current-run artifact preparation / alignment precheck execution pack；不是 live-side execution pack** |
-
-## 已用 Runbook 与执行包 `[archived]`
-
-| 文件 | 描述 |
-|------|------|
-| `docs/runbook-openclaw-upgrade-2026.3.13.md` | 2026.3.13 升级 operator runbook（已完成） |
-| `docs/runbook-first-live-publish.md` | Phase 1B 首次 live publish runbook |
-| `docs/execution-pack-first-live-publish.md` | Phase 1B 执行包 |
-| `docs/runbook-phase2-broker-deployment.md` | Phase 2 broker 部署 runbook |
-| `docs/execution-pack-phase2-broker-deployment.md` | Phase 2 执行包 |
-| `docs/runbook-post-upgrade-capability-probe-2026.3.13.md` | 升级后 capability probe operator runbook（对应已执行 probe） |
-
-## 已归档规划 `[archived]`
-
-已完成或已退出当前 active 状态的 planning 文档。
-
-| 文件 | 描述 |
-|------|------|
-| `docs/planning/post-upgrade-capability-probe-2026.3.13-slice-design-2026-03-18.md` | 升级后 capability probe 设计；probe 已执行并在 P5 FAIL 后收口，当前不再是 active slice |
-| `docs/archive/planning/phase2/deploy-candidate-slice-design-2026-03-15.md` | deploy_candidate 切片设计 |
-| `docs/archive/planning/phase2/snapshot-pre-slice-design-2026-03-15.md` | snapshot_pre 切片设计 |
-| `docs/archive/planning/phase2/snapshot-post-slice-design-2026-03-16.md` | snapshot_post 切片设计 |
-| `docs/archive/planning/phase2/rollback-prepare-slice-design-2026-03-16.md` | rollback_prepare 切片设计 |
-| `docs/archive/planning/phase2/gateway-restart-slice-design-2026-03-16.md` | gateway_restart 切片设计 |
-| `docs/archive/planning/phase2/gateway-restart-deferred-dispatch-design-2026-03-16.md` | gateway_restart deferred dispatch 修复 |
-| `docs/archive/planning/phase2/gateway-restart-validation-hardening-2026-03-16.md` | gateway_restart input 强化 |
-| `docs/archive/planning/phase2/vault-sync-slice-design-2026-03-17.md` | vault_sync 切片设计 |
+| `docs/archive/planning/phase2/` | Phase 2 slice 设计（8 个文件） |
+| `docs/archive/planning/phase3-upgrade/` | Phase 3 upgrade/probe 设计（4 个文件） |
+| `docs/archive/planning/phase3-stall/` | Phase 3 stall-period 文档（5 个文件，Mar 19-23 proxy 路线探索产物） |
+| `docs/archive/checklists/` | 已归档 checklists（3 个文件） |
+| `docs/archive/runbooks/` | 已归档 runbooks（1 个文件） |
+| `docs/archive/execution-packs/` | 已归档 execution packs（2 个文件） |
+| `docs/archive/records/phase3-stall/` | Phase 3 stall-period 执行记录（3 个文件） |

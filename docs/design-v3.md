@@ -1,7 +1,7 @@
 # OpenClaw 多 Agent + Claude Code 协作体系设计稿 v3.1
 
 > 初版编写日期：2026-03-07
-> 本次修订日期：2026-03-23（同步 `2026-03-23` merged prep pack；current direct next 已切换为 first live pilot 的 operator-side / future execution seam prep）
+> 本次修订日期：2026-03-23（Docker prerequisite established via docker group；Phase 3 进入准备阶段）
 > 适用宿主机：当前单机 Ubuntu 24.04 LTS / Btrfs / systemd / OpenClaw 2026.3.13 基线
 > 上游输入：`openclaw-host-sop-2026-03-06.md`、`1.md`、`openclaw-design-v2-2026-03-07.md`、本轮 Phase 1A 实际落地结果、Phase 1B 开发仓候选产物
 > 文档定位：**可实施规格稿 + 落地状态稿**，用于后续继续开发、验证、回滚、审计与发布
@@ -20,10 +20,9 @@
 6. **Claude Code CLI 当前只完成角色 A**（`nick` 用户开发工具）。角色 B（容器内工程执行器）属后续阶段；当前并未被 Codex 替代。
 7. **Codex 当前已可接手 repo-side 主执行者角色。** 其适用范围是开发仓 `~/projects/openclaw-dev/` 内的文档、脚本、候选产物与 repo-local 配置工作；这不代表 live-side 执行器发生切换。
 8. **OpenClaw 2026.3.13 升级已完成（2026-03-18）。** live baseline 已从 2026.3.2 切换到 2026.3.13，P0 focused regression 19/19 PASS，rollback 未触发。`2026.3.13` 已在当前宿主机完成 live 验证。升级记录见 `docs/records/openclaw-2026.3.13-upgrade-activation-2026-03-18.md`。
-9. **升级后 capability probe 已在 2026.3.13 上执行，并在 P5 因 Docker prerequisite 缺失而 hard gate FAIL。** 当前 Phase 3 结论是 **NO-GO**；`P2 / P1 / P4 / P3` 为 deferred / not executed。执行记录见 `docs/records/post-upgrade-capability-probe-execution-2026-03-19.md`。
-10. **当前 active parent slice 仍是 `docker-prerequisite-establishment-for-phase3`；current direct next slice 已切换为 first live pilot 的 `operator-side / future execution seam prep`。** `2026-03-21` 的 temporary restricted proxy feasibility window 已在 proxy start 前以 `HARD_STOP` 收口，唯一 hard-stop reason = `hello-world image missing`；`2026-03-22` 的 prerequisite-only remediation 已补齐该 blocker；截至 `2026-03-23`，repo-side 控制面 dry-run、execution-plane scaffold、reviewed task -> handoff pack 与 `first-live-pilot candidate pack` 已 assembled，remaining blocker 仅剩 `future execution seam / operator input`。
-11. **Phase 3 当前仍是 NO-GO；temporary restricted proxy execution 尚未启动。** `proxy not started`、`audit jsonl not created`、`proxy execution not validated`；当前虽已 `GATE0_3=GREEN`、`PREPARED_STATE_PASS=YES`、`READONLY_EVIDENCE_GREEN=YES`，但这只代表 repo-side pack 与 operator-side exact input surface 正在收口，**不等于 pre-snapshot released**，也不等于可进入 `phase3-docker-sandbox-foundation`。repo-side 文档同步本身不需要 host-side 快照；任何未来 live-side 动作仍必须单独遵守 `快照 -> 变更 -> 健康检查 -> post 快照 -> Vault 入库`。
-12. **task-runner / Docker sandbox 仍是后续阶段目标，尚未进入生产执行链。** 除非特别注明“已验证”，否则不得写成当前事实。
+9. **Docker prerequisite 已建立（2026-03-23）。** 方案为 docker group（`sudo usermod -aG docker openclaw`）。`openclaw` 已在 `docker` 组，`docker version` / `docker run hello-world` 均已验证通过。Pre/post snapshot + vault sync 已完成。P5 的原始 blocker（Docker 未安装 + openclaw 无访问权）已全部解决，需重跑 capability probe 以正式确认。
+10. **Phase 3 进入准备阶段。** Docker prerequisite 已建立，下一步为重跑 capability probe、构建 task-runner 镜像、配置 `sandbox.docker`。
+11. **task-runner / Docker sandbox 尚未进入生产执行链。** 除非特别注明”已验证”，否则不得写成当前事实。但 Docker 访问已验证可用，不再是 blocker。
 13. **任何宿主机副作用仍必须坚持“快照 → 变更 → 健康检查 → post 快照 → Vault 入库”的纪律。**
 14. **`/var/lib/openclaw` 已是独立 Btrfs 子卷**，不在 root snapshot 保护范围内。
 
@@ -1034,6 +1033,8 @@ v3.1 规范层只要求：
 - **优先目标**：通过受限且可审计的 Docker 接入方式满足 OpenClaw sandbox；
 - **必须通过专门 capability probe 后才能落地**。
 
+**2026-03-23 选型结论：** 经评估 docker group / socat 透明 proxy / 受限 proxy 三个方案后，采用 docker group 方案。理由：(1) OpenClaw `sandbox.docker` 假定运行用户有权访问 Docker；(2) openclaw 是 nologin system user，攻击面增量有限；(3) 镜像模板库和 multi-agent 并发需要完整 Docker API，受限 proxy 的白名单会膨胀到等效全量访问。安全边界设在容器层（readOnlyRoot / restricted network / non-root user / minimal mounts），而非 socket 访问层。
+
 ### 5.9.3 任务网络
 
 建议网络名：
@@ -1759,12 +1760,12 @@ Scrapling 是 Python 3.10+ 的自适应 Web 抓取框架，需要网络访问和
 
 ## Phase 3：Docker sandbox capability probe 与 task-runner 上线
 
-> **前置条件（2026-03-23 同步）：当前仍不得直接进入 Phase 3 implementation。**
-> `(1) baseline rebase -> (2) OpenClaw 升级到 >= 2026.3.12 -> (3) 升级后 focused regression -> (4) post-upgrade capability probe` 均已完成，其中 `(4)` 已在 `P5 Docker / task-runner prerequisites` 处 hard gate FAIL。
->
-> **当前进度（2026-03-23）：** `2026-03-19` capability probe 已执行，结论为 `P5 FAIL / Phase 3 = NO-GO`。`2026-03-21` 的 temporary restricted proxy feasibility window 在 proxy start 前 `HARD_STOP`，唯一 hard-stop reason = `hello-world image missing`；`2026-03-22` 的 prerequisite-only remediation 已补齐该 blocker，但 `proxy not started`，`audit jsonl not created`，`proxy execution not validated`。随后 blocked-state 已固定为：`RESULT=BLOCKED_BEFORE_HOST_SIDE_CHANGE`、`GATE0_3=GREEN`、`PREPARED_STATE_PASS=YES`、`READONLY_EVIDENCE_GREEN=YES`、`APPROVED_PROXY_EXEC_CMD=NO`；截至 `2026-03-23`，`first-live-pilot candidate pack` 已 ready，remaining blocker 已收缩为 `future execution seam / operator input`。
-> 当前 active parent slice = `docker-prerequisite-establishment-for-phase3`，current direct next slice = first live pilot 的 `operator-side / future execution seam prep`。
-> Gate 0-3 green 不等于可进入 pre-snapshot。repo-side 文档同步本身不需要 host-side 快照；只有在未来单独批准进入 live-side change window 后，才允许进入 `快照 -> 变更 -> 健康检查 -> post 快照 -> Vault 入库`。在此之前，不继续 temporary restricted proxy execution，不进入 live-side pre-snapshot，也不进入 `phase3-docker-sandbox-foundation`。相关记录见 `docs/records/post-upgrade-capability-probe-execution-2026-03-19.md`、`docs/records/temporary-restricted-proxy-feasibility-window-execution-2026-03-21.md`、`docs/records/hello-world-image-prerequisite-remediation-micro-window-2026-03-22.md` 与 `docs/records/temporary-restricted-proxy-feasibility-execution-hard-stop-exp-docker-access-feasibility-20260322-111033.md`。
+> **前置条件状态（2026-03-23 更新）：Docker prerequisite 已建立，Phase 3 进入准备阶段。**
+> `(1) baseline rebase -> (2) OpenClaw 升级到 >= 2026.3.12 -> (3) 升级后 focused regression -> (4) post-upgrade capability probe -> (5) Docker prerequisite establishment`。
+> 其中 (1)-(3) 已完成。(4) 于 2026-03-19 执行，P5 因 Docker prerequisite 缺失而 FAIL，P2/P1/P4/P3 deferred。
+> (5) 于 2026-03-23 完成：采用 docker group 方案（`sudo usermod -aG docker openclaw`），`openclaw` 已在 `docker` 组，`docker version` / `docker run hello-world` 均已验证通过，pre/post snapshot + vault sync 已完成。
+> P5 的原始 blocker 已全部解决。下一步为重跑 capability probe（预期 P5 PASS），然后继续执行 P2/P1/P4/P3，之后进入 Phase 3 实施。
+> Docker 访问模型选型理由：docker group 是 OpenClaw `sandbox.docker` 的原生假定；openclaw 是 nologin system user，攻击面增量有限；镜像模板库和 multi-agent 并发需要完整 Docker API。Mar 19-22 期间探索的 "temporary restricted proxy" 路线已放弃，相关文档已归档至 `docs/archive/planning/phase3-stall/`。
 
 ### 目标
 

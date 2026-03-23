@@ -1,6 +1,11 @@
 # repo-local Codex 配置层。
 # 这里只放项目内共享的最小配置，不放用户级接入信息、凭据或网关地址。
 # 用户级 provider/base URL/project trust 等接入事实属于 ~/.codex/config.toml，不属于 repo 事实源。
+#
+# 执行者状态 (2026-03-23):
+# 当前主执行者已切换为 Claude Code (claude-opus-4-6)。
+# Codex 当前暂不用于 live-side 操作，仅保留 repo-side 文档/脚本辅助能力。
+# 如需 Codex 参与 live-side 工作，须先与 operator 确认并更新本注释。
 model = "gpt-5.4"
 approval_policy = "on-request"
 
