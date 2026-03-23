@@ -2,7 +2,7 @@
 
 > 更新日期：2026-03-23
 > 基线版本：OpenClaw 2026.3.13（2026-03-18 从 2026.3.2 升级完成）
-> 阶段：Phase 2 全部完成 + Docker prerequisite 已建立；Phase 3 进入准备阶段
+> 阶段：Phase 2 全部完成 + Docker prerequisite 已建立 + Capability probe 全部 PASS；**Phase 3 = GO**
 
 ---
 
@@ -18,6 +18,7 @@
 | Phase 2 agent-facing host_ops **8/8** | 完成 | 2026-03-17 |
 | OpenClaw 版本升级 (2026.3.2 → 2026.3.13) | 完成 | 2026-03-18 |
 | Docker prerequisite establishment | 完成 | 2026-03-23 |
+| Capability probe rerun (P5/P2/P1/P4/P3) | 完成 — **全部 PASS** | 2026-03-23 |
 
 ### 已验证的 8 个 host_ops action
 
@@ -67,9 +68,12 @@
 |------|------|
 | Docker Engine | **已安装并运行** — Docker 28.2.2, `docker.service` active, `docker.socket` active |
 | `openclaw` Docker 访问 | **已建立** — `openclaw` 在 `docker` 组，`docker version` / `docker run hello-world` 均已验证通过 |
-| 升级后 capability probe P5 | **根因已解决** — 2026-03-19 因 Docker 未安装而 FAIL；Docker 现已安装且 openclaw 已有访问权；需重跑 probe 以正式确认 PASS |
-| Capability probe P2/P1/P4/P3 | **待执行** — 因 P5 当时 FAIL 而 deferred，现在可以继续执行 |
-| Phase 3 (Docker sandbox / task-runner) | **prerequisite 已建立，进入准备阶段** — Docker 访问已验证，下一步为重跑 capability probe + 构建 task-runner 镜像 + 配置 `sandbox.docker` |
+| 升级后 capability probe P5 | **PASS** — Docker 28.2.2 active, openclaw 在 docker 组, 完整 API 访问 |
+| Capability probe P2 | **Go** — provenance 警告为信息性, plugins.allow 已 pin trust |
+| Capability probe P1 | **Caution** — sessions_yield 不存在于当前版本, 非前置, 不阻塞 |
+| Capability probe P4 | **Go** — 含 sandbox.docker 的 candidate validate passed |
+| Capability probe P3 | **Caution** — 配置结构正确, 待 live spawn 验证 |
+| Phase 3 (Docker sandbox / task-runner) | **GO** — 全部 hard gate 通过, 进入实施阶段 |
 | Phase 4 (容器内 Claude Code 执行链) | 未开始 |
 | Phase 5 (LLM gateway / token 最小化) | 未开始 |
 | Phase 6 (备份扩展 / 长期收口) | 未开始 |
@@ -77,15 +81,16 @@
 
 ## 当前下一步
 
-Phase 3 Docker prerequisite 已建立。当前下一步按优先级排列：
+**Phase 3 = GO。** Capability probe 全部 hard gate 通过（2026-03-23）。当前进入 Phase 3 实施：
 
-1. **重跑 capability probe**：在 2026.3.13 + docker group 基线上重新执行 P5（预期 PASS），然后继续执行之前 deferred 的 P2/P1/P4/P3。Runbook 见 `docs/runbooks/runbook-post-upgrade-capability-probe-2026.3.13.md`，probe matrix 见 `docs/checklists/post-upgrade-capability-probe-matrix-2026.3.13.md`。
+1. **构建 task-runner 基线镜像**：`docker build -t openclaw-task-claude:2026-03-v3 task-runner-container/`
+2. **创建 openclaw-task-net**：`docker network create openclaw-task-net`
+3. **在 openclaw.json 中加入 task-runner agent 配置**（含 sandbox.docker）— 需走完整变更链
+4. **创建 workspace-task-runner**
+5. **验证 sessions_spawn("task-runner")**
+6. **首次真实容器化任务执行**
 
-2. **构建 task-runner 基线镜像**：`task-runner-container/Dockerfile` 已存在。执行 `docker build -t openclaw-task-claude:2026-03-v3 task-runner-container/` 构建基线镜像。
-
-3. **配置 `sandbox.docker`**：在 `openclaw.json` 中添加 task-runner agent 的 sandbox.docker 配置（需 escalation：涉及 `/etc/openclaw/openclaw.json` 变更）。
-
-4. **首次容器化任务执行**：使用已有的 task-runner workspace template 和 handoff pack 进行首次真实容器化任务。
+Probe 记录：`docs/records/post-upgrade-capability-probe-rerun-2026-03-23.md`
 
 ## 当前执行器状态
 

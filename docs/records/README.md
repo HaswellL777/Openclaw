@@ -46,6 +46,7 @@
 |------|------|------|
 | `openclaw-2026.3.13-upgrade-activation-2026-03-18.md` | 2026-03-18 | OpenClaw 2026.3.2 → 2026.3.13 升级，P0 19/19 PASS，rollback 未触发 |
 | `post-upgrade-capability-probe-execution-2026-03-19.md` | 2026-03-19 | capability probe P5 FAIL（Docker 未安装）；P5 根因已于 2026-03-23 解决 |
+| `post-upgrade-capability-probe-rerun-2026-03-23.md` | 2026-03-23 | capability probe rerun 全部 PASS — P5 Go, P2 Go, P1 Caution, P4 Go, P3 Caution; **Phase 3 = GO** |
 
 ## 已归档记录
 
