@@ -97,6 +97,7 @@ assert_case_layout() {
         broker-submission-envelope.json
         broker-review-bundle.json
         dispatch-intent-ledger.json
+        dispatch-adapter-result.json
         artifact-manifest.json
       )
       missing_files=(
@@ -115,6 +116,7 @@ assert_case_layout() {
         operator-approval-envelope.json
         operator-review-bundle.json
         dispatch-intent-ledger.json
+        dispatch-adapter-result.json
         artifact-manifest.json
       )
       missing_files=(
@@ -131,6 +133,7 @@ assert_case_layout() {
         intake-report.json
         routing-decision.json
         dispatch-intent-ledger.json
+        dispatch-adapter-result.json
         artifact-manifest.json
       )
       missing_files=(
@@ -168,6 +171,7 @@ expected_dispatch_status = sys.argv[3]
 
 routing = json.loads((run_dir / "routing-decision.json").read_text(encoding="utf-8"))
 ledger = json.loads((run_dir / "dispatch-intent-ledger.json").read_text(encoding="utf-8"))
+adapter = json.loads((run_dir / "dispatch-adapter-result.json").read_text(encoding="utf-8"))
 manifest = json.loads((run_dir / "artifact-manifest.json").read_text(encoding="utf-8"))
 
 assert routing["decision"] == expected_decision
@@ -178,6 +182,16 @@ assert ledger["dispatch_performed"] is False
 assert ledger["approval_granted"] is False
 assert ledger["runtime_changed"] is False
 assert ledger["operator_command_blocks_present"] is False
+assert adapter["decision"] == expected_decision
+assert adapter["dispatch_status"] == expected_dispatch_status
+assert adapter["adapter_mode"] == "dry_run"
+assert adapter["transport"] == "null_transport"
+assert adapter["recording_mode"] == "record_only"
+assert adapter["dispatch_attempted"] is False
+assert adapter["broker_dispatch_performed"] is False
+assert adapter["approval_granted"] is False
+assert adapter["runtime_changed"] is False
+assert adapter["operator_command_blocks_present"] is False
 assert manifest["route_summary"]["decision"] == expected_decision
 assert manifest["route_summary"]["dispatch_status"] == expected_dispatch_status
 boundary = manifest["boundary_assertions"]

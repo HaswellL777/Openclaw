@@ -29,6 +29,7 @@ CANONICAL_ARTIFACTS = [
     ("broker_review_bundle", "broker-review-bundle.json", "validate-broker-review-bundle"),
     ("operator_review_bundle", "operator-review-bundle.json", "validate-operator-review-bundle"),
     ("dispatch_intent_ledger", "dispatch-intent-ledger.json", "validate-dispatch-intent-ledger"),
+    ("dispatch_adapter_result", "dispatch-adapter-result.json", "validate-dispatch-adapter-result"),
 ]
 
 
@@ -48,6 +49,7 @@ BUILD_MAIN_ROUTING_DECISION = load_module("build-main-routing-decision")
 BUILD_SUBMISSION_ENVELOPES = load_module("build-submission-envelopes")
 BUILD_REVIEW_BUNDLES = load_module("build-review-bundles")
 BUILD_DISPATCH_INTENT_LEDGER = load_module("build-dispatch-intent-ledger")
+RUN_DISPATCH_ADAPTER = load_module("run-dispatch-adapter")
 
 VALIDATORS = {
     script_name: load_module(script_name).validate_document
@@ -61,6 +63,7 @@ VALIDATORS = {
         "validate-broker-review-bundle",
         "validate-operator-review-bundle",
         "validate-dispatch-intent-ledger",
+        "validate-dispatch-adapter-result",
     }
 }
 
@@ -147,6 +150,7 @@ def determine_layout(decision: str) -> tuple[list[str], list[str]]:
         "intake-report.json",
         "routing-decision.json",
         "dispatch-intent-ledger.json",
+        "dispatch-adapter-result.json",
     ]
     if decision == "BROKER_SUBMISSION_CANDIDATE":
         return (
@@ -222,6 +226,7 @@ def build_manifest(
             "submission": 0,
             "review": 0,
             "dispatch_intent": 0,
+            "dispatch_adapter": 0,
         },
         "route_summary": {
             "decision": routing.get("decision"),
@@ -374,6 +379,29 @@ def main(argv: list[str]) -> int:
     )
     rewrite_internal_source_artifacts(run_dir / "dispatch-intent-ledger.json", run_dir)
     validate_artifact(run_dir / "dispatch-intent-ledger.json", "validate-dispatch-intent-ledger")
+
+    run_builder(
+        RUN_DISPATCH_ADAPTER,
+        [
+            "--normalized-request",
+            str(run_dir / "request.normalized.json"),
+            "--intake-report",
+            str(run_dir / "intake-report.json"),
+            "--routing-decision",
+            str(run_dir / "routing-decision.json"),
+            "--dispatch-intent-ledger",
+            str(run_dir / "dispatch-intent-ledger.json"),
+            "--submission-dir",
+            str(run_dir),
+            "--review-dir",
+            str(run_dir),
+            "--output",
+            str(run_dir / "dispatch-adapter-result.json"),
+        ],
+        {0},
+    )
+    rewrite_internal_source_artifacts(run_dir / "dispatch-adapter-result.json", run_dir)
+    validate_artifact(run_dir / "dispatch-adapter-result.json", "validate-dispatch-adapter-result")
 
     manifest = build_manifest(
         run_id=run_id,

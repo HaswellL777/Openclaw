@@ -1,0 +1,120 @@
+{
+  "schema_version": "openclaw.main.dispatch-adapter-result.v1alpha1",
+  "adapter_result_id": "adapter:intake:hcr-20260323-intake-broker-submission-candidate",
+  "adapter_mode": "dry_run",
+  "transport": "null_transport",
+  "recording_mode": "record_only",
+  "ledger_id": "ledger:intake:hcr-20260323-intake-broker-submission-candidate",
+  "routing_decision_id": "route:intake:hcr-20260323-intake-broker-submission-candidate",
+  "intake_id": "intake:hcr-20260323-intake-broker-submission-candidate",
+  "task_id": "task-intake-broker-submission-candidate",
+  "run_id": "run-20260323-intake-broker-submission-candidate",
+  "source_request_id": "hcr-20260323-intake-broker-submission-candidate",
+  "decision": "BROKER_SUBMISSION_CANDIDATE",
+  "submission_target": "broker_submission_envelope",
+  "review_target": "broker",
+  "review_bundle_present": true,
+  "review_bundle_id": "review:broker:intake:hcr-20260323-intake-broker-submission-candidate",
+  "review_bundle_type": "BROKER_REVIEW_BUNDLE",
+  "adapter_status": "broker_candidate_recorded",
+  "dispatch_scope": "readonly",
+  "dispatch_status": "broker_ready",
+  "requires_operator_approval": false,
+  "dispatch_candidate_count": 2,
+  "blocked_reason": "null_transport_record_only",
+  "rationale": "Main preserves the accepted readonly request as a dry-run broker submission candidate without dispatching it.",
+  "source_artifacts": {
+    "normalized_request_path": "request.normalized.json",
+    "intake_report_path": "intake-report.json",
+    "routing_decision_path": "routing-decision.json",
+    "dispatch_intent_ledger_path": "dispatch-intent-ledger.json",
+    "submission_envelope_path": "broker-submission-envelope.json",
+    "review_bundle_path": "broker-review-bundle.json"
+  },
+  "summary_context": {
+    "goal": "Prepare a repo-side broker submission candidate dry-run artifact.",
+    "outcome": "The runner produced a readonly request that should advance to a dry-run broker submission envelope and stop there.",
+    "request_title": "Assemble a broker submission candidate dry-run",
+    "request_scope": "Readonly validation and candidate assembly only, with no broker call and no runtime mutation."
+  },
+  "validation_status": {
+    "normalized_request": "passed",
+    "intake_report": "passed",
+    "routing_decision": "passed",
+    "submission_envelope": "passed",
+    "review_bundle": "passed",
+    "dispatch_intent_ledger": "passed"
+  },
+  "dispatch_intents": [
+    {
+      "sequence": 1,
+      "action": "gateway_health",
+      "justification": "Carry a readonly health check as part of the dry-run broker submission candidate.",
+      "broker_request": {
+        "action": "gateway_health",
+        "request_id": "hcr-20260323-intake-broker-submission-candidate:op1",
+        "task_id": "task-intake-broker-submission-candidate",
+        "requested_by": "main:intake",
+        "inputs": {}
+      }
+    },
+    {
+      "sequence": 2,
+      "action": "rollback_prepare",
+      "justification": "Carry readonly rollback metadata without executing any rollback.",
+      "broker_request": {
+        "action": "rollback_prepare",
+        "request_id": "hcr-20260323-intake-broker-submission-candidate:op2",
+        "task_id": "task-intake-broker-submission-candidate",
+        "requested_by": "main:intake",
+        "inputs": {
+          "target_snapshot": "root-pre-broker-submission-candidate-reference",
+          "reason": "Readonly candidate evidence only"
+        }
+      }
+    }
+  ],
+  "forbidden_actions": [
+    "direct_docker_control",
+    "direct_host_shell",
+    "direct_openclaw_config_edit",
+    "direct_secret_handling",
+    "direct_snapshot_manipulation",
+    "direct_systemd_control",
+    "direct_vault_manipulation",
+    "unstructured_operator_commands",
+    "user_level_gateway_start"
+  ],
+  "boundary_carry_forward": {
+    "repo_side_only": true,
+    "live_side_publish_performed": false,
+    "broker_dispatch_performed": false,
+    "openclaw_runtime_modified": false,
+    "operator_command_blocks_present": false
+  },
+  "dispatch_attempted": false,
+  "broker_dispatch_performed": false,
+  "approval_granted": false,
+  "runtime_changed": false,
+  "operator_command_blocks_present": false,
+  "evidence_refs": [
+    {
+      "id": "design-v3",
+      "kind": "design_doc",
+      "path": "docs/design-v3.md",
+      "description": "Design anchor for routing to a broker submission candidate."
+    },
+    {
+      "id": "current-boundary",
+      "kind": "boundary_doc",
+      "path": "docs/current-boundary.md",
+      "description": "Confirms the candidate remains repo-side and dry-run only."
+    },
+    {
+      "id": "artifact-contract",
+      "kind": "repo_file",
+      "path": "workspace-task-runner-template/control/artifact-contract.md",
+      "description": "Artifact contract requiring declarative host-change intent."
+    }
+  ]
+}

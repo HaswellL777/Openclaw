@@ -15,7 +15,8 @@
     "routing": 0,
     "submission": 0,
     "review": 0,
-    "dispatch_intent": 0
+    "dispatch_intent": 0,
+    "dispatch_adapter": 0
   },
   "route_summary": {
     "decision": "BROKER_SUBMISSION_CANDIDATE",
@@ -37,6 +38,7 @@
       "intake-report.json",
       "routing-decision.json",
       "dispatch-intent-ledger.json",
+      "dispatch-adapter-result.json",
       "broker-submission-envelope.json",
       "broker-review-bundle.json"
     ],
@@ -115,6 +117,14 @@
       "present": true,
       "validator": "scripts/validate-dispatch-intent-ledger.py",
       "sha256": "36db670335626df158570cac4918cae9b5a5d4222ddcf532719fbdea6313c54e"
+    },
+    {
+      "name": "dispatch_adapter_result",
+      "path": "dispatch-adapter-result.json",
+      "required": true,
+      "present": true,
+      "validator": "scripts/validate-dispatch-adapter-result.py",
+      "sha256": "d82c413083efa9133732399f1368eb24989ea2b2830fb996b11036051424d7b9"
     }
   ]
 }

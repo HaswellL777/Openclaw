@@ -15,7 +15,8 @@
     "routing": 0,
     "submission": 0,
     "review": 0,
-    "dispatch_intent": 0
+    "dispatch_intent": 0,
+    "dispatch_adapter": 0
   },
   "route_summary": {
     "decision": "REQUIRES_OPERATOR_APPROVAL",
@@ -37,6 +38,7 @@
       "intake-report.json",
       "routing-decision.json",
       "dispatch-intent-ledger.json",
+      "dispatch-adapter-result.json",
       "operator-approval-envelope.json",
       "operator-review-bundle.json"
     ],
@@ -115,6 +117,14 @@
       "present": true,
       "validator": "scripts/validate-dispatch-intent-ledger.py",
       "sha256": "454a3fd44843c48d813d27720ff9ae1ba35bd04f808fc7f962384b5e1dc988bf"
+    },
+    {
+      "name": "dispatch_adapter_result",
+      "path": "dispatch-adapter-result.json",
+      "required": true,
+      "present": true,
+      "validator": "scripts/validate-dispatch-adapter-result.py",
+      "sha256": "e9afbdb64364ead993a1af7c647089265121f8166fefb37fa8f31373d95fa06c"
     }
   ]
 }

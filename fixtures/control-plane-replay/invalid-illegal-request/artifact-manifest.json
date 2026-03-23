@@ -15,7 +15,8 @@
     "routing": 1,
     "submission": 0,
     "review": 0,
-    "dispatch_intent": 0
+    "dispatch_intent": 0,
+    "dispatch_adapter": 0
   },
   "route_summary": {
     "decision": "LOCAL_REFUSE",
@@ -36,7 +37,8 @@
       "request.normalized.json",
       "intake-report.json",
       "routing-decision.json",
-      "dispatch-intent-ledger.json"
+      "dispatch-intent-ledger.json",
+      "dispatch-adapter-result.json"
     ],
     "forbidden_artifacts": [
       "broker-submission-envelope.json",
@@ -113,6 +115,14 @@
       "present": true,
       "validator": "scripts/validate-dispatch-intent-ledger.py",
       "sha256": "c6e73f05b22bbd87ac51dc525fe607ff77b37ff48dd7d1344cd633984be5849d"
+    },
+    {
+      "name": "dispatch_adapter_result",
+      "path": "dispatch-adapter-result.json",
+      "required": true,
+      "present": true,
+      "validator": "scripts/validate-dispatch-adapter-result.py",
+      "sha256": "4c80885a8a2670ad9c5adc0fd0282a41e965281c7223ea99888d4541519f473e"
     }
   ]
 }

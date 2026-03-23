@@ -1,0 +1,78 @@
+{
+  "schema_version": "openclaw.main.dispatch-adapter-result.v1alpha1",
+  "adapter_result_id": "adapter:intake:hcr-20260322-intake-invalid-boundary",
+  "adapter_mode": "dry_run",
+  "transport": "null_transport",
+  "recording_mode": "record_only",
+  "ledger_id": "ledger:intake:hcr-20260322-intake-invalid-boundary",
+  "routing_decision_id": "route:intake:hcr-20260322-intake-invalid-boundary",
+  "intake_id": "intake:hcr-20260322-intake-invalid-boundary",
+  "task_id": "task-intake-invalid-boundary",
+  "run_id": "run-20260322-intake-invalid-boundary",
+  "source_request_id": "hcr-20260322-intake-invalid-boundary",
+  "decision": "LOCAL_REFUSE",
+  "submission_target": "none",
+  "review_target": "none",
+  "review_bundle_present": false,
+  "review_bundle_id": null,
+  "review_bundle_type": null,
+  "adapter_status": "refusal_recorded",
+  "dispatch_scope": "host_affecting",
+  "dispatch_status": "refused",
+  "requires_operator_approval": false,
+  "dispatch_candidate_count": 0,
+  "blocked_reason": "/home/nick/projects/openclaw-dev/fixtures/task-runner-intake/invalid-illegal-request/host-change-request.json.requested_host_ops: host-affecting requested_host_ops require requires_operator_approval=true",
+  "rationale": "Main keeps the request local because intake or cross-document validation refused it.",
+  "source_artifacts": {
+    "normalized_request_path": "request.normalized.json",
+    "intake_report_path": "intake-report.json",
+    "routing_decision_path": "routing-decision.json",
+    "dispatch_intent_ledger_path": "dispatch-intent-ledger.json"
+  },
+  "summary_context": {
+    "goal": "Exercise intake refusal for an illegal host-affecting request.",
+    "outcome": "The runner emitted a host-affecting request without operator approval, which main-side intake must refuse.",
+    "request_title": "Illegal host-affecting request without operator approval",
+    "request_scope": "Negative validation path only."
+  },
+  "validation_status": {
+    "normalized_request": "passed",
+    "intake_report": "passed",
+    "routing_decision": "passed",
+    "submission_envelope": "not_applicable",
+    "review_bundle": "not_applicable",
+    "dispatch_intent_ledger": "passed"
+  },
+  "dispatch_intents": [],
+  "forbidden_actions": [
+    "direct_docker_control",
+    "direct_host_shell",
+    "direct_openclaw_config_edit",
+    "direct_secret_handling",
+    "direct_snapshot_manipulation",
+    "direct_systemd_control",
+    "direct_vault_manipulation",
+    "unstructured_operator_commands",
+    "user_level_gateway_start"
+  ],
+  "boundary_carry_forward": {
+    "repo_side_only": true,
+    "live_side_publish_performed": false,
+    "broker_dispatch_performed": false,
+    "openclaw_runtime_modified": false,
+    "operator_command_blocks_present": false
+  },
+  "dispatch_attempted": false,
+  "broker_dispatch_performed": false,
+  "approval_granted": false,
+  "runtime_changed": false,
+  "operator_command_blocks_present": false,
+  "evidence_refs": [
+    {
+      "id": "design-v3",
+      "kind": "design_doc",
+      "path": "docs/design-v3.md",
+      "description": "Negative-case design anchor."
+    }
+  ]
+}

@@ -36,6 +36,7 @@ CANONICAL_ARTIFACTS = {
     "broker-review-bundle.json": "validate-broker-review-bundle",
     "operator-review-bundle.json": "validate-operator-review-bundle",
     "dispatch-intent-ledger.json": "validate-dispatch-intent-ledger",
+    "dispatch-adapter-result.json": "validate-dispatch-adapter-result",
 }
 
 
@@ -105,14 +106,14 @@ def validate_source(value: object, errors: list[str], where: str) -> None:
 def validate_builder_exit_codes(value: object, errors: list[str], where: str) -> None:
     if not ensure_type(value, dict, errors, f"{where} must be an object"):
         return
-    reject_extra_keys(value, {"intake", "routing", "submission", "review", "dispatch_intent"}, errors, where)
-    for key in ("intake", "routing", "submission", "review", "dispatch_intent"):
+    reject_extra_keys(value, {"intake", "routing", "submission", "review", "dispatch_intent", "dispatch_adapter"}, errors, where)
+    for key in ("intake", "routing", "submission", "review", "dispatch_intent", "dispatch_adapter"):
         ensure(isinstance(value.get(key), int), errors, f"{where}.{key} must be an integer")
     if isinstance(value.get("intake"), int):
         ensure(value["intake"] in {0, 1}, errors, f"{where}.intake must be 0 or 1")
     if isinstance(value.get("routing"), int):
         ensure(value["routing"] in {0, 1}, errors, f"{where}.routing must be 0 or 1")
-    for key in ("submission", "review", "dispatch_intent"):
+    for key in ("submission", "review", "dispatch_intent", "dispatch_adapter"):
         if isinstance(value.get(key), int):
             ensure(value[key] == 0, errors, f"{where}.{key} must be 0")
 
