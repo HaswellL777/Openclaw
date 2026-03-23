@@ -1,0 +1,244 @@
+{
+  "schema_version": "openclaw.phase3.first-live-pilot.asset-index.v1alpha1",
+  "candidate_id": "first-live-pilot-candidate-20260323-v1",
+  "plane": "execution_plane",
+  "asset_count": 19,
+  "asset_groups": [
+    {
+      "group": "container_scaffold",
+      "category": "container_scaffold",
+      "role": "execution_plane",
+      "asset_count": 5,
+      "paths": [
+        "task-runner-container/Dockerfile",
+        "task-runner-container/bootstrap/bootstrap-claudecode.sh",
+        "task-runner-container/bootstrap/bootstrap-codex.sh",
+        "task-runner-container/bootstrap/prepare-workspace.sh",
+        "task-runner-container/entrypoint.sh"
+      ]
+    },
+    {
+      "group": "workspace_template",
+      "category": "workspace_template",
+      "role": "execution_plane",
+      "asset_count": 5,
+      "paths": [
+        "workspace-task-runner-template/AGENTS.md",
+        "workspace-task-runner-template/TOOLS.md",
+        "workspace-task-runner-template/control/artifact-contract.md",
+        "workspace-task-runner-template/control/runner-policy.md",
+        "workspace-task-runner-template/tasks/.gitkeep"
+      ]
+    },
+    {
+      "group": "contracts_and_checks",
+      "category": "contract",
+      "role": "verification",
+      "asset_count": 5,
+      "paths": [
+        "scripts/check-task-runner-container-spec.sh",
+        "scripts/check-workspace-task-runner-template.sh",
+        "scripts/validate-task-runner-exec-plan.py",
+        "scripts/validate-task-runner-workspace-layout.py",
+        "scripts/lib/task_runner_container_contracts.py"
+      ]
+    },
+    {
+      "group": "exec_plan_fixtures",
+      "category": "fixture",
+      "role": "execution_contract_fixture",
+      "asset_count": 2,
+      "paths": [
+        "fixtures/task-runner-exec-plan/valid-dev-workspace.json",
+        "fixtures/task-runner-exec-plan/valid-readonly-workspace.json"
+      ]
+    },
+    {
+      "group": "workspace_layout_fixtures",
+      "category": "fixture",
+      "role": "execution_contract_fixture",
+      "asset_count": 2,
+      "paths": [
+        "fixtures/task-runner-workspace-layout/valid-dev-workspace.json",
+        "fixtures/task-runner-workspace-layout/valid-readonly-workspace.json"
+      ]
+    }
+  ],
+  "assets": [
+    {
+      "asset_id": "execution_plane:container_scaffold:task-runner-container:Dockerfile",
+      "group": "container_scaffold",
+      "category": "container_scaffold",
+      "role": "execution_plane",
+      "path": "task-runner-container/Dockerfile",
+      "sha256": "2916f1746f05af44b88c0c60c2c6de519aa1280556a755867de6321d2b09b1bc",
+      "bytes": 1230
+    },
+    {
+      "asset_id": "execution_plane:container_scaffold:task-runner-container:bootstrap:bootstrap-claudecode.sh",
+      "group": "container_scaffold",
+      "category": "container_scaffold",
+      "role": "execution_plane",
+      "path": "task-runner-container/bootstrap/bootstrap-claudecode.sh",
+      "sha256": "4d196ba8201846a9e15ac0dc43d95a231f1d6e61bdbf1ae000fde8229f625050",
+      "bytes": 506
+    },
+    {
+      "asset_id": "execution_plane:container_scaffold:task-runner-container:bootstrap:bootstrap-codex.sh",
+      "group": "container_scaffold",
+      "category": "container_scaffold",
+      "role": "execution_plane",
+      "path": "task-runner-container/bootstrap/bootstrap-codex.sh",
+      "sha256": "50c47901354f053c705dc07eb2a88e4a6625665cc8c1aba954f015d714ed8785",
+      "bytes": 491
+    },
+    {
+      "asset_id": "execution_plane:container_scaffold:task-runner-container:bootstrap:prepare-workspace.sh",
+      "group": "container_scaffold",
+      "category": "container_scaffold",
+      "role": "execution_plane",
+      "path": "task-runner-container/bootstrap/prepare-workspace.sh",
+      "sha256": "ca7a84c8f910d97ed69d171477df3df3edc905d60fd6e6e4e86f37db2f2c4b79",
+      "bytes": 1216
+    },
+    {
+      "asset_id": "execution_plane:container_scaffold:task-runner-container:entrypoint.sh",
+      "group": "container_scaffold",
+      "category": "container_scaffold",
+      "role": "execution_plane",
+      "path": "task-runner-container/entrypoint.sh",
+      "sha256": "5fd6bfb6a9fe0e3ad22c7b9de96b93bf821522bdaab1dd446e8c7aa04897ebd7",
+      "bytes": 607
+    },
+    {
+      "asset_id": "execution_plane:workspace_template:workspace-task-runner-template:AGENTS.md",
+      "group": "workspace_template",
+      "category": "workspace_template",
+      "role": "execution_plane",
+      "path": "workspace-task-runner-template/AGENTS.md",
+      "sha256": "76f85325534dd681980e2820b8f1312c7a54f031d3a264831956cae0e52101f7",
+      "bytes": 2208
+    },
+    {
+      "asset_id": "execution_plane:workspace_template:workspace-task-runner-template:TOOLS.md",
+      "group": "workspace_template",
+      "category": "workspace_template",
+      "role": "execution_plane",
+      "path": "workspace-task-runner-template/TOOLS.md",
+      "sha256": "a5fa5c21a95dea15f5b3d6921c006ef25de743fb4bbc75ab54ca2e71de5d707a",
+      "bytes": 1838
+    },
+    {
+      "asset_id": "execution_plane:workspace_template:workspace-task-runner-template:control:artifact-contract.md",
+      "group": "workspace_template",
+      "category": "workspace_template",
+      "role": "execution_plane",
+      "path": "workspace-task-runner-template/control/artifact-contract.md",
+      "sha256": "6d455ccc5a96cdd47446dfee43b22616220c7f91c2ed55b07e672ee805e55bf4",
+      "bytes": 2157
+    },
+    {
+      "asset_id": "execution_plane:workspace_template:workspace-task-runner-template:control:runner-policy.md",
+      "group": "workspace_template",
+      "category": "workspace_template",
+      "role": "execution_plane",
+      "path": "workspace-task-runner-template/control/runner-policy.md",
+      "sha256": "e4a3ddb873be2f96b0b2c56599b833afcbf3331990df68b8ea145495e98920ac",
+      "bytes": 1870
+    },
+    {
+      "asset_id": "execution_plane:workspace_template:workspace-task-runner-template:tasks:.gitkeep",
+      "group": "workspace_template",
+      "category": "workspace_template",
+      "role": "execution_plane",
+      "path": "workspace-task-runner-template/tasks/.gitkeep",
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "bytes": 1
+    },
+    {
+      "asset_id": "execution_plane:contracts_and_checks:scripts:check-task-runner-container-spec.sh",
+      "group": "contracts_and_checks",
+      "category": "contract",
+      "role": "verification",
+      "path": "scripts/check-task-runner-container-spec.sh",
+      "sha256": "e7c62a582e12ac5495dd33a6fe12deb418e15976f41eedb7bf47384a8bbfcf87",
+      "bytes": 3656
+    },
+    {
+      "asset_id": "execution_plane:contracts_and_checks:scripts:check-workspace-task-runner-template.sh",
+      "group": "contracts_and_checks",
+      "category": "contract",
+      "role": "verification",
+      "path": "scripts/check-workspace-task-runner-template.sh",
+      "sha256": "e5400c2675f6e039a28423aad7ec324684a34ec3a98cdf0b46207a8801c75314",
+      "bytes": 4257
+    },
+    {
+      "asset_id": "execution_plane:contracts_and_checks:scripts:validate-task-runner-exec-plan.py",
+      "group": "contracts_and_checks",
+      "category": "contract",
+      "role": "verification",
+      "path": "scripts/validate-task-runner-exec-plan.py",
+      "sha256": "0db2935b494bf834bcdb554bad91d3c9f03db1d3ac51e99a0e25133257fcb297",
+      "bytes": 14992
+    },
+    {
+      "asset_id": "execution_plane:contracts_and_checks:scripts:validate-task-runner-workspace-layout.py",
+      "group": "contracts_and_checks",
+      "category": "contract",
+      "role": "verification",
+      "path": "scripts/validate-task-runner-workspace-layout.py",
+      "sha256": "b8d374ba9bbef5a3bfda220c86208edfb3e73ef03005c64dddef83d7dcefed82",
+      "bytes": 10557
+    },
+    {
+      "asset_id": "execution_plane:contracts_and_checks:scripts:lib:task_runner_container_contracts.py",
+      "group": "contracts_and_checks",
+      "category": "contract",
+      "role": "verification",
+      "path": "scripts/lib/task_runner_container_contracts.py",
+      "sha256": "bcaed83efa28ccd3344784e3c3cdf138e042ecda28bd93cd55108050dd00ace6",
+      "bytes": 4542
+    },
+    {
+      "asset_id": "execution_plane:exec_plan_fixtures:fixtures:task-runner-exec-plan:valid-dev-workspace.json",
+      "group": "exec_plan_fixtures",
+      "category": "fixture",
+      "role": "execution_contract_fixture",
+      "path": "fixtures/task-runner-exec-plan/valid-dev-workspace.json",
+      "sha256": "d2a91d78226f3053cdd3ff7d1c39c4ecb8fac5bd95e4b1246e454c48ea66f084",
+      "bytes": 3256
+    },
+    {
+      "asset_id": "execution_plane:exec_plan_fixtures:fixtures:task-runner-exec-plan:valid-readonly-workspace.json",
+      "group": "exec_plan_fixtures",
+      "category": "fixture",
+      "role": "execution_contract_fixture",
+      "path": "fixtures/task-runner-exec-plan/valid-readonly-workspace.json",
+      "sha256": "ba70abed0fce7fed8bc0635b26068914097c6891e6102b7bbfec6a1033c11cbb",
+      "bytes": 3059
+    },
+    {
+      "asset_id": "execution_plane:workspace_layout_fixtures:fixtures:task-runner-workspace-layout:valid-dev-workspace.json",
+      "group": "workspace_layout_fixtures",
+      "category": "fixture",
+      "role": "execution_contract_fixture",
+      "path": "fixtures/task-runner-workspace-layout/valid-dev-workspace.json",
+      "sha256": "53254c12da32b1ad197db04a6191b7dc3045c15d3c2b83cbec9d8dd7b98fd399",
+      "bytes": 1714
+    },
+    {
+      "asset_id": "execution_plane:workspace_layout_fixtures:fixtures:task-runner-workspace-layout:valid-readonly-workspace.json",
+      "group": "workspace_layout_fixtures",
+      "category": "fixture",
+      "role": "execution_contract_fixture",
+      "path": "fixtures/task-runner-workspace-layout/valid-readonly-workspace.json",
+      "sha256": "162ce73eae6305497d4d9280a36324db7df94142187ff1b79f5486b936747b6d",
+      "bytes": 1719
+    }
+  ],
+  "components": [
+    "task-runner-container",
+    "workspace-task-runner-template"
+  ]
+}

@@ -1,0 +1,440 @@
+{
+  "schema_version": "openclaw.phase3.first-live-pilot.asset-index.v1alpha1",
+  "candidate_id": "first-live-pilot-candidate-20260323-v1",
+  "plane": "handoff_pack",
+  "asset_count": 38,
+  "asset_groups": [
+    {
+      "group": "handoff_scripts",
+      "category": "script",
+      "role": "builder",
+      "asset_count": 5,
+      "paths": [
+        "scripts/build-task-runner-handoff-pack.py",
+        "scripts/validate-task-runner-handoff-manifest.py",
+        "scripts/check-task-runner-handoff-pack.sh",
+        "scripts/lib/task_runner_handoff_contracts.py",
+        "tests/test_task_runner_handoff_pack.sh"
+      ]
+    },
+    {
+      "group": "handoff_fixture_valid_readonly",
+      "category": "fixture",
+      "role": "handoff_fixture",
+      "asset_count": 16,
+      "paths": [
+        "fixtures/task-runner-handoff-pack/valid-readonly/tasks/task-intake-readonly/exec-plan.json",
+        "fixtures/task-runner-handoff-pack/valid-readonly/tasks/task-intake-readonly/handoff-manifest.json",
+        "fixtures/task-runner-handoff-pack/valid-readonly/tasks/task-intake-readonly/inputs/context.json",
+        "fixtures/task-runner-handoff-pack/valid-readonly/tasks/task-intake-readonly/inputs/control-plane/broker-review-bundle.json",
+        "fixtures/task-runner-handoff-pack/valid-readonly/tasks/task-intake-readonly/inputs/control-plane/broker-submission-envelope.json",
+        "fixtures/task-runner-handoff-pack/valid-readonly/tasks/task-intake-readonly/inputs/control-plane/intake-report.json",
+        "fixtures/task-runner-handoff-pack/valid-readonly/tasks/task-intake-readonly/inputs/control-plane/request.normalized.json",
+        "fixtures/task-runner-handoff-pack/valid-readonly/tasks/task-intake-readonly/inputs/control-plane/routing-decision.json",
+        "fixtures/task-runner-handoff-pack/valid-readonly/tasks/task-intake-readonly/inputs/control-plane/task-runner-summary.json",
+        "fixtures/task-runner-handoff-pack/valid-readonly/tasks/task-intake-readonly/inputs/request.md",
+        "fixtures/task-runner-handoff-pack/valid-readonly/tasks/task-intake-readonly/outputs/.gitkeep",
+        "fixtures/task-runner-handoff-pack/valid-readonly/tasks/task-intake-readonly/outputs/export/.gitkeep",
+        "fixtures/task-runner-handoff-pack/valid-readonly/tasks/task-intake-readonly/repo/schemas/broker-ready-request.schema.json",
+        "fixtures/task-runner-handoff-pack/valid-readonly/tasks/task-intake-readonly/repo/schemas/task-runner-intake-report.schema.json",
+        "fixtures/task-runner-handoff-pack/valid-readonly/tasks/task-intake-readonly/repo/scripts/build-broker-ready-request.py",
+        "fixtures/task-runner-handoff-pack/valid-readonly/tasks/task-intake-readonly/workspace-layout.json"
+      ]
+    },
+    {
+      "group": "handoff_fixture_valid_requires_approval",
+      "category": "fixture",
+      "role": "handoff_fixture",
+      "asset_count": 17,
+      "paths": [
+        "fixtures/task-runner-handoff-pack/valid-requires-approval/tasks/task-intake-host-affecting/exec-plan.json",
+        "fixtures/task-runner-handoff-pack/valid-requires-approval/tasks/task-intake-host-affecting/handoff-manifest.json",
+        "fixtures/task-runner-handoff-pack/valid-requires-approval/tasks/task-intake-host-affecting/inputs/context.json",
+        "fixtures/task-runner-handoff-pack/valid-requires-approval/tasks/task-intake-host-affecting/inputs/control-plane/intake-report.json",
+        "fixtures/task-runner-handoff-pack/valid-requires-approval/tasks/task-intake-host-affecting/inputs/control-plane/operator-approval-envelope.json",
+        "fixtures/task-runner-handoff-pack/valid-requires-approval/tasks/task-intake-host-affecting/inputs/control-plane/operator-review-bundle.json",
+        "fixtures/task-runner-handoff-pack/valid-requires-approval/tasks/task-intake-host-affecting/inputs/control-plane/request.normalized.json",
+        "fixtures/task-runner-handoff-pack/valid-requires-approval/tasks/task-intake-host-affecting/inputs/control-plane/routing-decision.json",
+        "fixtures/task-runner-handoff-pack/valid-requires-approval/tasks/task-intake-host-affecting/inputs/control-plane/task-runner-summary.json",
+        "fixtures/task-runner-handoff-pack/valid-requires-approval/tasks/task-intake-host-affecting/inputs/request.md",
+        "fixtures/task-runner-handoff-pack/valid-requires-approval/tasks/task-intake-host-affecting/outputs/.gitkeep",
+        "fixtures/task-runner-handoff-pack/valid-requires-approval/tasks/task-intake-host-affecting/outputs/export/.gitkeep",
+        "fixtures/task-runner-handoff-pack/valid-requires-approval/tasks/task-intake-host-affecting/repo/schemas/broker-ready-request.schema.json",
+        "fixtures/task-runner-handoff-pack/valid-requires-approval/tasks/task-intake-host-affecting/repo/schemas/task-runner-intake-report.schema.json",
+        "fixtures/task-runner-handoff-pack/valid-requires-approval/tasks/task-intake-host-affecting/repo/scripts/build-broker-ready-request.py",
+        "fixtures/task-runner-handoff-pack/valid-requires-approval/tasks/task-intake-host-affecting/repo/scripts/check-task-runner-intake-flow.sh",
+        "fixtures/task-runner-handoff-pack/valid-requires-approval/tasks/task-intake-host-affecting/workspace-layout.json"
+      ]
+    }
+  ],
+  "assets": [
+    {
+      "asset_id": "handoff_pack:handoff_scripts:scripts:build-task-runner-handoff-pack.py",
+      "group": "handoff_scripts",
+      "category": "script",
+      "role": "builder",
+      "path": "scripts/build-task-runner-handoff-pack.py",
+      "sha256": "1d2dd8f51bb1c341218ecaf4033d6f215348e0f3a2787a927ed74350043fc23b",
+      "bytes": 23137
+    },
+    {
+      "asset_id": "handoff_pack:handoff_scripts:scripts:validate-task-runner-handoff-manifest.py",
+      "group": "handoff_scripts",
+      "category": "script",
+      "role": "builder",
+      "path": "scripts/validate-task-runner-handoff-manifest.py",
+      "sha256": "6f7666851bf99c054f8a4f3d0261dc870fbf2ab3a0a138e3b93f9053faef8749",
+      "bytes": 24717
+    },
+    {
+      "asset_id": "handoff_pack:handoff_scripts:scripts:check-task-runner-handoff-pack.sh",
+      "group": "handoff_scripts",
+      "category": "script",
+      "role": "builder",
+      "path": "scripts/check-task-runner-handoff-pack.sh",
+      "sha256": "87a72ce0d9659095ab51f08d7db36055d0153613138235d708cc5af93a7a6aa2",
+      "bytes": 1939
+    },
+    {
+      "asset_id": "handoff_pack:handoff_scripts:scripts:lib:task_runner_handoff_contracts.py",
+      "group": "handoff_scripts",
+      "category": "script",
+      "role": "builder",
+      "path": "scripts/lib/task_runner_handoff_contracts.py",
+      "sha256": "bb66cd9056ea5d6415761200d126c853afa5d37421af9053129b15ee136c5246",
+      "bytes": 4796
+    },
+    {
+      "asset_id": "handoff_pack:handoff_scripts:tests:test_task_runner_handoff_pack.sh",
+      "group": "handoff_scripts",
+      "category": "script",
+      "role": "builder",
+      "path": "tests/test_task_runner_handoff_pack.sh",
+      "sha256": "c6e431e0d3d99bb2924a80ea3bec029ce84de4f5dd1c6372bd2e33c3d1ea8e51",
+      "bytes": 146
+    },
+    {
+      "asset_id": "handoff_pack:handoff_fixture_valid_readonly:fixtures:task-runner-handoff-pack:valid-readonly:tasks:task-intake-readonly:exec-plan.json",
+      "group": "handoff_fixture_valid_readonly",
+      "category": "fixture",
+      "role": "handoff_fixture",
+      "path": "fixtures/task-runner-handoff-pack/valid-readonly/tasks/task-intake-readonly/exec-plan.json",
+      "sha256": "333b5ac286ef32aa6e9f04f528c2d8fac5a74c6d7b0eb36f9ee8c9d36f17a4b6",
+      "bytes": 3211
+    },
+    {
+      "asset_id": "handoff_pack:handoff_fixture_valid_readonly:fixtures:task-runner-handoff-pack:valid-readonly:tasks:task-intake-readonly:handoff-manifest.json",
+      "group": "handoff_fixture_valid_readonly",
+      "category": "fixture",
+      "role": "handoff_fixture",
+      "path": "fixtures/task-runner-handoff-pack/valid-readonly/tasks/task-intake-readonly/handoff-manifest.json",
+      "sha256": "a37d5b16f2bc256d27bc871486b093ba527f86d51c4f671d506f5dbcc3ca9da0",
+      "bytes": 3743
+    },
+    {
+      "asset_id": "handoff_pack:handoff_fixture_valid_readonly:fixtures:task-runner-handoff-pack:valid-readonly:tasks:task-intake-readonly:inputs:context.json",
+      "group": "handoff_fixture_valid_readonly",
+      "category": "fixture",
+      "role": "handoff_fixture",
+      "path": "fixtures/task-runner-handoff-pack/valid-readonly/tasks/task-intake-readonly/inputs/context.json",
+      "sha256": "24adc22e4307bd2bd33c430d70e13de77b16f06b24ab2c16971117bda5b9946d",
+      "bytes": 4170
+    },
+    {
+      "asset_id": "handoff_pack:handoff_fixture_valid_readonly:fixtures:task-runner-handoff-pack:valid-readonly:tasks:task-intake-readonly:inputs:control-plane:broker-review-bundle.json",
+      "group": "handoff_fixture_valid_readonly",
+      "category": "fixture",
+      "role": "handoff_fixture",
+      "path": "fixtures/task-runner-handoff-pack/valid-readonly/tasks/task-intake-readonly/inputs/control-plane/broker-review-bundle.json",
+      "sha256": "16444f719df2e60c978a3ada573f0ab3d47c3af4644a487a64750a8f4a8a47ac",
+      "bytes": 5074
+    },
+    {
+      "asset_id": "handoff_pack:handoff_fixture_valid_readonly:fixtures:task-runner-handoff-pack:valid-readonly:tasks:task-intake-readonly:inputs:control-plane:broker-submission-envelope.json",
+      "group": "handoff_fixture_valid_readonly",
+      "category": "fixture",
+      "role": "handoff_fixture",
+      "path": "fixtures/task-runner-handoff-pack/valid-readonly/tasks/task-intake-readonly/inputs/control-plane/broker-submission-envelope.json",
+      "sha256": "0e16b75aa143b16d6ab0b79934b71f22c20425a9c72773330714f59dbc2ccf52",
+      "bytes": 4392
+    },
+    {
+      "asset_id": "handoff_pack:handoff_fixture_valid_readonly:fixtures:task-runner-handoff-pack:valid-readonly:tasks:task-intake-readonly:inputs:control-plane:intake-report.json",
+      "group": "handoff_fixture_valid_readonly",
+      "category": "fixture",
+      "role": "handoff_fixture",
+      "path": "fixtures/task-runner-handoff-pack/valid-readonly/tasks/task-intake-readonly/inputs/control-plane/intake-report.json",
+      "sha256": "625c1ddb0dc3b2d68b135df29942643a4e958876406b2660b1f60e6a0821d492",
+      "bytes": 2298
+    },
+    {
+      "asset_id": "handoff_pack:handoff_fixture_valid_readonly:fixtures:task-runner-handoff-pack:valid-readonly:tasks:task-intake-readonly:inputs:control-plane:request.normalized.json",
+      "group": "handoff_fixture_valid_readonly",
+      "category": "fixture",
+      "role": "handoff_fixture",
+      "path": "fixtures/task-runner-handoff-pack/valid-readonly/tasks/task-intake-readonly/inputs/control-plane/request.normalized.json",
+      "sha256": "b80f9db376be932fd2b253232f3f85869c0f405dfc7711ba04482ec6a20ba615",
+      "bytes": 4247
+    },
+    {
+      "asset_id": "handoff_pack:handoff_fixture_valid_readonly:fixtures:task-runner-handoff-pack:valid-readonly:tasks:task-intake-readonly:inputs:control-plane:routing-decision.json",
+      "group": "handoff_fixture_valid_readonly",
+      "category": "fixture",
+      "role": "handoff_fixture",
+      "path": "fixtures/task-runner-handoff-pack/valid-readonly/tasks/task-intake-readonly/inputs/control-plane/routing-decision.json",
+      "sha256": "5f2600c3c1bb7e8e94e97c6cc6668cc2f811243587553dd0b77bf506aacf7694",
+      "bytes": 2887
+    },
+    {
+      "asset_id": "handoff_pack:handoff_fixture_valid_readonly:fixtures:task-runner-handoff-pack:valid-readonly:tasks:task-intake-readonly:inputs:control-plane:task-runner-summary.json",
+      "group": "handoff_fixture_valid_readonly",
+      "category": "fixture",
+      "role": "handoff_fixture",
+      "path": "fixtures/task-runner-handoff-pack/valid-readonly/tasks/task-intake-readonly/inputs/control-plane/task-runner-summary.json",
+      "sha256": "0423b6b211b21f6ec8ee2ef42cb402ac4b6b367b3ec09b2d0e83458d515db454",
+      "bytes": 2339
+    },
+    {
+      "asset_id": "handoff_pack:handoff_fixture_valid_readonly:fixtures:task-runner-handoff-pack:valid-readonly:tasks:task-intake-readonly:inputs:request.md",
+      "group": "handoff_fixture_valid_readonly",
+      "category": "fixture",
+      "role": "handoff_fixture",
+      "path": "fixtures/task-runner-handoff-pack/valid-readonly/tasks/task-intake-readonly/inputs/request.md",
+      "sha256": "6f93ab1ee2662a04eb45b010041f1ab1b13fedacfa879ef4dfd9f0038dbac61a",
+      "bytes": 1008
+    },
+    {
+      "asset_id": "handoff_pack:handoff_fixture_valid_readonly:fixtures:task-runner-handoff-pack:valid-readonly:tasks:task-intake-readonly:outputs:.gitkeep",
+      "group": "handoff_fixture_valid_readonly",
+      "category": "fixture",
+      "role": "handoff_fixture",
+      "path": "fixtures/task-runner-handoff-pack/valid-readonly/tasks/task-intake-readonly/outputs/.gitkeep",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "asset_id": "handoff_pack:handoff_fixture_valid_readonly:fixtures:task-runner-handoff-pack:valid-readonly:tasks:task-intake-readonly:outputs:export:.gitkeep",
+      "group": "handoff_fixture_valid_readonly",
+      "category": "fixture",
+      "role": "handoff_fixture",
+      "path": "fixtures/task-runner-handoff-pack/valid-readonly/tasks/task-intake-readonly/outputs/export/.gitkeep",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "asset_id": "handoff_pack:handoff_fixture_valid_readonly:fixtures:task-runner-handoff-pack:valid-readonly:tasks:task-intake-readonly:repo:schemas:broker-ready-request.schema.json",
+      "group": "handoff_fixture_valid_readonly",
+      "category": "fixture",
+      "role": "handoff_fixture",
+      "path": "fixtures/task-runner-handoff-pack/valid-readonly/tasks/task-intake-readonly/repo/schemas/broker-ready-request.schema.json",
+      "sha256": "060fba8416a1236ad15aee4194ba0456276a38263314144d49f4a9ff6a1bbcc5",
+      "bytes": 8654
+    },
+    {
+      "asset_id": "handoff_pack:handoff_fixture_valid_readonly:fixtures:task-runner-handoff-pack:valid-readonly:tasks:task-intake-readonly:repo:schemas:task-runner-intake-report.schema.json",
+      "group": "handoff_fixture_valid_readonly",
+      "category": "fixture",
+      "role": "handoff_fixture",
+      "path": "fixtures/task-runner-handoff-pack/valid-readonly/tasks/task-intake-readonly/repo/schemas/task-runner-intake-report.schema.json",
+      "sha256": "8f500c36ec038103d19440a728e8cbf003a657cf1464ba88e97926dbbc8e80e2",
+      "bytes": 6048
+    },
+    {
+      "asset_id": "handoff_pack:handoff_fixture_valid_readonly:fixtures:task-runner-handoff-pack:valid-readonly:tasks:task-intake-readonly:repo:scripts:build-broker-ready-request.py",
+      "group": "handoff_fixture_valid_readonly",
+      "category": "fixture",
+      "role": "handoff_fixture",
+      "path": "fixtures/task-runner-handoff-pack/valid-readonly/tasks/task-intake-readonly/repo/scripts/build-broker-ready-request.py",
+      "sha256": "726fa3f5e3bfdcb3bcdbd0e6679ac6dd2f6434c770a6c9bff9ce2a2383c92337",
+      "bytes": 11298
+    },
+    {
+      "asset_id": "handoff_pack:handoff_fixture_valid_readonly:fixtures:task-runner-handoff-pack:valid-readonly:tasks:task-intake-readonly:workspace-layout.json",
+      "group": "handoff_fixture_valid_readonly",
+      "category": "fixture",
+      "role": "handoff_fixture",
+      "path": "fixtures/task-runner-handoff-pack/valid-readonly/tasks/task-intake-readonly/workspace-layout.json",
+      "sha256": "fda96e18296829a6cecae6fba4be100e5fdfbc4672a9131c797c99ae2ff25d8e",
+      "bytes": 1684
+    },
+    {
+      "asset_id": "handoff_pack:handoff_fixture_valid_requires_approval:fixtures:task-runner-handoff-pack:valid-requires-approval:tasks:task-intake-host-affecting:exec-plan.json",
+      "group": "handoff_fixture_valid_requires_approval",
+      "category": "fixture",
+      "role": "handoff_fixture",
+      "path": "fixtures/task-runner-handoff-pack/valid-requires-approval/tasks/task-intake-host-affecting/exec-plan.json",
+      "sha256": "a8a586c4a6d249947b3efb00e57dd155dd44aecd508c0ab872c7c0cef3654c89",
+      "bytes": 3226
+    },
+    {
+      "asset_id": "handoff_pack:handoff_fixture_valid_requires_approval:fixtures:task-runner-handoff-pack:valid-requires-approval:tasks:task-intake-host-affecting:handoff-manifest.json",
+      "group": "handoff_fixture_valid_requires_approval",
+      "category": "fixture",
+      "role": "handoff_fixture",
+      "path": "fixtures/task-runner-handoff-pack/valid-requires-approval/tasks/task-intake-host-affecting/handoff-manifest.json",
+      "sha256": "11feb663163f82ad7d9071c78215e2bff4373708286c54a4c68f0c626b2f7dc4",
+      "bytes": 3999
+    },
+    {
+      "asset_id": "handoff_pack:handoff_fixture_valid_requires_approval:fixtures:task-runner-handoff-pack:valid-requires-approval:tasks:task-intake-host-affecting:inputs:context.json",
+      "group": "handoff_fixture_valid_requires_approval",
+      "category": "fixture",
+      "role": "handoff_fixture",
+      "path": "fixtures/task-runner-handoff-pack/valid-requires-approval/tasks/task-intake-host-affecting/inputs/context.json",
+      "sha256": "6015637f52fa4b7390b502cfb9748e5d4fe60c7999569612acb7ddf89d51cdfc",
+      "bytes": 6156
+    },
+    {
+      "asset_id": "handoff_pack:handoff_fixture_valid_requires_approval:fixtures:task-runner-handoff-pack:valid-requires-approval:tasks:task-intake-host-affecting:inputs:control-plane:intake-report.json",
+      "group": "handoff_fixture_valid_requires_approval",
+      "category": "fixture",
+      "role": "handoff_fixture",
+      "path": "fixtures/task-runner-handoff-pack/valid-requires-approval/tasks/task-intake-host-affecting/inputs/control-plane/intake-report.json",
+      "sha256": "517ebb96d5136df402b9e768340cc18c13793fb817f15e364768b17b9eec0e04",
+      "bytes": 2316
+    },
+    {
+      "asset_id": "handoff_pack:handoff_fixture_valid_requires_approval:fixtures:task-runner-handoff-pack:valid-requires-approval:tasks:task-intake-host-affecting:inputs:control-plane:operator-approval-envelope.json",
+      "group": "handoff_fixture_valid_requires_approval",
+      "category": "fixture",
+      "role": "handoff_fixture",
+      "path": "fixtures/task-runner-handoff-pack/valid-requires-approval/tasks/task-intake-host-affecting/inputs/control-plane/operator-approval-envelope.json",
+      "sha256": "d300f18a40b9fa103471f0f4047bae8b189794a96bc4b7d89293822f6b1b3604",
+      "bytes": 6269
+    },
+    {
+      "asset_id": "handoff_pack:handoff_fixture_valid_requires_approval:fixtures:task-runner-handoff-pack:valid-requires-approval:tasks:task-intake-host-affecting:inputs:control-plane:operator-review-bundle.json",
+      "group": "handoff_fixture_valid_requires_approval",
+      "category": "fixture",
+      "role": "handoff_fixture",
+      "path": "fixtures/task-runner-handoff-pack/valid-requires-approval/tasks/task-intake-host-affecting/inputs/control-plane/operator-review-bundle.json",
+      "sha256": "e5b510f8a4ca9a83727aa50a156875e0f455ec5491b3ccc64470080adf388199",
+      "bytes": 7085
+    },
+    {
+      "asset_id": "handoff_pack:handoff_fixture_valid_requires_approval:fixtures:task-runner-handoff-pack:valid-requires-approval:tasks:task-intake-host-affecting:inputs:control-plane:request.normalized.json",
+      "group": "handoff_fixture_valid_requires_approval",
+      "category": "fixture",
+      "role": "handoff_fixture",
+      "path": "fixtures/task-runner-handoff-pack/valid-requires-approval/tasks/task-intake-host-affecting/inputs/control-plane/request.normalized.json",
+      "sha256": "86bfb44cc4b38b677d8096c20b9ccb6fd60b6c59770f63eed92fa49f5f9ad173",
+      "bytes": 6033
+    },
+    {
+      "asset_id": "handoff_pack:handoff_fixture_valid_requires_approval:fixtures:task-runner-handoff-pack:valid-requires-approval:tasks:task-intake-host-affecting:inputs:control-plane:routing-decision.json",
+      "group": "handoff_fixture_valid_requires_approval",
+      "category": "fixture",
+      "role": "handoff_fixture",
+      "path": "fixtures/task-runner-handoff-pack/valid-requires-approval/tasks/task-intake-host-affecting/inputs/control-plane/routing-decision.json",
+      "sha256": "932dfde0377977d0e5dc93172fc91b2d617bff8d212dea5025befb082950ba8c",
+      "bytes": 2885
+    },
+    {
+      "asset_id": "handoff_pack:handoff_fixture_valid_requires_approval:fixtures:task-runner-handoff-pack:valid-requires-approval:tasks:task-intake-host-affecting:inputs:control-plane:task-runner-summary.json",
+      "group": "handoff_fixture_valid_requires_approval",
+      "category": "fixture",
+      "role": "handoff_fixture",
+      "path": "fixtures/task-runner-handoff-pack/valid-requires-approval/tasks/task-intake-host-affecting/inputs/control-plane/task-runner-summary.json",
+      "sha256": "160c63c342c3f3c0673c3f5b4c49dcf9ce9f2989c1fd96effb6d56e2c85a8ff1",
+      "bytes": 2502
+    },
+    {
+      "asset_id": "handoff_pack:handoff_fixture_valid_requires_approval:fixtures:task-runner-handoff-pack:valid-requires-approval:tasks:task-intake-host-affecting:inputs:request.md",
+      "group": "handoff_fixture_valid_requires_approval",
+      "category": "fixture",
+      "role": "handoff_fixture",
+      "path": "fixtures/task-runner-handoff-pack/valid-requires-approval/tasks/task-intake-host-affecting/inputs/request.md",
+      "sha256": "fe0dea362ae2cc963385610dae96fed9d63b38022466205da7aed22c4926fe35",
+      "bytes": 1005
+    },
+    {
+      "asset_id": "handoff_pack:handoff_fixture_valid_requires_approval:fixtures:task-runner-handoff-pack:valid-requires-approval:tasks:task-intake-host-affecting:outputs:.gitkeep",
+      "group": "handoff_fixture_valid_requires_approval",
+      "category": "fixture",
+      "role": "handoff_fixture",
+      "path": "fixtures/task-runner-handoff-pack/valid-requires-approval/tasks/task-intake-host-affecting/outputs/.gitkeep",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "asset_id": "handoff_pack:handoff_fixture_valid_requires_approval:fixtures:task-runner-handoff-pack:valid-requires-approval:tasks:task-intake-host-affecting:outputs:export:.gitkeep",
+      "group": "handoff_fixture_valid_requires_approval",
+      "category": "fixture",
+      "role": "handoff_fixture",
+      "path": "fixtures/task-runner-handoff-pack/valid-requires-approval/tasks/task-intake-host-affecting/outputs/export/.gitkeep",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "asset_id": "handoff_pack:handoff_fixture_valid_requires_approval:fixtures:task-runner-handoff-pack:valid-requires-approval:tasks:task-intake-host-affecting:repo:schemas:broker-ready-request.schema.json",
+      "group": "handoff_fixture_valid_requires_approval",
+      "category": "fixture",
+      "role": "handoff_fixture",
+      "path": "fixtures/task-runner-handoff-pack/valid-requires-approval/tasks/task-intake-host-affecting/repo/schemas/broker-ready-request.schema.json",
+      "sha256": "060fba8416a1236ad15aee4194ba0456276a38263314144d49f4a9ff6a1bbcc5",
+      "bytes": 8654
+    },
+    {
+      "asset_id": "handoff_pack:handoff_fixture_valid_requires_approval:fixtures:task-runner-handoff-pack:valid-requires-approval:tasks:task-intake-host-affecting:repo:schemas:task-runner-intake-report.schema.json",
+      "group": "handoff_fixture_valid_requires_approval",
+      "category": "fixture",
+      "role": "handoff_fixture",
+      "path": "fixtures/task-runner-handoff-pack/valid-requires-approval/tasks/task-intake-host-affecting/repo/schemas/task-runner-intake-report.schema.json",
+      "sha256": "8f500c36ec038103d19440a728e8cbf003a657cf1464ba88e97926dbbc8e80e2",
+      "bytes": 6048
+    },
+    {
+      "asset_id": "handoff_pack:handoff_fixture_valid_requires_approval:fixtures:task-runner-handoff-pack:valid-requires-approval:tasks:task-intake-host-affecting:repo:scripts:build-broker-ready-request.py",
+      "group": "handoff_fixture_valid_requires_approval",
+      "category": "fixture",
+      "role": "handoff_fixture",
+      "path": "fixtures/task-runner-handoff-pack/valid-requires-approval/tasks/task-intake-host-affecting/repo/scripts/build-broker-ready-request.py",
+      "sha256": "726fa3f5e3bfdcb3bcdbd0e6679ac6dd2f6434c770a6c9bff9ce2a2383c92337",
+      "bytes": 11298
+    },
+    {
+      "asset_id": "handoff_pack:handoff_fixture_valid_requires_approval:fixtures:task-runner-handoff-pack:valid-requires-approval:tasks:task-intake-host-affecting:repo:scripts:check-task-runner-intake-flow.sh",
+      "group": "handoff_fixture_valid_requires_approval",
+      "category": "fixture",
+      "role": "handoff_fixture",
+      "path": "fixtures/task-runner-handoff-pack/valid-requires-approval/tasks/task-intake-host-affecting/repo/scripts/check-task-runner-intake-flow.sh",
+      "sha256": "c429ee61cc2b7b9852fd4e83fd770fa51e7c275708cf5eff86fddd7fa3a2dfc2",
+      "bytes": 3949
+    },
+    {
+      "asset_id": "handoff_pack:handoff_fixture_valid_requires_approval:fixtures:task-runner-handoff-pack:valid-requires-approval:tasks:task-intake-host-affecting:workspace-layout.json",
+      "group": "handoff_fixture_valid_requires_approval",
+      "category": "fixture",
+      "role": "handoff_fixture",
+      "path": "fixtures/task-runner-handoff-pack/valid-requires-approval/tasks/task-intake-host-affecting/workspace-layout.json",
+      "sha256": "342ac91166869cadcbfcd7f4c8d613b1f0a6985faa9e10185e225ec08df3b73e",
+      "bytes": 1738
+    }
+  ],
+  "anchors": [
+    {
+      "anchor_id": "anchor:task-intake-readonly",
+      "task_id": "task-intake-readonly",
+      "dispatch_scope": "readonly",
+      "workspace_mode": "readonly",
+      "review_target": "broker",
+      "reviewed_task_path": "fixtures/control-plane-replay/valid-readonly/broker-review-bundle.json",
+      "summary_path": "fixtures/control-plane-replay/valid-readonly/summary.json",
+      "handoff_manifest_path": "fixtures/task-runner-handoff-pack/valid-readonly/tasks/task-intake-readonly/handoff-manifest.json",
+      "exec_plan_path": "fixtures/task-runner-handoff-pack/valid-readonly/tasks/task-intake-readonly/exec-plan.json",
+      "workspace_layout_path": "fixtures/task-runner-handoff-pack/valid-readonly/tasks/task-intake-readonly/workspace-layout.json"
+    },
+    {
+      "anchor_id": "anchor:task-intake-host-affecting",
+      "task_id": "task-intake-host-affecting",
+      "dispatch_scope": "host_affecting",
+      "workspace_mode": "dev",
+      "review_target": "operator",
+      "reviewed_task_path": "fixtures/control-plane-replay/valid-host-affecting/operator-review-bundle.json",
+      "summary_path": "fixtures/control-plane-replay/valid-host-affecting/summary.json",
+      "handoff_manifest_path": "fixtures/task-runner-handoff-pack/valid-requires-approval/tasks/task-intake-host-affecting/handoff-manifest.json",
+      "exec_plan_path": "fixtures/task-runner-handoff-pack/valid-requires-approval/tasks/task-intake-host-affecting/exec-plan.json",
+      "workspace_layout_path": "fixtures/task-runner-handoff-pack/valid-requires-approval/tasks/task-intake-host-affecting/workspace-layout.json"
+    }
+  ]
+}

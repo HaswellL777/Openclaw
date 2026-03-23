@@ -1,0 +1,573 @@
+{
+  "schema_version": "openclaw.phase3.first-live-pilot.asset-index.v1alpha1",
+  "candidate_id": "first-live-pilot-candidate-20260323-v1",
+  "plane": "control_plane",
+  "asset_count": 51,
+  "asset_groups": [
+    {
+      "group": "pipeline_scripts",
+      "category": "script",
+      "role": "builder",
+      "asset_count": 8,
+      "paths": [
+        "scripts/build-broker-ready-request.py",
+        "scripts/build-main-routing-decision.py",
+        "scripts/build-submission-envelopes.py",
+        "scripts/build-review-bundles.py",
+        "scripts/build-dispatch-intent-ledger.py",
+        "scripts/run-dispatch-adapter.py",
+        "scripts/run-phase3-control-plane-replay.py",
+        "scripts/run-phase3-control-plane-replay.sh"
+      ]
+    },
+    {
+      "group": "contract_validators",
+      "category": "validator",
+      "role": "validation",
+      "asset_count": 10,
+      "paths": [
+        "scripts/validate-broker-ready-request.py",
+        "scripts/validate-task-runner-intake-report.py",
+        "scripts/validate-main-routing-decision.py",
+        "scripts/validate-broker-submission-envelope.py",
+        "scripts/validate-operator-approval-envelope.py",
+        "scripts/validate-broker-review-bundle.py",
+        "scripts/validate-operator-review-bundle.py",
+        "scripts/validate-dispatch-intent-ledger.py",
+        "scripts/validate-dispatch-adapter-result.py",
+        "scripts/validate-control-plane-artifact-manifest.py"
+      ]
+    },
+    {
+      "group": "checks",
+      "category": "check",
+      "role": "verification",
+      "asset_count": 6,
+      "paths": [
+        "scripts/check-main-routing-flow.sh",
+        "scripts/check-phase3-control-plane-artifact-layout.sh",
+        "scripts/check-phase3-control-plane-dry-run.sh",
+        "tests/test_phase3_control_plane_artifact_layout.sh",
+        "tests/test_phase3_control_plane_dry_run.sh",
+        "tests/test_phase3_dispatch_adapter_flow.sh"
+      ]
+    },
+    {
+      "group": "golden_case_valid_readonly",
+      "category": "fixture",
+      "role": "golden_case",
+      "asset_count": 9,
+      "paths": [
+        "fixtures/control-plane-replay/valid-readonly/artifact-manifest.json",
+        "fixtures/control-plane-replay/valid-readonly/broker-review-bundle.json",
+        "fixtures/control-plane-replay/valid-readonly/broker-submission-envelope.json",
+        "fixtures/control-plane-replay/valid-readonly/dispatch-adapter-result.json",
+        "fixtures/control-plane-replay/valid-readonly/dispatch-intent-ledger.json",
+        "fixtures/control-plane-replay/valid-readonly/intake-report.json",
+        "fixtures/control-plane-replay/valid-readonly/request.normalized.json",
+        "fixtures/control-plane-replay/valid-readonly/routing-decision.json",
+        "fixtures/control-plane-replay/valid-readonly/summary.json"
+      ]
+    },
+    {
+      "group": "golden_case_valid_host_affecting",
+      "category": "fixture",
+      "role": "golden_case",
+      "asset_count": 9,
+      "paths": [
+        "fixtures/control-plane-replay/valid-host-affecting/artifact-manifest.json",
+        "fixtures/control-plane-replay/valid-host-affecting/dispatch-adapter-result.json",
+        "fixtures/control-plane-replay/valid-host-affecting/dispatch-intent-ledger.json",
+        "fixtures/control-plane-replay/valid-host-affecting/intake-report.json",
+        "fixtures/control-plane-replay/valid-host-affecting/operator-approval-envelope.json",
+        "fixtures/control-plane-replay/valid-host-affecting/operator-review-bundle.json",
+        "fixtures/control-plane-replay/valid-host-affecting/request.normalized.json",
+        "fixtures/control-plane-replay/valid-host-affecting/routing-decision.json",
+        "fixtures/control-plane-replay/valid-host-affecting/summary.json"
+      ]
+    },
+    {
+      "group": "golden_case_valid_broker_submission_candidate",
+      "category": "fixture",
+      "role": "golden_case",
+      "asset_count": 9,
+      "paths": [
+        "fixtures/control-plane-replay/valid-broker-submission-candidate/artifact-manifest.json",
+        "fixtures/control-plane-replay/valid-broker-submission-candidate/broker-review-bundle.json",
+        "fixtures/control-plane-replay/valid-broker-submission-candidate/broker-submission-envelope.json",
+        "fixtures/control-plane-replay/valid-broker-submission-candidate/dispatch-adapter-result.json",
+        "fixtures/control-plane-replay/valid-broker-submission-candidate/dispatch-intent-ledger.json",
+        "fixtures/control-plane-replay/valid-broker-submission-candidate/intake-report.json",
+        "fixtures/control-plane-replay/valid-broker-submission-candidate/request.normalized.json",
+        "fixtures/control-plane-replay/valid-broker-submission-candidate/routing-decision.json",
+        "fixtures/control-plane-replay/valid-broker-submission-candidate/summary.json"
+      ]
+    }
+  ],
+  "assets": [
+    {
+      "asset_id": "control_plane:pipeline_scripts:scripts:build-broker-ready-request.py",
+      "group": "pipeline_scripts",
+      "category": "script",
+      "role": "builder",
+      "path": "scripts/build-broker-ready-request.py",
+      "sha256": "726fa3f5e3bfdcb3bcdbd0e6679ac6dd2f6434c770a6c9bff9ce2a2383c92337",
+      "bytes": 11298
+    },
+    {
+      "asset_id": "control_plane:pipeline_scripts:scripts:build-main-routing-decision.py",
+      "group": "pipeline_scripts",
+      "category": "script",
+      "role": "builder",
+      "path": "scripts/build-main-routing-decision.py",
+      "sha256": "a0bfa77563e6acc9c56fb9bbcf608f0e2a05e49abb86ea1c98d962a0e4f77656",
+      "bytes": 9727
+    },
+    {
+      "asset_id": "control_plane:pipeline_scripts:scripts:build-submission-envelopes.py",
+      "group": "pipeline_scripts",
+      "category": "script",
+      "role": "builder",
+      "path": "scripts/build-submission-envelopes.py",
+      "sha256": "6bc1f0cfb00d855f4867f48226986b9396d339900b329c6c5d65eb132000544c",
+      "bytes": 7002
+    },
+    {
+      "asset_id": "control_plane:pipeline_scripts:scripts:build-review-bundles.py",
+      "group": "pipeline_scripts",
+      "category": "script",
+      "role": "builder",
+      "path": "scripts/build-review-bundles.py",
+      "sha256": "d6a4be183a7742f1ef66216beaabae635c61ef4664098a09237cb885c8b51e8f",
+      "bytes": 8656
+    },
+    {
+      "asset_id": "control_plane:pipeline_scripts:scripts:build-dispatch-intent-ledger.py",
+      "group": "pipeline_scripts",
+      "category": "script",
+      "role": "builder",
+      "path": "scripts/build-dispatch-intent-ledger.py",
+      "sha256": "667190ad4374711c8baa87b202c06f9eb4ea85a3f2a454407390a44dca86b417",
+      "bytes": 10044
+    },
+    {
+      "asset_id": "control_plane:pipeline_scripts:scripts:run-dispatch-adapter.py",
+      "group": "pipeline_scripts",
+      "category": "script",
+      "role": "builder",
+      "path": "scripts/run-dispatch-adapter.py",
+      "sha256": "8ceabe4b9ad7df318f9899763a33da8660fb8041e3cded814f84e41d03f9386e",
+      "bytes": 10148
+    },
+    {
+      "asset_id": "control_plane:pipeline_scripts:scripts:run-phase3-control-plane-replay.py",
+      "group": "pipeline_scripts",
+      "category": "script",
+      "role": "builder",
+      "path": "scripts/run-phase3-control-plane-replay.py",
+      "sha256": "ffcfcd71ac1b3c7f60562e30b8210153b9de292ca378fd321de1deceaaece148",
+      "bytes": 15802
+    },
+    {
+      "asset_id": "control_plane:pipeline_scripts:scripts:run-phase3-control-plane-replay.sh",
+      "group": "pipeline_scripts",
+      "category": "script",
+      "role": "builder",
+      "path": "scripts/run-phase3-control-plane-replay.sh",
+      "sha256": "1b835a0dcc4101219ad1e3baa8343e191ee87e933cbf22ff22a56f3b3dc3e7e6",
+      "bytes": 166
+    },
+    {
+      "asset_id": "control_plane:contract_validators:scripts:validate-broker-ready-request.py",
+      "group": "contract_validators",
+      "category": "validator",
+      "role": "validation",
+      "path": "scripts/validate-broker-ready-request.py",
+      "sha256": "17f3b794a3941ad60b2d80ca8afc103d1647a811a90dcddba946a2fb79387a0c",
+      "bytes": 12265
+    },
+    {
+      "asset_id": "control_plane:contract_validators:scripts:validate-task-runner-intake-report.py",
+      "group": "contract_validators",
+      "category": "validator",
+      "role": "validation",
+      "path": "scripts/validate-task-runner-intake-report.py",
+      "sha256": "0a4eb407f69a7b2fa90ce80edaff1855e714bb5d4164a681f8b4b619a46861bc",
+      "bytes": 8595
+    },
+    {
+      "asset_id": "control_plane:contract_validators:scripts:validate-main-routing-decision.py",
+      "group": "contract_validators",
+      "category": "validator",
+      "role": "validation",
+      "path": "scripts/validate-main-routing-decision.py",
+      "sha256": "bccdeebaeebdf9caee287b749cb3d2f4522051b23bf53cc3955f092d35fbcbe4",
+      "bytes": 11175
+    },
+    {
+      "asset_id": "control_plane:contract_validators:scripts:validate-broker-submission-envelope.py",
+      "group": "contract_validators",
+      "category": "validator",
+      "role": "validation",
+      "path": "scripts/validate-broker-submission-envelope.py",
+      "sha256": "22d392a002d03b59ad3c1162fe3e4b44910ed192ce1d2bb03c2bf7e16cc4418a",
+      "bytes": 10248
+    },
+    {
+      "asset_id": "control_plane:contract_validators:scripts:validate-operator-approval-envelope.py",
+      "group": "contract_validators",
+      "category": "validator",
+      "role": "validation",
+      "path": "scripts/validate-operator-approval-envelope.py",
+      "sha256": "f82e11546012b4622efb5f7c40b773c8601973f57b1d78494081cbaead8075ad",
+      "bytes": 11105
+    },
+    {
+      "asset_id": "control_plane:contract_validators:scripts:validate-broker-review-bundle.py",
+      "group": "contract_validators",
+      "category": "validator",
+      "role": "validation",
+      "path": "scripts/validate-broker-review-bundle.py",
+      "sha256": "9ed5d3d481355fd0e38244fe7f20b9fc79a84eacbb841e68bb3d8a693b9992cb",
+      "bytes": 12159
+    },
+    {
+      "asset_id": "control_plane:contract_validators:scripts:validate-operator-review-bundle.py",
+      "group": "contract_validators",
+      "category": "validator",
+      "role": "validation",
+      "path": "scripts/validate-operator-review-bundle.py",
+      "sha256": "4601da05c96995a6984d2384f8fe0bb7b0859ce1f0f16417e132b44cffa97944",
+      "bytes": 12742
+    },
+    {
+      "asset_id": "control_plane:contract_validators:scripts:validate-dispatch-intent-ledger.py",
+      "group": "contract_validators",
+      "category": "validator",
+      "role": "validation",
+      "path": "scripts/validate-dispatch-intent-ledger.py",
+      "sha256": "4f55c3d9d846590eabc93682b0a3f48eb143a448b92c0e1ee2a2f0fb7710dc88",
+      "bytes": 20651
+    },
+    {
+      "asset_id": "control_plane:contract_validators:scripts:validate-dispatch-adapter-result.py",
+      "group": "contract_validators",
+      "category": "validator",
+      "role": "validation",
+      "path": "scripts/validate-dispatch-adapter-result.py",
+      "sha256": "34cf20e7033c320d7a1f1a01fd6a37c83daab7eaeda412bd2c9cd2d7e69f8d2b",
+      "bytes": 19711
+    },
+    {
+      "asset_id": "control_plane:contract_validators:scripts:validate-control-plane-artifact-manifest.py",
+      "group": "contract_validators",
+      "category": "validator",
+      "role": "validation",
+      "path": "scripts/validate-control-plane-artifact-manifest.py",
+      "sha256": "10c1524606f09d984e3e6afa7648fa789ddfa2d9ecd989088d00c9650a02c41c",
+      "bytes": 16375
+    },
+    {
+      "asset_id": "control_plane:checks:scripts:check-main-routing-flow.sh",
+      "group": "checks",
+      "category": "check",
+      "role": "verification",
+      "path": "scripts/check-main-routing-flow.sh",
+      "sha256": "abc262d7b844a2174277f205ca3866b33a4b8e6bdefd67b7e2ec201d04ee4388",
+      "bytes": 7303
+    },
+    {
+      "asset_id": "control_plane:checks:scripts:check-phase3-control-plane-artifact-layout.sh",
+      "group": "checks",
+      "category": "check",
+      "role": "verification",
+      "path": "scripts/check-phase3-control-plane-artifact-layout.sh",
+      "sha256": "f88da77a099290fe087589db4638bd1fe5918dbee671e05c800c784bad126f88",
+      "bytes": 6972
+    },
+    {
+      "asset_id": "control_plane:checks:scripts:check-phase3-control-plane-dry-run.sh",
+      "group": "checks",
+      "category": "check",
+      "role": "verification",
+      "path": "scripts/check-phase3-control-plane-dry-run.sh",
+      "sha256": "a5ea058ff0480dfe1fd67a348b346867ccdbd3ad5ffacbc0ed3fdb85ad6638bb",
+      "bytes": 1934
+    },
+    {
+      "asset_id": "control_plane:checks:tests:test_phase3_control_plane_artifact_layout.sh",
+      "group": "checks",
+      "category": "check",
+      "role": "verification",
+      "path": "tests/test_phase3_control_plane_artifact_layout.sh",
+      "sha256": "76a905ba98c14b096afba59709520cc257fdf0d896fecfcfd075dce4ad1d00f9",
+      "bytes": 158
+    },
+    {
+      "asset_id": "control_plane:checks:tests:test_phase3_control_plane_dry_run.sh",
+      "group": "checks",
+      "category": "check",
+      "role": "verification",
+      "path": "tests/test_phase3_control_plane_dry_run.sh",
+      "sha256": "b0b1fd2751ac649925f1861954d63e3a00e793c4853b656e0527501ad2883270",
+      "bytes": 150
+    },
+    {
+      "asset_id": "control_plane:checks:tests:test_phase3_dispatch_adapter_flow.sh",
+      "group": "checks",
+      "category": "check",
+      "role": "verification",
+      "path": "tests/test_phase3_dispatch_adapter_flow.sh",
+      "sha256": "2fab0881948cf7a12ae0ee02263b8782c1a26d8cf5652d33320bf7bddba9b377",
+      "bytes": 150
+    },
+    {
+      "asset_id": "control_plane:golden_case_valid_readonly:fixtures:control-plane-replay:valid-readonly:artifact-manifest.json",
+      "group": "golden_case_valid_readonly",
+      "category": "fixture",
+      "role": "golden_case",
+      "path": "fixtures/control-plane-replay/valid-readonly/artifact-manifest.json",
+      "sha256": "c18914426b0122b83e8faa287f166c70aeae54af487b5510dcf502ca5248b4a1",
+      "bytes": 4306
+    },
+    {
+      "asset_id": "control_plane:golden_case_valid_readonly:fixtures:control-plane-replay:valid-readonly:broker-review-bundle.json",
+      "group": "golden_case_valid_readonly",
+      "category": "fixture",
+      "role": "golden_case",
+      "path": "fixtures/control-plane-replay/valid-readonly/broker-review-bundle.json",
+      "sha256": "16444f719df2e60c978a3ada573f0ab3d47c3af4644a487a64750a8f4a8a47ac",
+      "bytes": 5074
+    },
+    {
+      "asset_id": "control_plane:golden_case_valid_readonly:fixtures:control-plane-replay:valid-readonly:broker-submission-envelope.json",
+      "group": "golden_case_valid_readonly",
+      "category": "fixture",
+      "role": "golden_case",
+      "path": "fixtures/control-plane-replay/valid-readonly/broker-submission-envelope.json",
+      "sha256": "0e16b75aa143b16d6ab0b79934b71f22c20425a9c72773330714f59dbc2ccf52",
+      "bytes": 4392
+    },
+    {
+      "asset_id": "control_plane:golden_case_valid_readonly:fixtures:control-plane-replay:valid-readonly:dispatch-adapter-result.json",
+      "group": "golden_case_valid_readonly",
+      "category": "fixture",
+      "role": "golden_case",
+      "path": "fixtures/control-plane-replay/valid-readonly/dispatch-adapter-result.json",
+      "sha256": "fc18485624441415b825fd2fc3b67f60c2939decbb93fe1e5913204a02197955",
+      "bytes": 5445
+    },
+    {
+      "asset_id": "control_plane:golden_case_valid_readonly:fixtures:control-plane-replay:valid-readonly:dispatch-intent-ledger.json",
+      "group": "golden_case_valid_readonly",
+      "category": "fixture",
+      "role": "golden_case",
+      "path": "fixtures/control-plane-replay/valid-readonly/dispatch-intent-ledger.json",
+      "sha256": "a53228919eb39136b9c8cf8677ff1e469f0eea19da3761ad3ac1111bb0f04b2d",
+      "bytes": 5310
+    },
+    {
+      "asset_id": "control_plane:golden_case_valid_readonly:fixtures:control-plane-replay:valid-readonly:intake-report.json",
+      "group": "golden_case_valid_readonly",
+      "category": "fixture",
+      "role": "golden_case",
+      "path": "fixtures/control-plane-replay/valid-readonly/intake-report.json",
+      "sha256": "625c1ddb0dc3b2d68b135df29942643a4e958876406b2660b1f60e6a0821d492",
+      "bytes": 2298
+    },
+    {
+      "asset_id": "control_plane:golden_case_valid_readonly:fixtures:control-plane-replay:valid-readonly:request.normalized.json",
+      "group": "golden_case_valid_readonly",
+      "category": "fixture",
+      "role": "golden_case",
+      "path": "fixtures/control-plane-replay/valid-readonly/request.normalized.json",
+      "sha256": "b80f9db376be932fd2b253232f3f85869c0f405dfc7711ba04482ec6a20ba615",
+      "bytes": 4247
+    },
+    {
+      "asset_id": "control_plane:golden_case_valid_readonly:fixtures:control-plane-replay:valid-readonly:routing-decision.json",
+      "group": "golden_case_valid_readonly",
+      "category": "fixture",
+      "role": "golden_case",
+      "path": "fixtures/control-plane-replay/valid-readonly/routing-decision.json",
+      "sha256": "5f2600c3c1bb7e8e94e97c6cc6668cc2f811243587553dd0b77bf506aacf7694",
+      "bytes": 2887
+    },
+    {
+      "asset_id": "control_plane:golden_case_valid_readonly:fixtures:control-plane-replay:valid-readonly:summary.json",
+      "group": "golden_case_valid_readonly",
+      "category": "fixture",
+      "role": "golden_case",
+      "path": "fixtures/control-plane-replay/valid-readonly/summary.json",
+      "sha256": "0423b6b211b21f6ec8ee2ef42cb402ac4b6b367b3ec09b2d0e83458d515db454",
+      "bytes": 2339
+    },
+    {
+      "asset_id": "control_plane:golden_case_valid_host_affecting:fixtures:control-plane-replay:valid-host-affecting:artifact-manifest.json",
+      "group": "golden_case_valid_host_affecting",
+      "category": "fixture",
+      "role": "golden_case",
+      "path": "fixtures/control-plane-replay/valid-host-affecting/artifact-manifest.json",
+      "sha256": "680cadc75cd13116e0c90a67a4aa617d44b522319c95effaca3001ec35407af4",
+      "bytes": 4360
+    },
+    {
+      "asset_id": "control_plane:golden_case_valid_host_affecting:fixtures:control-plane-replay:valid-host-affecting:dispatch-adapter-result.json",
+      "group": "golden_case_valid_host_affecting",
+      "category": "fixture",
+      "role": "golden_case",
+      "path": "fixtures/control-plane-replay/valid-host-affecting/dispatch-adapter-result.json",
+      "sha256": "e9afbdb64364ead993a1af7c647089265121f8166fefb37fa8f31373d95fa06c",
+      "bytes": 7256
+    },
+    {
+      "asset_id": "control_plane:golden_case_valid_host_affecting:fixtures:control-plane-replay:valid-host-affecting:dispatch-intent-ledger.json",
+      "group": "golden_case_valid_host_affecting",
+      "category": "fixture",
+      "role": "golden_case",
+      "path": "fixtures/control-plane-replay/valid-host-affecting/dispatch-intent-ledger.json",
+      "sha256": "454a3fd44843c48d813d27720ff9ae1ba35bd04f808fc7f962384b5e1dc988bf",
+      "bytes": 7233
+    },
+    {
+      "asset_id": "control_plane:golden_case_valid_host_affecting:fixtures:control-plane-replay:valid-host-affecting:intake-report.json",
+      "group": "golden_case_valid_host_affecting",
+      "category": "fixture",
+      "role": "golden_case",
+      "path": "fixtures/control-plane-replay/valid-host-affecting/intake-report.json",
+      "sha256": "517ebb96d5136df402b9e768340cc18c13793fb817f15e364768b17b9eec0e04",
+      "bytes": 2316
+    },
+    {
+      "asset_id": "control_plane:golden_case_valid_host_affecting:fixtures:control-plane-replay:valid-host-affecting:operator-approval-envelope.json",
+      "group": "golden_case_valid_host_affecting",
+      "category": "fixture",
+      "role": "golden_case",
+      "path": "fixtures/control-plane-replay/valid-host-affecting/operator-approval-envelope.json",
+      "sha256": "d300f18a40b9fa103471f0f4047bae8b189794a96bc4b7d89293822f6b1b3604",
+      "bytes": 6269
+    },
+    {
+      "asset_id": "control_plane:golden_case_valid_host_affecting:fixtures:control-plane-replay:valid-host-affecting:operator-review-bundle.json",
+      "group": "golden_case_valid_host_affecting",
+      "category": "fixture",
+      "role": "golden_case",
+      "path": "fixtures/control-plane-replay/valid-host-affecting/operator-review-bundle.json",
+      "sha256": "e5b510f8a4ca9a83727aa50a156875e0f455ec5491b3ccc64470080adf388199",
+      "bytes": 7085
+    },
+    {
+      "asset_id": "control_plane:golden_case_valid_host_affecting:fixtures:control-plane-replay:valid-host-affecting:request.normalized.json",
+      "group": "golden_case_valid_host_affecting",
+      "category": "fixture",
+      "role": "golden_case",
+      "path": "fixtures/control-plane-replay/valid-host-affecting/request.normalized.json",
+      "sha256": "86bfb44cc4b38b677d8096c20b9ccb6fd60b6c59770f63eed92fa49f5f9ad173",
+      "bytes": 6033
+    },
+    {
+      "asset_id": "control_plane:golden_case_valid_host_affecting:fixtures:control-plane-replay:valid-host-affecting:routing-decision.json",
+      "group": "golden_case_valid_host_affecting",
+      "category": "fixture",
+      "role": "golden_case",
+      "path": "fixtures/control-plane-replay/valid-host-affecting/routing-decision.json",
+      "sha256": "932dfde0377977d0e5dc93172fc91b2d617bff8d212dea5025befb082950ba8c",
+      "bytes": 2885
+    },
+    {
+      "asset_id": "control_plane:golden_case_valid_host_affecting:fixtures:control-plane-replay:valid-host-affecting:summary.json",
+      "group": "golden_case_valid_host_affecting",
+      "category": "fixture",
+      "role": "golden_case",
+      "path": "fixtures/control-plane-replay/valid-host-affecting/summary.json",
+      "sha256": "160c63c342c3f3c0673c3f5b4c49dcf9ce9f2989c1fd96effb6d56e2c85a8ff1",
+      "bytes": 2502
+    },
+    {
+      "asset_id": "control_plane:golden_case_valid_broker_submission_candidate:fixtures:control-plane-replay:valid-broker-submission-candidate:artifact-manifest.json",
+      "group": "golden_case_valid_broker_submission_candidate",
+      "category": "fixture",
+      "role": "golden_case",
+      "path": "fixtures/control-plane-replay/valid-broker-submission-candidate/artifact-manifest.json",
+      "sha256": "19b7e5d4bee357035a9023ae6e619a4ac93b792de3de4c1490c1a788f7c9cf97",
+      "bytes": 4420
+    },
+    {
+      "asset_id": "control_plane:golden_case_valid_broker_submission_candidate:fixtures:control-plane-replay:valid-broker-submission-candidate:broker-review-bundle.json",
+      "group": "golden_case_valid_broker_submission_candidate",
+      "category": "fixture",
+      "role": "golden_case",
+      "path": "fixtures/control-plane-replay/valid-broker-submission-candidate/broker-review-bundle.json",
+      "sha256": "63d50f584d4ce689e902220f599ddb79667a07632eff86292543e8f9d77fca7d",
+      "bytes": 4424
+    },
+    {
+      "asset_id": "control_plane:golden_case_valid_broker_submission_candidate:fixtures:control-plane-replay:valid-broker-submission-candidate:broker-submission-envelope.json",
+      "group": "golden_case_valid_broker_submission_candidate",
+      "category": "fixture",
+      "role": "golden_case",
+      "path": "fixtures/control-plane-replay/valid-broker-submission-candidate/broker-submission-envelope.json",
+      "sha256": "dcb47b1f7852dc60643fc489ef387171e2693f101f762609c45b67032c17879c",
+      "bytes": 3723
+    },
+    {
+      "asset_id": "control_plane:golden_case_valid_broker_submission_candidate:fixtures:control-plane-replay:valid-broker-submission-candidate:dispatch-adapter-result.json",
+      "group": "golden_case_valid_broker_submission_candidate",
+      "category": "fixture",
+      "role": "golden_case",
+      "path": "fixtures/control-plane-replay/valid-broker-submission-candidate/dispatch-adapter-result.json",
+      "sha256": "d82c413083efa9133732399f1368eb24989ea2b2830fb996b11036051424d7b9",
+      "bytes": 4814
+    },
+    {
+      "asset_id": "control_plane:golden_case_valid_broker_submission_candidate:fixtures:control-plane-replay:valid-broker-submission-candidate:dispatch-intent-ledger.json",
+      "group": "golden_case_valid_broker_submission_candidate",
+      "category": "fixture",
+      "role": "golden_case",
+      "path": "fixtures/control-plane-replay/valid-broker-submission-candidate/dispatch-intent-ledger.json",
+      "sha256": "36db670335626df158570cac4918cae9b5a5d4222ddcf532719fbdea6313c54e",
+      "bytes": 4679
+    },
+    {
+      "asset_id": "control_plane:golden_case_valid_broker_submission_candidate:fixtures:control-plane-replay:valid-broker-submission-candidate:intake-report.json",
+      "group": "golden_case_valid_broker_submission_candidate",
+      "category": "fixture",
+      "role": "golden_case",
+      "path": "fixtures/control-plane-replay/valid-broker-submission-candidate/intake-report.json",
+      "sha256": "49035c87e67dc15f6e514f9e056898b995bdebc4dd0eafd89f0fd217036dd1d9",
+      "bytes": 2232
+    },
+    {
+      "asset_id": "control_plane:golden_case_valid_broker_submission_candidate:fixtures:control-plane-replay:valid-broker-submission-candidate:request.normalized.json",
+      "group": "golden_case_valid_broker_submission_candidate",
+      "category": "fixture",
+      "role": "golden_case",
+      "path": "fixtures/control-plane-replay/valid-broker-submission-candidate/request.normalized.json",
+      "sha256": "e74425d492aaa993945ea79e799029b01de4e02531e4c14dbe11dfef67586223",
+      "bytes": 3578
+    },
+    {
+      "asset_id": "control_plane:golden_case_valid_broker_submission_candidate:fixtures:control-plane-replay:valid-broker-submission-candidate:routing-decision.json",
+      "group": "golden_case_valid_broker_submission_candidate",
+      "category": "fixture",
+      "role": "golden_case",
+      "path": "fixtures/control-plane-replay/valid-broker-submission-candidate/routing-decision.json",
+      "sha256": "b80c82c3636fd23abe57ad0271e813995d9d992f0c8ce3ecafa708b7d8d506dc",
+      "bytes": 2759
+    },
+    {
+      "asset_id": "control_plane:golden_case_valid_broker_submission_candidate:fixtures:control-plane-replay:valid-broker-submission-candidate:summary.json",
+      "group": "golden_case_valid_broker_submission_candidate",
+      "category": "fixture",
+      "role": "golden_case",
+      "path": "fixtures/control-plane-replay/valid-broker-submission-candidate/summary.json",
+      "sha256": "c0859f720c61625158448af51c0c8a6f481af9307b34e2fa1e3bf7ef1cac0ad9",
+      "bytes": 2072
+    }
+  ],
+  "case_ids": [
+    "valid-readonly",
+    "valid-host-affecting",
+    "valid-broker-submission-candidate"
+  ]
+}

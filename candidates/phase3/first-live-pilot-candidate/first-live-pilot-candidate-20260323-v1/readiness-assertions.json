@@ -1,0 +1,42 @@
+{
+  "schema_version": "openclaw.phase3.first-live-pilot.readiness-assertions.v1alpha1",
+  "candidate_id": "first-live-pilot-candidate-20260323-v1",
+  "readiness_state": "READY_TO_PREPARE_FIRST_LIVE_PILOT_CANDIDATE",
+  "boundary_assertions": {
+    "no_live_side_publish": true,
+    "no_real_docker_run": true,
+    "no_broker_dispatch": true,
+    "no_runtime_change": true,
+    "no_operator_exact_command_block": true
+  },
+  "remaining_blocker": {
+    "repo_side_asset_gap_closed": true,
+    "remaining_blocker": "future_execution_seam_or_operator_input",
+    "remaining_blocker_is_future_execution_seam_or_operator_input": true,
+    "summary": "Current repo-side assets are assembled; the remaining blocker is future execution seam / operator input, not a repo-side asset gap."
+  },
+  "reviewed_task_handoff_anchors": [
+    {
+      "anchor_id": "anchor:task-intake-readonly",
+      "task_id": "task-intake-readonly",
+      "reviewed_task_path": "fixtures/control-plane-replay/valid-readonly/broker-review-bundle.json",
+      "handoff_manifest_path": "fixtures/task-runner-handoff-pack/valid-readonly/tasks/task-intake-readonly/handoff-manifest.json",
+      "exec_plan_path": "fixtures/task-runner-handoff-pack/valid-readonly/tasks/task-intake-readonly/exec-plan.json",
+      "workspace_layout_path": "fixtures/task-runner-handoff-pack/valid-readonly/tasks/task-intake-readonly/workspace-layout.json",
+      "dispatch_scope": "readonly",
+      "workspace_mode": "readonly",
+      "status": "present"
+    },
+    {
+      "anchor_id": "anchor:task-intake-host-affecting",
+      "task_id": "task-intake-host-affecting",
+      "reviewed_task_path": "fixtures/control-plane-replay/valid-host-affecting/operator-review-bundle.json",
+      "handoff_manifest_path": "fixtures/task-runner-handoff-pack/valid-requires-approval/tasks/task-intake-host-affecting/handoff-manifest.json",
+      "exec_plan_path": "fixtures/task-runner-handoff-pack/valid-requires-approval/tasks/task-intake-host-affecting/exec-plan.json",
+      "workspace_layout_path": "fixtures/task-runner-handoff-pack/valid-requires-approval/tasks/task-intake-host-affecting/workspace-layout.json",
+      "dispatch_scope": "host_affecting",
+      "workspace_mode": "dev",
+      "status": "present"
+    }
+  ]
+}

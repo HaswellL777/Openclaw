@@ -1,0 +1,64 @@
+{
+  "schema_version": "openclaw.phase3.first-live-pilot.candidate-summary.v1alpha1",
+  "candidate_id": "first-live-pilot-candidate-20260323-v1",
+  "candidate_pack_relpath": "candidates/phase3/first-live-pilot-candidate/first-live-pilot-candidate-20260323-v1",
+  "readiness_state": "READY_TO_PREPARE_FIRST_LIVE_PILOT_CANDIDATE",
+  "repo_side_gap_closed": true,
+  "remaining_blocker": "future_execution_seam_or_operator_input",
+  "authority_docs": [
+    {
+      "path": "docs/design-v3.md",
+      "sha256": "bb5d9a936b0e973a19d336a105a639458d6a4f5e7752a3f337849e3f7c2d6b95"
+    },
+    {
+      "path": "docs/host-sop.md",
+      "sha256": "540bc613eb405f26da640fabeaa727f5433a178371f6def4dc1cf5fffca092d6"
+    },
+    {
+      "path": "docs/current-boundary.md",
+      "sha256": "c5fdef3a970ea9eef8e824b9774e32a1be80b02b3fef08ae4b5b2b1d8dea99b1"
+    },
+    {
+      "path": "docs/map.md",
+      "sha256": "af65cf2dc8ee32c76ce17ef436ebac1ba09eeaa392d11143b713cc4ac8d4b8ed"
+    }
+  ],
+  "planes": {
+    "control_plane": {
+      "index_path": "control-plane-asset-index.json",
+      "asset_count": 51,
+      "case_ids": [
+        "valid-readonly",
+        "valid-host-affecting",
+        "valid-broker-submission-candidate"
+      ]
+    },
+    "execution_plane": {
+      "index_path": "execution-plane-asset-index.json",
+      "asset_count": 19,
+      "components": [
+        "task-runner-container",
+        "workspace-task-runner-template"
+      ]
+    },
+    "handoff_pack": {
+      "index_path": "handoff-pack-asset-index.json",
+      "asset_count": 38,
+      "anchor_count": 2
+    }
+  },
+  "reviewed_task_handoff_anchors": [
+    {
+      "task_id": "task-intake-readonly",
+      "reviewed_task_path": "fixtures/control-plane-replay/valid-readonly/broker-review-bundle.json",
+      "handoff_manifest_path": "fixtures/task-runner-handoff-pack/valid-readonly/tasks/task-intake-readonly/handoff-manifest.json",
+      "workspace_mode": "readonly"
+    },
+    {
+      "task_id": "task-intake-host-affecting",
+      "reviewed_task_path": "fixtures/control-plane-replay/valid-host-affecting/operator-review-bundle.json",
+      "handoff_manifest_path": "fixtures/task-runner-handoff-pack/valid-requires-approval/tasks/task-intake-host-affecting/handoff-manifest.json",
+      "workspace_mode": "dev"
+    }
+  ]
+}

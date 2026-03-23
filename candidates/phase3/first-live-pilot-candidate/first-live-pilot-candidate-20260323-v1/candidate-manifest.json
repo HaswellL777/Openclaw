@@ -1,0 +1,44 @@
+{
+  "schema_version": "openclaw.phase3.first-live-pilot.candidate-manifest.v1alpha1",
+  "candidate_id": "first-live-pilot-candidate-20260323-v1",
+  "candidate_pack_relpath": "candidates/phase3/first-live-pilot-candidate/first-live-pilot-candidate-20260323-v1",
+  "ready_state": "READY_TO_PREPARE_FIRST_LIVE_PILOT_CANDIDATE",
+  "required_pack_files": [
+    "candidate-summary.json",
+    "candidate-manifest.json",
+    "control-plane-asset-index.json",
+    "execution-plane-asset-index.json",
+    "handoff-pack-asset-index.json",
+    "readiness-assertions.json",
+    "frozen-input-refs.json"
+  ],
+  "index_files": {
+    "control_plane": "control-plane-asset-index.json",
+    "execution_plane": "execution-plane-asset-index.json",
+    "handoff_pack": "handoff-pack-asset-index.json"
+  },
+  "support_files": {
+    "candidate_summary": "candidate-summary.json",
+    "readiness_assertions": "readiness-assertions.json",
+    "frozen_input_refs": "frozen-input-refs.json"
+  },
+  "authority_docs": [
+    "docs/design-v3.md",
+    "docs/host-sop.md",
+    "docs/current-boundary.md",
+    "docs/map.md"
+  ],
+  "validation_entrypoints": [
+    "scripts/check-phase3-control-plane-dry-run.sh",
+    "scripts/check-task-runner-container-spec.sh",
+    "scripts/check-workspace-task-runner-template.sh",
+    "scripts/check-task-runner-handoff-pack.sh",
+    "scripts/check-first-live-pilot-candidate-pack.sh"
+  ],
+  "asset_counts": {
+    "control_plane": 51,
+    "execution_plane": 19,
+    "handoff_pack": 38,
+    "frozen_input_refs": 112
+  }
+}
