@@ -35,4 +35,10 @@ RUN chmod 0755 \
 
 USER runner
 WORKDIR /workspace/repo
-ENTRYPOINT ["/usr/local/bin/task-runner-entrypoint"]
+
+# OpenClaw sandbox.docker manages container lifecycle via docker exec.
+# The container must stay running; OpenClaw will exec tool commands into it.
+# Use CMD (not ENTRYPOINT) so OpenClaw can override the command if needed.
+# OpenClaw typically sets CMD to "sleep infinity" itself.
+ENTRYPOINT []
+CMD ["sleep", "infinity"]
