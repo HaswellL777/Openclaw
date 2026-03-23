@@ -1,0 +1,71 @@
+{
+  "schema_version": "openclaw.task-runner.host-change-request.v1alpha1",
+  "request_id": "hcr-20260323-intake-invalid-forbidden-command",
+  "task_id": "task-intake-invalid-forbidden-command",
+  "requested_by": "task-runner",
+  "status": "proposed",
+  "summary": {
+    "title": "Illegal request with embedded command input",
+    "why": "This fixture proves the main-side flow refuses requests that smuggle imperative command keys into otherwise structured broker inputs.",
+    "scope": "Negative validation path only.",
+    "impact": "Should be refused during intake and routed to LOCAL_REFUSE."
+  },
+  "repo_context": {
+    "repo_relpath": "repo/",
+    "changed_files": [
+      "scripts/build-main-routing-decision.py",
+      "scripts/build-submission-envelopes.py"
+    ]
+  },
+  "requires_operator_approval": false,
+  "requested_host_ops": [
+    {
+      "sequence": 1,
+      "action": "rollback_prepare",
+      "justification": "Illegal example only.",
+      "inputs": {
+        "target_snapshot": "root-pre-forbidden-command-example",
+        "reason": "Negative-case routing check",
+        "command": "sudo btrfs subvolume snapshot / /.snapshots/illegal"
+      }
+    }
+  ],
+  "forbidden_actions": [
+    "direct_docker_control",
+    "direct_host_shell",
+    "direct_openclaw_config_edit",
+    "direct_secret_handling",
+    "direct_snapshot_manipulation",
+    "direct_systemd_control",
+    "direct_vault_manipulation",
+    "unstructured_operator_commands",
+    "user_level_gateway_start"
+  ],
+  "evidence_refs": [
+    {
+      "id": "design-v3",
+      "kind": "design_doc",
+      "path": "docs/design-v3.md",
+      "description": "Negative-case evidence."
+    },
+    {
+      "id": "runner-policy",
+      "kind": "repo_file",
+      "path": "workspace-task-runner-template/control/runner-policy.md",
+      "description": "Runner policy forbids exact shell command surfaces."
+    }
+  ],
+  "required_evidence": [
+    {
+      "id": "forbidden-command-negative-case",
+      "when": "before_main_review",
+      "description": "Expected refusal during intake because an imperative command key is present."
+    }
+  ],
+  "handoff": {
+    "next_consumer": "main",
+    "delivery_artifact": "outputs/host-change-request.json",
+    "broker_request_ready": true,
+    "review_required": true
+  }
+}

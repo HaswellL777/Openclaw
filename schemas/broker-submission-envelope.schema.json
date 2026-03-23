@@ -1,0 +1,309 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "BrokerSubmissionEnvelope",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "envelope_id",
+    "routing_decision_id",
+    "envelope_mode",
+    "envelope_type",
+    "intake_id",
+    "task_id",
+    "run_id",
+    "source_request_id",
+    "dispatch_scope",
+    "dispatch_status",
+    "requires_operator_approval",
+    "source_artifacts",
+    "summary_context",
+    "validation_status",
+    "broker_requests",
+    "refusal_reasons",
+    "forbidden_actions",
+    "boundary_carry_forward",
+    "evidence_refs"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "openclaw.main.broker-submission-envelope.v1alpha1"
+    },
+    "envelope_id": {
+      "$ref": "#/$defs/id_string"
+    },
+    "routing_decision_id": {
+      "$ref": "#/$defs/id_string"
+    },
+    "envelope_mode": {
+      "const": "repo_side_dry_run"
+    },
+    "envelope_type": {
+      "const": "BROKER_SUBMISSION_CANDIDATE"
+    },
+    "intake_id": {
+      "$ref": "#/$defs/id_string"
+    },
+    "task_id": {
+      "$ref": "#/$defs/id_string"
+    },
+    "run_id": {
+      "$ref": "#/$defs/id_string"
+    },
+    "source_request_id": {
+      "$ref": "#/$defs/id_string"
+    },
+    "dispatch_scope": {
+      "const": "readonly"
+    },
+    "dispatch_status": {
+      "const": "broker_ready"
+    },
+    "requires_operator_approval": {
+      "const": false
+    },
+    "source_artifacts": {
+      "type": "object",
+      "required": [
+        "normalized_request_path",
+        "intake_report_path",
+        "routing_decision_path"
+      ],
+      "properties": {
+        "normalized_request_path": {
+          "$ref": "#/$defs/relative_path"
+        },
+        "intake_report_path": {
+          "$ref": "#/$defs/relative_path"
+        },
+        "routing_decision_path": {
+          "$ref": "#/$defs/relative_path"
+        }
+      },
+      "additionalProperties": false
+    },
+    "summary_context": {
+      "type": "object",
+      "required": ["goal", "outcome", "request_title", "request_scope"],
+      "properties": {
+        "goal": {
+          "$ref": "#/$defs/non_empty_string"
+        },
+        "outcome": {
+          "$ref": "#/$defs/non_empty_string"
+        },
+        "request_title": {
+          "$ref": "#/$defs/non_empty_string"
+        },
+        "request_scope": {
+          "$ref": "#/$defs/non_empty_string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "validation_status": {
+      "type": "object",
+      "required": [
+        "normalized_request",
+        "intake_report",
+        "routing_decision"
+      ],
+      "properties": {
+        "normalized_request": {
+          "$ref": "#/$defs/validation_result"
+        },
+        "intake_report": {
+          "$ref": "#/$defs/validation_result"
+        },
+        "routing_decision": {
+          "$ref": "#/$defs/validation_result"
+        }
+      },
+      "additionalProperties": false
+    },
+    "broker_requests": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/broker_request_item"
+      }
+    },
+    "refusal_reasons": {
+      "type": "array",
+      "maxItems": 0,
+      "items": {
+        "$ref": "#/$defs/non_empty_string"
+      }
+    },
+    "forbidden_actions": {
+      "$ref": "#/$defs/forbidden_actions"
+    },
+    "boundary_carry_forward": {
+      "$ref": "#/$defs/boundary_carry_forward"
+    },
+    "evidence_refs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/evidence_ref"
+      }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "non_empty_string": {
+      "type": "string",
+      "minLength": 1
+    },
+    "id_string": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$"
+    },
+    "relative_path": {
+      "type": "string",
+      "pattern": "^(?!/)(?!.*\\.\\.)[^\\n]+$"
+    },
+    "validation_result": {
+      "type": "string",
+      "enum": ["passed", "failed"]
+    },
+    "forbidden_actions": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "enum": [
+          "direct_host_shell",
+          "direct_openclaw_config_edit",
+          "direct_systemd_control",
+          "direct_docker_control",
+          "direct_snapshot_manipulation",
+          "direct_vault_manipulation",
+          "direct_secret_handling",
+          "unstructured_operator_commands",
+          "user_level_gateway_start"
+        ]
+      }
+    },
+    "boundary_carry_forward": {
+      "type": "object",
+      "required": [
+        "repo_side_only",
+        "live_side_publish_performed",
+        "broker_dispatch_performed",
+        "openclaw_runtime_modified",
+        "operator_command_blocks_present"
+      ],
+      "properties": {
+        "repo_side_only": {
+          "const": true
+        },
+        "live_side_publish_performed": {
+          "const": false
+        },
+        "broker_dispatch_performed": {
+          "const": false
+        },
+        "openclaw_runtime_modified": {
+          "const": false
+        },
+        "operator_command_blocks_present": {
+          "const": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "evidence_ref": {
+      "type": "object",
+      "required": ["id", "kind", "path", "description"],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id_string"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "design_doc",
+            "sop_doc",
+            "boundary_doc",
+            "repo_file",
+            "output_file",
+            "schema",
+            "fixture",
+            "validator_log"
+          ]
+        },
+        "path": {
+          "$ref": "#/$defs/relative_path"
+        },
+        "description": {
+          "$ref": "#/$defs/non_empty_string"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "broker_request_item": {
+      "type": "object",
+      "required": ["sequence", "action", "justification", "broker_request"],
+      "properties": {
+        "sequence": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "action": {
+          "type": "string",
+          "enum": [
+            "gateway_health",
+            "gateway_restart",
+            "validate_openclaw_json_candidate",
+            "deploy_openclaw_json_candidate",
+            "snapshot_pre",
+            "snapshot_post",
+            "vault_sync",
+            "rollback_prepare"
+          ]
+        },
+        "justification": {
+          "$ref": "#/$defs/non_empty_string"
+        },
+        "broker_request": {
+          "type": "object",
+          "required": ["action", "request_id", "task_id", "requested_by", "inputs"],
+          "properties": {
+            "action": {
+              "type": "string",
+              "enum": [
+                "gateway_health",
+                "gateway_restart",
+                "validate_openclaw_json_candidate",
+                "deploy_openclaw_json_candidate",
+                "snapshot_pre",
+                "snapshot_post",
+                "vault_sync",
+                "rollback_prepare"
+              ]
+            },
+            "request_id": {
+              "$ref": "#/$defs/id_string"
+            },
+            "task_id": {
+              "$ref": "#/$defs/id_string"
+            },
+            "requested_by": {
+              "$ref": "#/$defs/non_empty_string"
+            },
+            "inputs": {
+              "type": "object"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

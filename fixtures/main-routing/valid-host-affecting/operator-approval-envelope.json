@@ -1,0 +1,170 @@
+{
+  "schema_version": "openclaw.main.operator-approval-envelope.v1alpha1",
+  "envelope_id": "approval:intake:hcr-20260322-intake-host-affecting",
+  "envelope_type": "REQUIRES_OPERATOR_APPROVAL",
+  "dispatch_scope": "host_affecting",
+  "dispatch_status": "operator_approval_required",
+  "requires_operator_approval": true,
+  "approval": {
+    "status": "pending_review",
+    "exact_command_block_present": false
+  },
+  "routing_decision_id": "route:intake:hcr-20260322-intake-host-affecting",
+  "envelope_mode": "repo_side_dry_run",
+  "intake_id": "intake:hcr-20260322-intake-host-affecting",
+  "task_id": "task-intake-host-affecting",
+  "run_id": "run-20260322-intake-host-affecting",
+  "source_request_id": "hcr-20260322-intake-host-affecting",
+  "source_artifacts": {
+    "normalized_request_path": "fixtures/main-routing/valid-host-affecting/request.normalized.json",
+    "intake_report_path": "fixtures/main-routing/valid-host-affecting/intake-report.json",
+    "routing_decision_path": "fixtures/main-routing/valid-host-affecting/main-routing-decision.json"
+  },
+  "summary_context": {
+    "goal": "Prepare a host-affecting intake path that stays dry-run and broker-ready only.",
+    "outcome": "The runner produced a host-affecting request that still stops at main-side normalization and approval gating.",
+    "request_title": "Assemble a host-affecting broker-ready request dry-run",
+    "request_scope": "Static dry-run only: validate, normalize, and shape future broker requests without any live dispatch."
+  },
+  "validation_status": {
+    "normalized_request": "passed",
+    "intake_report": "passed",
+    "routing_decision": "passed"
+  },
+  "broker_requests": [
+    {
+      "sequence": 1,
+      "action": "validate_openclaw_json_candidate",
+      "justification": "Validate the reviewed candidate before any future host-side mutation.",
+      "broker_request": {
+        "action": "validate_openclaw_json_candidate",
+        "request_id": "hcr-20260322-intake-host-affecting:op1",
+        "task_id": "task-intake-host-affecting",
+        "requested_by": "main:intake",
+        "inputs": {
+          "candidate_path": "/var/lib/openclaw/approvals/candidates/openclaw.task-runner.intake-host-affecting.json",
+          "expected_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+        }
+      }
+    },
+    {
+      "sequence": 2,
+      "action": "snapshot_pre",
+      "justification": "Preserve a rollback point before any future reviewed deploy.",
+      "broker_request": {
+        "action": "snapshot_pre",
+        "request_id": "hcr-20260322-intake-host-affecting:op2",
+        "task_id": "task-intake-host-affecting",
+        "requested_by": "main:intake",
+        "inputs": {
+          "label": "phase3-intake-host-affecting-pre",
+          "reason": "Pre-change snapshot before a future reviewed deploy"
+        }
+      }
+    },
+    {
+      "sequence": 3,
+      "action": "deploy_openclaw_json_candidate",
+      "justification": "Deploy only after later approval and validation.",
+      "broker_request": {
+        "action": "deploy_openclaw_json_candidate",
+        "request_id": "hcr-20260322-intake-host-affecting:op3",
+        "task_id": "task-intake-host-affecting",
+        "requested_by": "main:intake",
+        "inputs": {
+          "candidate_path": "/var/lib/openclaw/approvals/candidates/openclaw.task-runner.intake-host-affecting.json",
+          "expected_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+        }
+      }
+    },
+    {
+      "sequence": 4,
+      "action": "gateway_restart",
+      "justification": "Restart would only happen after a reviewed deploy.",
+      "broker_request": {
+        "action": "gateway_restart",
+        "request_id": "hcr-20260322-intake-host-affecting:op4",
+        "task_id": "task-intake-host-affecting",
+        "requested_by": "main:intake",
+        "inputs": {
+          "reason": "Post deploy restart for a future reviewed intake candidate"
+        }
+      }
+    },
+    {
+      "sequence": 5,
+      "action": "snapshot_post",
+      "justification": "Capture post-change state after a future reviewed validation.",
+      "broker_request": {
+        "action": "snapshot_post",
+        "request_id": "hcr-20260322-intake-host-affecting:op5",
+        "task_id": "task-intake-host-affecting",
+        "requested_by": "main:intake",
+        "inputs": {
+          "label": "phase3-intake-host-affecting-post",
+          "reason": "Post-change snapshot after a future reviewed deploy"
+        }
+      }
+    },
+    {
+      "sequence": 6,
+      "action": "vault_sync",
+      "justification": "Preserve the post-change snapshot in Vault after a future reviewed change.",
+      "broker_request": {
+        "action": "vault_sync",
+        "request_id": "hcr-20260322-intake-host-affecting:op6",
+        "task_id": "task-intake-host-affecting",
+        "requested_by": "main:intake",
+        "inputs": {
+          "snapshot_name": "root-post-phase3-intake-host-affecting",
+          "incremental": true
+        }
+      }
+    }
+  ],
+  "refusal_reasons": [],
+  "forbidden_actions": [
+    "direct_docker_control",
+    "direct_host_shell",
+    "direct_openclaw_config_edit",
+    "direct_secret_handling",
+    "direct_snapshot_manipulation",
+    "direct_systemd_control",
+    "direct_vault_manipulation",
+    "unstructured_operator_commands",
+    "user_level_gateway_start"
+  ],
+  "boundary_carry_forward": {
+    "repo_side_only": true,
+    "live_side_publish_performed": false,
+    "broker_dispatch_performed": false,
+    "openclaw_runtime_modified": false,
+    "operator_command_blocks_present": false
+  },
+  "evidence_refs": [
+    {
+      "id": "design-v3",
+      "kind": "design_doc",
+      "path": "docs/design-v3.md",
+      "description": "Design anchor for main-side intake and broker-ready dry-runs."
+    },
+    {
+      "id": "current-boundary",
+      "kind": "boundary_doc",
+      "path": "docs/current-boundary.md",
+      "description": "Boundary freeze proving this slice remains repo-side and no-live-side."
+    },
+    {
+      "id": "host-sop",
+      "kind": "sop_doc",
+      "path": "docs/host-sop.md",
+      "description": "Host safety and snapshot discipline authority."
+    },
+    {
+      "id": "summary-json",
+      "kind": "output_file",
+      "path": "outputs/summary.json",
+      "description": "Structured summary that accompanies this host-affecting request."
+    }
+  ]
+}

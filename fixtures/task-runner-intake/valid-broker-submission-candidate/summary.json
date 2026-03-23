@@ -1,0 +1,66 @@
+{
+  "schema_version": "openclaw.task-runner.summary.v1alpha1",
+  "task_id": "task-intake-broker-submission-candidate",
+  "run_id": "run-20260323-intake-broker-submission-candidate",
+  "status": "completed_with_followup",
+  "summary": {
+    "goal": "Prepare a repo-side broker submission candidate dry-run artifact.",
+    "outcome": "The runner produced a readonly request that should advance to a dry-run broker submission envelope and stop there.",
+    "host_change_needed": true
+  },
+  "repo_changes": {
+    "changed_files": [
+      "schemas/main-routing-decision.schema.json",
+      "schemas/broker-submission-envelope.schema.json",
+      "scripts/build-submission-envelopes.py"
+    ],
+    "diff_path": "outputs/diff.patch"
+  },
+  "validation_results": [
+    {
+      "name": "candidate-case",
+      "status": "passed",
+      "artifact_path": "outputs/candidate-case.log"
+    }
+  ],
+  "outputs": {
+    "summary_md": "outputs/summary.md",
+    "summary_json": "outputs/summary.json",
+    "diff_patch": "outputs/diff.patch",
+    "host_change_request": "outputs/host-change-request.json",
+    "logs": [
+      "outputs/candidate-case.log"
+    ]
+  },
+  "requires_operator_approval": false,
+  "forbidden_actions": [
+    "direct_docker_control",
+    "direct_host_shell",
+    "direct_openclaw_config_edit",
+    "direct_secret_handling",
+    "direct_snapshot_manipulation",
+    "direct_systemd_control",
+    "direct_vault_manipulation",
+    "unstructured_operator_commands",
+    "user_level_gateway_start"
+  ],
+  "evidence_refs": [
+    {
+      "id": "design-v3",
+      "kind": "design_doc",
+      "path": "docs/design-v3.md",
+      "description": "Design anchor for routing to a broker submission candidate."
+    },
+    {
+      "id": "current-boundary",
+      "kind": "boundary_doc",
+      "path": "docs/current-boundary.md",
+      "description": "Confirms the candidate remains repo-side and dry-run only."
+    }
+  ],
+  "next_handoff": {
+    "consumer": "main",
+    "action": "review_host_change_request",
+    "host_change_request_path": "outputs/host-change-request.json"
+  }
+}

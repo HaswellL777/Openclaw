@@ -1,0 +1,78 @@
+{
+  "schema_version": "openclaw.task-runner.host-change-request.v1alpha1",
+  "request_id": "hcr-20260323-intake-broker-submission-candidate",
+  "task_id": "task-intake-broker-submission-candidate",
+  "requested_by": "task-runner",
+  "status": "proposed",
+  "summary": {
+    "title": "Assemble a broker submission candidate dry-run",
+    "why": "Main needs a clean readonly normalized request that can become a dry-run broker submission envelope without any approval or live dispatch.",
+    "scope": "Readonly validation and candidate assembly only, with no broker call and no runtime mutation.",
+    "impact": "The resulting envelope remains a repo-side submission candidate and proves the chain can advance one layer past intake."
+  },
+  "repo_context": {
+    "repo_relpath": "repo/",
+    "branch": "feat/phase1b-workspace-foundation",
+    "changed_files": [
+      "schemas/main-routing-decision.schema.json",
+      "schemas/broker-submission-envelope.schema.json",
+      "scripts/build-submission-envelopes.py"
+    ]
+  },
+  "requires_operator_approval": false,
+  "requested_host_ops": [
+    {
+      "sequence": 1,
+      "action": "gateway_health",
+      "justification": "Carry a readonly health check as part of the dry-run broker submission candidate.",
+      "inputs": {}
+    },
+    {
+      "sequence": 2,
+      "action": "rollback_prepare",
+      "justification": "Carry readonly rollback metadata without executing any rollback.",
+      "inputs": {
+        "target_snapshot": "root-pre-broker-submission-candidate-reference",
+        "reason": "Readonly candidate evidence only"
+      }
+    }
+  ],
+  "forbidden_actions": [
+    "direct_docker_control",
+    "direct_host_shell",
+    "direct_openclaw_config_edit",
+    "direct_secret_handling",
+    "direct_snapshot_manipulation",
+    "direct_systemd_control",
+    "direct_vault_manipulation",
+    "unstructured_operator_commands",
+    "user_level_gateway_start"
+  ],
+  "evidence_refs": [
+    {
+      "id": "design-v3",
+      "kind": "design_doc",
+      "path": "docs/design-v3.md",
+      "description": "Design anchor for a broker submission candidate that remains dry-run only."
+    },
+    {
+      "id": "artifact-contract",
+      "kind": "repo_file",
+      "path": "workspace-task-runner-template/control/artifact-contract.md",
+      "description": "Artifact contract requiring declarative host-change intent."
+    }
+  ],
+  "required_evidence": [
+    {
+      "id": "broker-submission-candidate-validation",
+      "when": "before_main_review",
+      "description": "Validation output for the candidate case before main routes it."
+    }
+  ],
+  "handoff": {
+    "next_consumer": "main",
+    "delivery_artifact": "outputs/host-change-request.json",
+    "broker_request_ready": true,
+    "review_required": true
+  }
+}
