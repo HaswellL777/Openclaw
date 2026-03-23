@@ -8,19 +8,19 @@
   "authority_docs": [
     {
       "path": "docs/design-v3.md",
-      "sha256": "bb5d9a936b0e973a19d336a105a639458d6a4f5e7752a3f337849e3f7c2d6b95"
+      "sha256": "f7a77eda79523c470710810713700f2eb2a236141ece4ed6822534524e65610b"
     },
     {
       "path": "docs/host-sop.md",
-      "sha256": "540bc613eb405f26da640fabeaa727f5433a178371f6def4dc1cf5fffca092d6"
+      "sha256": "cfcfc10af99019a09a6f0e7f87642ad397082a41e07e01ad25f8f8396b2bfb9d"
     },
     {
       "path": "docs/current-boundary.md",
-      "sha256": "c5fdef3a970ea9eef8e824b9774e32a1be80b02b3fef08ae4b5b2b1d8dea99b1"
+      "sha256": "8096a0dd601e37cb278cab34b432de2cc23a1d53eca6cf407350727c8ebec823"
     },
     {
       "path": "docs/map.md",
-      "sha256": "af65cf2dc8ee32c76ce17ef436ebac1ba09eeaa392d11143b713cc4ac8d4b8ed"
+      "sha256": "6233783540757ac0dfc2c11897e1a441e1540f764a223b4bb958c43f4f55b205"
     }
   ],
   "planes": {

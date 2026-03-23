@@ -24,6 +24,7 @@
 - 当前不应回到 proxy feasibility blocked line 继续做旧文档 source-closure 空转；
 - 当前也不应把 Gate 0-3 green 写成已可进入 live-side pre-snapshot；
 - 当前仍保持 `Phase 3 = NO-GO`，直到 future execution seam 的 operator-side exact input 被单独明确并审阅。
+- repo-side 文档同步本身不需要 host-side 快照；只有未来 live-side 动作才进入 `快照 -> 变更 -> 健康检查 -> post 快照 -> Vault 入库`。
 
 ## 2. 唯一最小 First Live Pilot Case
 
@@ -123,6 +124,21 @@ operator 必须明确：
 - 本次 future execution seam 的 cleanup / stop 完成后，看哪些 direct artifacts 判定“确已收尾”
 
 没有 cleanup completion evidence，first live pilot 就不是可审计的最小闭环。
+
+### 3.8 Operator Exact-Input Ledger（待绑定，不得包装成 ready-to-run）
+
+下列项当前只能写成“待 operator-side exact input 绑定”，不能包装成已就绪 live input：
+
+| 类型 | 当前 repo-side 锚点 | 当前状态 |
+|------|---------------------|----------|
+| execution seam identity | 第 3.2 节；`task-intake-host-affecting` anchor | **未绑定 exact identity**；目前只有 case anchor，没有 live-side start / running / stop / cleanup evidence source |
+| candidate usage route under hard boundaries | 第 3.3 节；`task-intake-host-affecting` anchor | **未绑定 exact route**；当前只冻结“不改 `/etc/openclaw/openclaw.json` / `openclaw.live.json` / `openclaw` 组归属 / 不开第二个 gateway”的硬边界 |
+| candidate artifact exact binding | `fixtures/control-plane-replay/valid-host-affecting/operator-review-bundle.json` 中 `broker_requests[0].broker_request.inputs.candidate_path`、`broker_requests[0].broker_request.inputs.expected_sha256`、`broker_requests[2].broker_request.inputs.candidate_path`、`broker_requests[2].broker_request.inputs.expected_sha256` | **仍是 placeholder 性质绑定**；只能视为 future reviewed candidate 的逻辑占位，不得包装成 ready-to-run exact input |
+| acceptance result capture | 第 3.4 节；现有 fixture 未冻结 acceptance artifact source | **未绑定 exact evidence source**；accepted / rejected 的 direct artifact 仍待 operator-side 明确 |
+| post-change health check evidence | 第 3.5 节；现有 fixture 未冻结 health artifact source | **未绑定 exact evidence source**；health pass / fail 仍待 operator-side 明确 |
+| pre / post snapshot binding | `fixtures/control-plane-replay/valid-host-affecting/operator-review-bundle.json` 中 `broker_requests[1].broker_request.inputs.label`、`broker_requests[4].broker_request.inputs.label` | **仅是逻辑标签，不是已批准的 live-side exact input**；实际 pre/post snapshot 标识仍待 operator-side 绑定 |
+| Vault completion criteria | `fixtures/control-plane-replay/valid-host-affecting/operator-review-bundle.json` 中 `broker_requests[5].broker_request.inputs.snapshot_name` | **仅是逻辑占位，不是完成判据**；Vault 入库对象、完成信号与证据仍待 operator-side 绑定 |
+| cleanup completion evidence | 第 3.7 节；现有 fixture 未冻结 cleanup artifact source | **未绑定 exact evidence source**；cleanup / stop 完成判据仍待 operator-side 明确 |
 
 ## 4. 进入第一次 Live Pilot 前的最小门禁顺序
 

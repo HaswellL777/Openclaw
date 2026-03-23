@@ -27,11 +27,11 @@
 | 文件 | 描述 |
 |------|------|
 | `docs/planning/README.md` | planning 目录索引 |
-| `docs/planning/phase3-first-live-pilot-execution-seam-prep-pack-2026-03-23.md` | **当前 direct next 主文档：operator-side / future execution seam prep for first live pilot** |
+| `docs/planning/phase3-first-live-pilot-execution-seam-prep-pack-2026-03-23.md` | **当前 direct next 主文档：operator-side / future execution seam prep for first live pilot；`first-live-pilot candidate pack` 已 ready；repo-side 文档同步本身不需要 host-side 快照** |
 | `docs/planning/approved-direct-proxy-execution-block-source-closure-2026-03-22.md` | 前一轮 repo-side source closure；已并入 `2026-03-23` merged prep pack 的 direct-next 收口背景 |
 | `docs/planning/hello-world-image-prerequisite-window-2026-03-21.md` | **hello-world image prerequisite-only window（已完成 / 已收口；不是 implementation completion）** |
 | `docs/planning/docker-prerequisite-establishment-for-phase3-2026-03-19.md` | **当前 active 父切片：Docker prerequisite establishment** |
-| `docs/planning/docker-access-model-feasibility-experiment-for-openclaw-2026.3.13-2026-03-21.md` | **feasibility definition；`hello-world` prerequisite 已于 `2026-03-22` 补齐，但当前仍缺 `Approved Direct Proxy Execution Block`** |
+| `docs/planning/docker-access-model-feasibility-experiment-for-openclaw-2026.3.13-2026-03-21.md` | **feasibility definition；`hello-world` prerequisite 已于 `2026-03-22` 补齐；当前 remaining blocker 已收缩为 future execution seam / operator input，不得误写成 pre-snapshot released** |
 | `docs/planning/openclaw-upgrade-readiness-2026-03-18.md` | OpenClaw 升级就绪评估（已完成） |
 | `docs/planning/openclaw-2026.3.13-upgrade-slice-design-2026-03-18.md` | 2026.3.13 升级 slice 设计（已完成） |
 | `docs/planning/openclaw-2026.3.13-upgrade-rollback-design-2026-03-18.md` | 2026.3.13 升级 rollback 设计（已完成） |

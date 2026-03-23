@@ -8,32 +8,32 @@
       "plane": "authority",
       "kind": "authority_doc",
       "path": "docs/design-v3.md",
-      "sha256": "bb5d9a936b0e973a19d336a105a639458d6a4f5e7752a3f337849e3f7c2d6b95",
-      "bytes": 74368
+      "sha256": "f7a77eda79523c470710810713700f2eb2a236141ece4ed6822534524e65610b",
+      "bytes": 75073
     },
     {
       "ref_id": "authority:docs:host-sop.md",
       "plane": "authority",
       "kind": "authority_doc",
       "path": "docs/host-sop.md",
-      "sha256": "540bc613eb405f26da640fabeaa727f5433a178371f6def4dc1cf5fffca092d6",
-      "bytes": 106727
+      "sha256": "cfcfc10af99019a09a6f0e7f87642ad397082a41e07e01ad25f8f8396b2bfb9d",
+      "bytes": 107191
     },
     {
       "ref_id": "authority:docs:current-boundary.md",
       "plane": "authority",
       "kind": "authority_doc",
       "path": "docs/current-boundary.md",
-      "sha256": "c5fdef3a970ea9eef8e824b9774e32a1be80b02b3fef08ae4b5b2b1d8dea99b1",
-      "bytes": 9073
+      "sha256": "8096a0dd601e37cb278cab34b432de2cc23a1d53eca6cf407350727c8ebec823",
+      "bytes": 9236
     },
     {
       "ref_id": "authority:docs:map.md",
       "plane": "authority",
       "kind": "authority_doc",
       "path": "docs/map.md",
-      "sha256": "af65cf2dc8ee32c76ce17ef436ebac1ba09eeaa392d11143b713cc4ac8d4b8ed",
-      "bytes": 8448
+      "sha256": "6233783540757ac0dfc2c11897e1a441e1540f764a223b4bb958c43f4f55b205",
+      "bytes": 8787
     },
     {
       "ref_id": "control_plane:scripts:build-broker-ready-request.py",
