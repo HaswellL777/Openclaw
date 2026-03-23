@@ -29,9 +29,9 @@ This file defines how main agent monitors and reports system health.
 - Are skills definitions valid?
 - Are state files parseable?
 
-### Subagent availability (Phase 1B+)
-- Is task-runner available?
-- Is host-ops broker available?
+### Subagent availability
+- Is task-runner available? (check via sessions_spawn)
+- Is host-ops broker available? (check via host_ops gateway_health)
 
 ## Health report format
 Write to `control/state/last-health.md`:
@@ -54,7 +54,7 @@ Write to `control/state/last-health.md`:
 - Required files: present/missing
 - Skills valid: yes/no
 
-## Subagents (Phase 1B+)
+## Subagents
 - task-runner: available/unavailable
 - host-ops broker: available/unavailable
 

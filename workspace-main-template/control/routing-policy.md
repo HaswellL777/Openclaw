@@ -10,8 +10,8 @@ This policy defines how main agent routes requests to appropriate execution cont
 - Read/write/edit files in workspace-main
 - Query control files
 - Update state files
-- Spawn subagents (task-runner: Phase 3)
-- Call host-ops broker (Phase 2)
+- Spawn subagents (task-runner: operational)
+- Call host-ops broker (operational)
 
 **Use for**:
 - Control plane queries
@@ -26,7 +26,7 @@ This policy defines how main agent routes requests to appropriate execution cont
 - Direct host mutations
 - File operations outside workspace-main
 
-### 2. task-runner (Phase 3, not yet available)
+### 2. task-runner (Phase 3, deployed 2026-03-23)
 **Capabilities**:
 - Read/write/edit files in task workspace
 - Execute shell commands in sandbox
@@ -47,7 +47,7 @@ This policy defines how main agent routes requests to appropriate execution cont
 - Long-lived state management
 - Control plane decisions
 
-### 3. host-ops broker (Phase 2, not yet available)
+### 3. host-ops broker (Phase 2, deployed 2026-03-17)
 **Capabilities**:
 - Execute pre-approved host mutations
 - Follow snapshot → change → validate → snapshot → vault workflow
@@ -106,12 +106,12 @@ User request
   |    └─ YES → Handle in main agent
   |
   ├─ Does it require engineering work?
-  |    └─ YES → Route to task-runner (Phase 3)
+  |    └─ YES → Spawn task-runner via sessions_spawn
   |
   ├─ Does it require host mutation?
   |    ├─ Check approval-policy.md
   |    ├─ If approval required → Escalate to human
-  |    └─ If approved → Route to host-ops broker (Phase 2)
+  |    └─ If approved → Route to host-ops broker
   |
   ├─ Is it development work in openclaw-dev?
   |    └─ YES → Suggest using Claude Code CLI
@@ -120,10 +120,10 @@ User request
        └─ Escalate to human
 ```
 
-## Current limitations (Phase 1 complete, Phase 2 not started)
-- task-runner not yet available (Phase 3) → Cannot route engineering tasks
-- host-ops broker not yet available (Phase 2) → Cannot route host mutations
-- Current workaround: Explain limitation and suggest manual execution following runbooks
+## Current capabilities (Phase 3 operational)
+- task-runner: operational (2026-03-23) → Engineering tasks routed to Docker sandbox
+- host-ops broker: operational (2026-03-17) → Host mutations via broker + wrapper chain
+- All 8 host_ops actions live E2E verified
 
 ## Routing examples
 

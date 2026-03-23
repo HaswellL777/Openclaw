@@ -1,14 +1,15 @@
 # Tool Usage Guidelines
 
-## Available tools (Phase 1A)
+## Available tools (Phase 3)
 - `read`: Read files in workspace-main
 - `write`: Write files in workspace-main
 - `edit`: Edit files in workspace-main
 - `sessions_list`: List OpenClaw sessions
 - `sessions_history`: Get session history
 - `sessions_send`: Send message to session
-- `sessions_spawn`: Spawn new agent session (task-runner only, Phase 1B+)
+- `sessions_spawn`: Spawn new agent session (task-runner, operational)
 - `session_status`: Get session status
+- `host_ops`: Call host-ops broker for host mutations (8/8 actions available)
 
 ## Denied tools
 - `exec`: No direct shell execution
@@ -38,9 +39,9 @@ Reference these for specialized knowledge:
 - `skills/host-sop/SKILL.md`: Host SOP skill
 - `skills/routing/SKILL.md`: Routing skill
 - `skills/approvals/SKILL.md`: Approvals skill
-- `skills/broker/SKILL.md`: Broker skill (Phase 1B+)
+- `skills/broker/SKILL.md`: Broker skill
 
-### Spawning subagents (Phase 1B+, not yet available)
+### Spawning task-runner (operational)
 When spawning task-runner:
 1. Check `control/allowed-workers.md` for whitelist
 2. Prepare task context and constraints
@@ -48,13 +49,13 @@ When spawning task-runner:
 4. Monitor task progress
 5. Collect results and update task index
 
-### Calling host-ops broker (Phase 1B+, not yet available)
+### Calling host-ops broker (operational)
 When host mutation required:
 1. Check `control/approval-policy.md` for approval requirements
 2. If approval required, update `control/state/pending-approvals.json` and wait
 3. Read `control/host-ops-api.md` for API contract
 4. Prepare structured host-change-request
-5. Call broker API
+5. Call broker API via `host_ops` tool
 6. Monitor execution
 7. Update health state
 

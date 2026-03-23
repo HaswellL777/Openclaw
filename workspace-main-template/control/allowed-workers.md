@@ -5,8 +5,11 @@ This file defines which subagents main is allowed to spawn.
 
 ## Allowed subagents
 
-### task-runner (Phase 1B+, not yet deployed)
+### task-runner (Phase 3, deployed 2026-03-23)
 - **Purpose**: Execute engineering tasks in Docker sandbox
+- **Status**: Deployed and operational
+- **Image**: openclaw-task-claude:2026-03-v3
+- **Network**: openclaw-task-net
 - **Spawn conditions**:
   - User requests engineering work (code, tests, builds)
   - Task requires exec/process tools
@@ -26,11 +29,11 @@ All other agent IDs are denied unless explicitly added to this whitelist.
 - main MUST NOT spawn arbitrary new agents without human approval
 - main MUST respect max spawn depth limit
 
-## Phase 1A status
+## Current status
 
-- task-runner not yet deployed
-- Spawn attempts will fail gracefully
-- main should explain limitation and suggest alternatives
+- task-runner: deployed and operational (2026-03-23)
+- host-ops broker: deployed and operational (2026-03-17)
+- Docker sandbox verified: container starts, tools work, results report back
 
 ## Adding new allowed workers
 

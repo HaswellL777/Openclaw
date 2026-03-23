@@ -20,7 +20,8 @@ RUN apt-get update \
 
 RUN useradd --create-home --home-dir /home/runner --shell /bin/bash runner \
     && mkdir -p /workspace/repo /workspace/inputs /workspace/outputs/export \
-    && chown -R runner:runner /home/runner /workspace
+    && chmod -R 1777 /workspace \
+    && chown -R runner:runner /home/runner
 
 COPY entrypoint.sh /usr/local/bin/task-runner-entrypoint
 COPY bootstrap/prepare-workspace.sh /usr/local/bin/prepare-workspace

@@ -73,7 +73,7 @@
 | Capability probe P1 | **Caution** — sessions_yield 不存在于当前版本, 非前置, 不阻塞 |
 | Capability probe P4 | **Go** — 含 sandbox.docker 的 candidate validate passed |
 | Capability probe P3 | **Caution** — 配置结构正确, 待 live spawn 验证 |
-| Phase 3 (Docker sandbox / task-runner) | **GO** — 全部 hard gate 通过, 进入实施阶段 |
+| Phase 3 (Docker sandbox / task-runner) | **已完成基础部署** — task-runner 可 spawn，Docker 容器运行正常，/workspace/repo 可写，工具链验证通过 |
 | Phase 4 (容器内 Claude Code 执行链) | 未开始 |
 | Phase 5 (LLM gateway / token 最小化) | 未开始 |
 | Phase 6 (备份扩展 / 长期收口) | 未开始 |
@@ -81,14 +81,24 @@
 
 ## 当前下一步
 
-**Phase 3 = GO。** Capability probe 全部 hard gate 通过（2026-03-23）。当前进入 Phase 3 实施：
+**Phase 3 基础部署已完成（2026-03-23）。** 全部验证通过：
 
-1. **构建 task-runner 基线镜像**：`docker build -t openclaw-task-claude:2026-03-v3 task-runner-container/`
-2. **创建 openclaw-task-net**：`docker network create openclaw-task-net`
-3. **在 openclaw.json 中加入 task-runner agent 配置**（含 sandbox.docker）— 需走完整变更链
-4. **创建 workspace-task-runner**
-5. **验证 sessions_spawn("task-runner")**
-6. **首次真实容器化任务执行**
+- task-runner 基线镜像：`openclaw-task-claude:2026-03-v3` (构建完成)
+- Docker network：`openclaw-task-net` (创建完成)
+- openclaw.json：task-runner agent 配置已部署（sandbox.docker, workspaceAccess=rw）
+- 默认模型：已切换为 `custom-api-deepseek-com/deepseek-chat`
+- workspace-task-runner：已创建
+- workspace-main 控制文件：已更新为 Phase 3 operational 状态并发布
+- sessions_spawn("task-runner")：验证通过
+- 容器内 exec/写入：验证通过（/workspace/repo 可写）
+- 首次真实任务执行：通过（系统信息收集 + 文件创建）
+- Post snapshot：`root-post-phase3-complete-20260323-1847`
+- Vault sync：已完成
+
+当前可进入 Phase 3 日常使用阶段。后续方向：
+1. 通过飞书给 main agent 发送工程任务，自动路由到 task-runner
+2. 按需构建更多镜像模板（Codex 镜像、带 Node.js 的镜像等）
+3. Phase 4：容器内 Claude Code 执行链（task token / gateway token 下发）
 
 Probe 记录：`docs/records/post-upgrade-capability-probe-rerun-2026-03-23.md`
 

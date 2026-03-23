@@ -145,11 +145,11 @@ Write to `control/state/pending-approvals.json`:
 }
 ```
 
-## Current limitations (Phase 1 complete, Phase 2 not started)
+## Current capabilities (Phase 3 operational)
 
-- host-ops broker not yet available (Phase 2) → Category 2 operations cannot be fully automated
-- task-runner not yet available (Phase 3) → Some engineering tasks requiring approval cannot be delegated
-- Current workaround: Present plan, get approval, suggest manual execution following runbooks
+- host-ops broker: operational (2026-03-17) → Category 2 operations routed through broker
+- task-runner: operational (2026-03-23) → Engineering tasks delegated to Docker sandbox
+- All 8 host_ops actions available for approved host mutations
 
 ## Approval examples
 
