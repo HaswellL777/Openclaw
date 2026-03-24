@@ -74,7 +74,8 @@
 | Capability probe P4 | **Go** — 含 sandbox.docker 的 candidate validate passed |
 | Capability probe P3 | **Caution** — 配置结构正确, 待 live spawn 验证 |
 | Phase 3 (Docker sandbox / task-runner) | **已完成基础部署** — task-runner 可 spawn，Docker 容器运行正常，/workspace/repo 可写，工具链验证通过 |
-| Phase 4 (容器内 Claude Code 执行链) | 未开始 |
+| Phase 3+ (full image / per-task isolation / prune) | **repo-side artifacts ready** — Dockerfile.full, per-task dir scripts, prune candidate 已创建（待 operator build & deploy） |
+| Phase 4 (ACP Claude Code 执行链) | **方案已修正** — 容器是工具沙箱，不运行 LLM 进程；Claude Code 通过 ACP 在宿主机运行。下一步：验证 ACP session spawn + sandbox routing probe |
 | Phase 5 (LLM gateway / token 最小化) | 未开始 |
 | Phase 6 (备份扩展 / 长期收口) | 未开始 |
 | Scrapling 接入 | 未开始 |
@@ -98,7 +99,7 @@
 当前可进入 Phase 3 日常使用阶段。后续方向：
 1. 通过飞书给 main agent 发送工程任务，自动路由到 task-runner
 2. 按需构建更多镜像模板（Codex 镜像、带 Node.js 的镜像等）
-3. Phase 4：容器内 Claude Code 执行链（task token / gateway token 下发）
+3. Phase 4：ACP Claude Code session（宿主机进程 + sandbox routing probe）
 
 Probe 记录：`docs/records/post-upgrade-capability-probe-rerun-2026-03-23.md`
 

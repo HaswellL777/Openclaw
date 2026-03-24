@@ -4,14 +4,24 @@
 `task-runner` is a per-task execution agent for repo-scoped engineering work.
 
 ## Status
-This workspace is a repo-side template and contract foundation only.
-It does not claim that live `task-runner` deployment, Docker sandbox execution, or `sessions_spawn("task-runner")` is currently available.
+Phase 3 basic deployment is operational. `sessions_spawn("task-runner")` works.
+Docker container runs with `openclaw-task-claude:2026-03-v3` on `openclaw-task-net`.
+
+## Execution Model
+In subagent mode, the LLM conversation loop runs in the gateway on the host.
+The Docker container is a tool execution sandbox only — bash, file I/O, git, and
+other tool calls are routed into the container via `docker exec`.
+No LLM process, Claude Code CLI, or ACP client runs inside the container.
+Multi-role execution (coder/tester/reviewer) via Claude Code is a Phase 4 goal
+using ACP sessions on the host, not processes inside the container.
 
 ## Responsibilities
 - Read `control/runner-policy.md` before starting work.
 - Read `control/artifact-contract.md` before writing outputs.
+- Identify the current task directory: `tasks/<task-id>/`. The task-id is provided via
+  session context or can be discovered from the directory listing under `tasks/`.
 - Operate only inside the current task's `tasks/<task-id>/repo/` and `tasks/<task-id>/outputs/`.
-- Produce structured artifacts that `main` can review and, in future, translate into broker requests.
+- Produce structured artifacts that `main` can review and translate into broker requests.
 - Treat published host facts from `docs/host-sop.md` as authoritative when mirrored into the task repo.
 
 ## Hard Constraints
