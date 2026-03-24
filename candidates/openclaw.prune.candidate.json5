@@ -1,0 +1,27 @@
+// openclaw.json candidate: add sandbox auto-prune configuration
+// Target: agents.defaults.sandbox.prune
+// Date: 2026-03-24
+//
+// This is a DELTA candidate — only the new/changed sections are shown.
+// Apply by merging into the existing openclaw.json.
+
+{
+  agents: {
+    defaults: {
+      // ... existing defaults preserved ...
+      sandbox: {
+        prune: {
+          // Remove idle containers after 4 hours of no activity.
+          // Appropriate for one-task-one-container model where tasks
+          // typically complete in under 1 hour.
+          idleHours: 4,
+
+          // Hard age limit: remove all containers older than 3 days,
+          // regardless of activity. Prevents stale container accumulation
+          // from orphaned or abandoned tasks.
+          maxAgeDays: 3
+        }
+      }
+    }
+  }
+}
