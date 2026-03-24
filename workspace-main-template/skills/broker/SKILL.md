@@ -5,28 +5,25 @@
 - **Owner**: `main` agent
 - **Purpose**: Interface with host-ops broker for host state mutations
 
-## Status
-
-### Deployment state (2026-03-15)
+## Status: Fully operational (2026-03-17)
 
 | Layer | Status |
 |-------|--------|
 | Broker backend | **deployed** — daemon running, socket available, 8 wrappers installed |
 | Plugin config registration | **complete** — gateway accepted, healthy |
 | Plugin lifecycle activation | **complete** — `register(api)` export active on live gateway |
-| Tool registration (repo) | **complete** — `api.registerTool(hostOpsTool, {optional:true})` implemented, gateway_health only |
-| Agent-facing `host_ops` tool | **初始只读切片已完成（2026-03-15）** — `host_ops` 已加入 `main.tools.allow`，`gateway_health` E2E 成功；其余 action 仍需逐项验收 |
+| Tool registration | **complete** — `api.registerTool(hostOpsTool)` active |
+| Agent-facing `host_ops` tool | **8/8 actions live E2E verified** |
 
-**当前状态**: `gateway_health`（只读）已通过 agent-facing E2E 验证。其余 7 个 action（含写操作）尚未逐项 agent-facing 验收，相关操作仍使用 Phase 1 workaround。
+All 8 actions are operational and available via the `host_ops` tool.
 
-## What this skill does (planned)
+## What this skill does
 This skill provides the interface for calling host-ops broker to execute:
 - OpenClaw configuration changes (validate + deploy candidate)
 - Gateway health checks and restarts
 - Snapshot creation (pre-change and post-change)
 - Vault sync
 - Rollback preparation
-- Other host mutations requiring elevated privileges
 
 ## Authority
 The authoritative broker API contract is `control/host-ops-api.md`.
@@ -36,18 +33,27 @@ This skill should:
 1. Reference `control/host-ops-api.md` for API contract
 2. Check `control/approval-policy.md` for approval requirements
 3. Verify approval exists in `control/state/pending-approvals.json`
-4. Prepare structured host-ops request
-5. Call broker API
-6. Monitor execution
-7. Update state files with results
+4. Call `host_ops` tool with structured request
+5. Monitor execution
+6. Update state files with results
 
-## Broker API (planned)
+## Supported actions (all operational)
 
-### Transport
-Unix domain socket at `/run/openclaw/broker.sock`.
+| Action | Purpose | Type |
+|--------|---------|------|
+| `gateway_health` | Check gateway service health | read-only |
+| `validate_openclaw_json_candidate` | Validate candidate config file | read-only |
+| `deploy_openclaw_json_candidate` | Deploy validated candidate to /etc/openclaw | write (Route C) |
+| `snapshot_pre` | Create pre-change btrfs snapshot | write |
+| `snapshot_post` | Create post-change btrfs snapshot | write |
+| `rollback_prepare` | Prepare rollback to previous snapshot | read-only (prepare-only) |
+| `gateway_restart` | Restart openclaw-gateway.service | write (two-phase) |
+| `vault_sync` | Sync snapshot to vault | write (incremental send) |
 
-### Request format
-Per `docs/specs/host-ops-broker-protocol-v1.md` §2 and `broker/schemas/host-ops-request.schema.json`:
+See `control/host-ops-api.md` for detailed parameters and examples.
+
+## Request format
+Per `docs/specs/host-ops-broker-protocol-v1.md`:
 
 ```json
 {
@@ -57,114 +63,43 @@ Per `docs/specs/host-ops-broker-protocol-v1.md` §2 and `broker/schemas/host-ops
   "requested_by": "agent:main",
   "inputs": {
     "candidate_path": "/var/lib/openclaw/approvals/candidates/openclaw.json",
-    "expected_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    "expected_sha256": "..."
   }
 }
 ```
 
-Required fields:
-- `action` — One of 8 supported action strings
-- `request_id` — Unique request identifier
-- `task_id` — OpenClaw task identifier
-- `requested_by` — Identity of requester
-- `inputs` — Action-specific input object
-
-### Response format
-Per `broker/schemas/host-ops-result.schema.json`:
-
-```json
-{
-  "ok": true,
-  "action": "deploy_openclaw_json_candidate",
-  "request_id": "req-20260311-143000-a1b2c3",
-  "task_id": "task-...",
-  "status": "ok",
-  "message": "Config deployed successfully",
-  "artifacts": {
-    "deployed_path": "/etc/openclaw/openclaw.json",
-    "deployed_sha256": "abc123..."
-  },
-  "rollback_hint": "Restore from pre-change snapshot: root-pre-20260311-1430"
-}
-```
-
-Required fields:
-- `ok` — Boolean success indicator
-- `action` — Echo of requested action
-- `request_id` — Echo of request_id
-- `task_id` — Echo of task_id
-- `status` — One of: `ok`, `error`, `denied`
-
-## Supported actions (planned)
-
-| Action | Purpose |
-|--------|---------|
-| `gateway_health` | Check gateway service health |
-| `gateway_restart` | Restart openclaw-gateway.service |
-| `validate_openclaw_json_candidate` | Validate candidate config file |
-| `deploy_openclaw_json_candidate` | Deploy validated candidate to /etc/openclaw |
-| `snapshot_pre` | Create pre-change btrfs snapshot |
-| `snapshot_post` | Create post-change btrfs snapshot |
-| `vault_sync` | Sync snapshot to vault |
-| `rollback_prepare` | Prepare rollback to previous snapshot |
-
-See `control/host-ops-api.md` for detailed parameters and examples.
-
-## Usage workflow (planned)
+## Usage workflow
 
 ### Step 1: Check approval
 Read `control/state/pending-approvals.json`.
-Verify approval exists and status is "approved".
+Verify approval exists and status is "approved" (for Category 1/2 operations).
 
-### Step 2: Prepare request
-Read `control/host-ops-api.md` for API contract.
-Prepare structured request with:
-- Unique request_id (format: `req-YYYYMMDD-HHMMSS-<random>`)
-- Action type
-- requested_by identity
-- Action-specific inputs
+### Step 2: Call host_ops
+Use the `host_ops` tool directly. The tool handles broker communication.
 
-### Step 3: Call broker
-Send request to broker via Unix socket.
-(Implementation details TBD in Phase 2)
-
-### Step 4: Monitor execution
-Poll for status or wait for callback.
-Track progress and intermediate results.
-
-### Step 5: Update state
+### Step 3: Update state
 When complete:
 - Update `control/state/pending-approvals.json` (mark completed/failed)
 - Update `control/state/last-health.md` with results
-- Update `control/state/last-sop-hash.txt` if SOP changed
 - Report results to human
 
-## Phase 1 workaround (current — until plugin activation is complete)
+## Standard host mutation workflow
+For operations that change host state:
+1. `snapshot_pre` — create pre-change snapshot
+2. `vault_sync` — sync pre-state to vault
+3. Execute the change (e.g. `deploy_openclaw_json_candidate`)
+4. `gateway_restart` — if config changed
+5. `gateway_health` — verify health
+6. `snapshot_post` — create post-change snapshot
+7. `vault_sync` — sync post-state to vault
 
-Since broker backend is deployed but agent-facing tool is not yet active:
-1. main agent prepares operation plan
-2. main agent requests approval
-3. Human executes manually following runbooks in `control/runbooks/`
-4. Human reports results
-5. main agent updates state files
-
-## Safety guarantees (planned)
-
-The broker MUST:
-- Verify approval exists and is approved
-- Create pre-change snapshot if required
-- Validate operation parameters
-- Execute with proper error handling
-- Validate results
-- Create post-change snapshot if required
-- Sync to vault if required
-- Return structured results with rollback info
-
-The broker MUST NOT:
-- Execute without valid approval
-- Skip snapshot steps if required
-- Proceed if validation fails
-- Leave system in inconsistent state
+## Safety guarantees
+The broker:
+- Validates all request parameters via schema
+- Uses root-owned wrappers with no shell injection
+- Logs all operations with request-id tracking
+- Returns structured results with rollback hints
+- Fails closed on invalid input
 
 ## Related skills
 - `approvals`: Determines approval requirements before calling broker
@@ -172,22 +107,6 @@ The broker MUST NOT:
 - `host-sop`: Provides host facts for broker operations
 
 ## Related runbooks
-- `control/runbooks/openclaw-config-change.md`: Manual procedure for config updates
-- `control/runbooks/gateway-restart.md`: Manual procedure for gateway restart
-- `control/runbooks/rollback.md`: Manual procedure for system rollback
-
-## Phase 2 implementation
-
-When broker is deployed:
-- This skill becomes operational
-- main agent can call broker API directly
-- Manual runbook execution is replaced by automated broker calls
-- Human approval still required for Category 1/2 operations
-- Broker handles snapshot -> change -> validate -> snapshot -> vault workflow automatically
-
-## Notes
-- Broker is a critical safety component
-- Must be thoroughly tested before production use
-- Must have comprehensive logging and audit trail
-- Must handle errors gracefully with clear rollback guidance
-- Must never bypass approval requirements
+- `control/runbooks/openclaw-config-change.md`: Config update procedure
+- `control/runbooks/gateway-restart.md`: Gateway restart procedure
+- `control/runbooks/rollback.md`: System rollback procedure

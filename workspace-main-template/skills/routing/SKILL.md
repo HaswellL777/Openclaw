@@ -8,8 +8,8 @@
 ## What this skill does
 This skill determines where and how to execute user requests:
 - Should this run in main agent context? (read/write/edit only)
-- Should this be routed to task-runner? (exec required, Phase 1B+)
-- Should this be routed to host-ops broker? (host mutation, Phase 1B+)
+- Should this be routed to task-runner? (engineering work requiring exec)
+- Should this be routed to host-ops broker? (host mutation)
 - Should this be routed to Claude Code CLI? (development work)
 - Should this be escalated to human? (risky operations, approval required)
 
@@ -36,24 +36,23 @@ If operation requires approval → Escalate to human first, then route after app
 Read `control/routing-policy.md` and apply decision tree:
 
 - **Control plane query** → Handle in main agent
-- **Engineering work** → Route to task-runner (Phase 1B+)
-- **Host mutation** → Route to host-ops broker (Phase 1B+)
+- **Engineering work** → Route to task-runner via `sessions_spawn`
+- **Host mutation** → Route to host-ops broker via `host_ops` tool
 - **Development work in openclaw-dev** → Suggest Claude Code CLI
 - **Uncertain** → Escalate to human
 
-### Step 4: Verify routing target available
-- task-runner: Check Phase 1B+ status (not yet available in Phase 1A)
-- host-ops broker: Check Phase 1B+ status (not yet available in Phase 1A)
-- Claude Code CLI: External tool, always suggest to user
+### Step 4: Execute routing
+- task-runner: `sessions_spawn(agentId="task-runner")` — **operational** (deployed 2026-03-23)
+- host-ops broker: `host_ops` tool — **operational** (8/8 actions live E2E verified 2026-03-17)
+- Claude Code CLI: External tool, suggest to user
 
-### Step 5: Execute routing
-- If target available → Route request
-- If target not available → Explain limitation, suggest workaround or wait
+## Current capabilities (Phase 3)
 
-## Phase 1A limitations
-- task-runner not yet deployed → Cannot route engineering tasks
-- host-ops broker not yet deployed → Cannot route host mutations
-- Current workaround: Explain limitation, suggest manual execution or wait for Phase 1B
+| Target | Status | Since |
+|--------|--------|-------|
+| task-runner | **operational** — Docker sandbox, exec/read/write/edit in container | 2026-03-23 |
+| host-ops broker | **operational** — 8/8 actions live E2E verified | 2026-03-17 |
+| Claude Code CLI | external — always available to nick user | — |
 
 ## Usage patterns
 
@@ -62,24 +61,24 @@ Read `control/routing-policy.md` and apply decision tree:
 - **Route to**: main agent (current context)
 - **Action**: Use host-sop skill to read control/SOP.md and answer
 
-### Example 2: "Run tests in openclaw-dev repo"
-- **Analysis**: Engineering task in development repo
-- **Route to**: Claude Code CLI (external)
-- **Action**: Suggest user run `claude` in /home/nick/projects/openclaw-dev
+### Example 2: "Clone this repo and run its tests"
+- **Analysis**: Engineering task requiring exec
+- **Route to**: task-runner via `sessions_spawn(agentId="task-runner")`
+- **Action**: Spawn task-runner, provide repo URL and task description
 
 ### Example 3: "Add a new plugin to OpenClaw"
 - **Analysis**: Engineering task (code) + host mutation (config)
-- **Route to**: task-runner for code (Phase 1B+), then host-ops broker for config (Phase 1B+)
-- **Action**: Phase 1A → Explain limitation, suggest manual workflow with approval
+- **Route to**: task-runner for code, then host-ops broker for config deployment
+- **Action**: Spawn task-runner for code work, then use broker for config change
 
 ### Example 4: "Update /etc/openclaw/openclaw.json"
 - **Analysis**: Host mutation requiring approval
-- **Route to**: Human escalation → host-ops broker (Phase 1B+)
-- **Action**: Check approval-policy.md (Category 2), prepare plan, request approval, wait for Phase 1B
+- **Route to**: Human escalation → host-ops broker
+- **Action**: Check approval-policy.md (Category 2), prepare plan, request approval, then call broker
 
 ### Example 5: "Delete old snapshots"
 - **Analysis**: Host mutation, destructive operation
-- **Route to**: Human escalation → host-ops broker (Phase 1B+)
+- **Route to**: Human escalation → host-ops broker
 - **Action**: Check approval-policy.md (Category 1), request approval with rollback plan
 
 ### Example 6: "Update workspace-main control files"
@@ -90,17 +89,10 @@ Read `control/routing-policy.md` and apply decision tree:
 ## Related skills
 - `host-sop`: Provides host facts for routing decisions
 - `approvals`: Determines approval requirements before routing
-- `broker`: Execution target for host mutations (Phase 1B+)
+- `broker`: Execution target for host mutations
 
 ## Safety notes
 - Always check prohibited operations before routing
 - Always check approval requirements before routing
 - Never route to unavailable targets without explaining limitation
 - When in doubt, escalate to human
-
-## Phase 1B+ enhancements
-When task-runner and host-ops broker are deployed:
-- Routing becomes fully automated
-- main agent can spawn task-runner for engineering work
-- main agent can call broker for host mutations
-- This skill definition remains authoritative for routing logic

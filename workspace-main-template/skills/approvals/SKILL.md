@@ -144,15 +144,10 @@ If uncertain about approval category:
 
 Better to over-escalate than to execute risky operation without approval.
 
-## Phase 1A limitations
-- host-ops broker not yet available → Category 2 operations cannot be fully automated
-- task-runner not yet available → Some engineering tasks requiring approval cannot be delegated
-- Current workaround: Present plan, get approval, suggest manual execution or wait for Phase 1B
-
 ## Related skills
 - `host-sop`: Provides prohibited operations list
 - `routing`: Determines execution context before approval check
-- `broker`: Execution target for approved host mutations (Phase 1B+)
+- `broker`: Execution target for approved host mutations (operational, 8/8 actions)
 
 ## Safety notes
 - Always check approval requirements before acting
