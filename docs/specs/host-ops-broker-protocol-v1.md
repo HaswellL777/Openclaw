@@ -21,7 +21,7 @@ This protocol specification defines the wire format, semantics, validation rules
 - Evidence that Phase 2 has started
 - A deployment runbook (deployment procedures are separate)
 
-Phase 1 is complete. Phase 2 has not started. The broker is not yet deployed.
+Phase 1–2 complete. Broker deployed and operational (8/8 actions verified 2026-03-17). This specification is frozen.
 
 ---
 

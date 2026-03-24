@@ -1,8 +1,8 @@
 # OpenClaw 当前真实边界
 
-> 更新日期：2026-03-23
+> 更新日期：2026-03-24
 > 基线版本：OpenClaw 2026.3.13（2026-03-18 从 2026.3.2 升级完成）
-> 阶段：Phase 2 全部完成 + Docker prerequisite 已建立 + Capability probe 全部 PASS；**Phase 3 = GO**
+> 阶段：**Phase 3 operational**（task-runner deployed, Docker sandbox verified, 端到端任务执行已验证）
 
 ---
 
@@ -19,6 +19,10 @@
 | OpenClaw 版本升级 (2026.3.2 → 2026.3.13) | 完成 | 2026-03-18 |
 | Docker prerequisite establishment | 完成 | 2026-03-23 |
 | Capability probe rerun (P5/P2/P1/P4/P3) | 完成 — **全部 PASS** | 2026-03-23 |
+| Phase 3 基础部署 (task-runner + Docker sandbox) | 完成 | 2026-03-23 |
+| Phase 3 端到端验证 (sessions_spawn → 容器内 git clone → 结果回传) | 完成 | 2026-03-24 |
+| Phase 3+ artifacts (Dockerfile.full, network check, per-task isolation, prune candidate) | 完成 (repo-side) | 2026-03-24 |
+| workspace-main skills 更新至 Phase 3 operational | 完成 | 2026-03-24 |
 
 ### 已验证的 8 个 host_ops action
 
@@ -73,8 +77,8 @@
 | Capability probe P1 | **Caution** — sessions_yield 不存在于当前版本, 非前置, 不阻塞 |
 | Capability probe P4 | **Go** — 含 sandbox.docker 的 candidate validate passed |
 | Capability probe P3 | **Caution** — 配置结构正确, 待 live spawn 验证 |
-| Phase 3 (Docker sandbox / task-runner) | **已完成基础部署** — task-runner 可 spawn，Docker 容器运行正常，/workspace/repo 可写，工具链验证通过 |
-| Phase 3+ (full image / per-task isolation / prune) | **repo-side artifacts ready** — Dockerfile.full, per-task dir scripts, prune candidate 已创建（待 operator build & deploy） |
+| Phase 3 (Docker sandbox / task-runner) | **operational** — 端到端验证通过：sessions_spawn → 容器内 git clone + 文件生成 → 结果回传飞书 |
+| Phase 3+ (full image / per-task isolation / prune) | **repo-side artifacts ready** — Dockerfile.full 已构建，网络检查 4/4 PASS，待 Dockerfile UID 修复后重建镜像 |
 | Phase 4 (ACP Claude Code 执行链) | **方案已修正** — 容器是工具沙箱，不运行 LLM 进程；Claude Code 通过 ACP 在宿主机运行。下一步：验证 ACP session spawn + sandbox routing probe |
 | Phase 5 (LLM gateway / token 最小化) | 未开始 |
 | Phase 6 (备份扩展 / 长期收口) | 未开始 |
@@ -115,6 +119,20 @@ Probe 记录：`docs/records/post-upgrade-capability-probe-rerun-2026-03-23.md`
 - Broker 不会随 gateway 自动启动，需 operator 手动 `systemctl start openclaw-broker.service`（2026-03-18 升级窗口发现）。
 - Plugin provenance 警告出现但不阻塞功能（P1）。
 - OpenClaw log file size cap reached（P1）。
+
+## 已发现并修复的 recurring issues
+
+### publish-workspace-main.sh 权限问题（多次发生）
+- **现象**：publish 后 gateway 报 EACCES: permission denied, mkdir `.openclaw`
+- **原因**：publish 脚本以 root/nick 运行，生成文件属 root:root 或 nick:nick，gateway 以 openclaw 运行
+- **修复**：publish 脚本已添加 auto-chown（`chown -R openclaw:openclaw`）
+- **验证**：publish 后检查 `ls -la /var/lib/openclaw/.openclaw/workspace-main/`
+
+### 容器 UID 不匹配（"I have no name!"）
+- **现象**：`docker exec -it` 进容器后显示 "I have no name!"，/home/runner permission denied
+- **原因**：Dockerfile 的 runner 用户 UID 与 openclaw 用户 UID (997) 不匹配
+- **修复**：Dockerfile 改为 `useradd --uid 997 --gid 984`，需重建镜像
+- **验证**：`docker exec -it <container> id` 应显示 `uid=997(runner) gid=984(runner)`
 
 ## 历史记录
 

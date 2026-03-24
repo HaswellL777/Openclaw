@@ -11,7 +11,7 @@
 
 This document defines the formal error taxonomy for the host-ops broker protocol. It codifies the error categories, result codes, denial reasons, and their mapping to the response envelope fields (`ok`, `status`, `message`).
 
-Phase 1 is complete. Phase 2 has not started. The broker is not yet deployed.
+Phase 1–2 complete. Broker deployed and operational (8/8 actions verified 2026-03-17). This specification is frozen.
 
 ---
 

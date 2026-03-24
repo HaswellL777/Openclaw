@@ -45,7 +45,11 @@ RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
     && node --version && npm --version
 
 # ── Layer 4: Runner user and workspace ──
-RUN useradd --create-home --home-dir /home/runner --shell /bin/bash runner \
+# OpenClaw gateway runs docker exec as the openclaw user (UID 997, GID 984).
+# The container user must match so file ownership is correct and /home/runner
+# is accessible when operator does `docker exec -it <container> bash`.
+RUN groupadd --gid 984 runner \
+    && useradd --uid 997 --gid 984 --create-home --home-dir /home/runner --shell /bin/bash runner \
     && mkdir -p /workspace/repo /workspace/inputs /workspace/outputs/export \
     && chmod -R 1777 /workspace \
     && chown -R runner:runner /home/runner

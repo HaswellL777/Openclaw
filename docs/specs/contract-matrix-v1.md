@@ -11,7 +11,7 @@
 
 Several fields (action enum, required field names, validation constraints) are defined or mirrored in multiple places. When any single layer changes a definition without updating the others, contract drift occurs. This matrix maps each frozen contract edge to the authoritative source and every layer that mirrors it.
 
-Phase 1 is complete. Phase 2 has not started. The broker is not yet deployed.
+Phase 1–2 complete. Broker deployed and operational (8/8 actions verified 2026-03-17). This specification is frozen.
 
 ---
 

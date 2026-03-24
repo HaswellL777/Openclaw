@@ -12,7 +12,7 @@ A hard-boundary checklist. It answers two questions:
 1. What must be true before repo-only prep can be considered **sufficient**?
 2. What is **explicitly deferred** to real Phase 2 deployment?
 
-Phase 1 is complete. Phase 2 has not started. The broker is not yet deployed.
+Phase 1–2 complete. Broker deployed and operational (8/8 actions verified 2026-03-17). This specification is frozen.
 
 ---
 

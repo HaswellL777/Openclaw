@@ -291,6 +291,15 @@ fi
 echo ""
 echo "=== PUBLISH COMPLETE ==="
 echo "Target: $TARGET_DIR"
+
+# Fix ownership for live target — gateway runs as openclaw:openclaw
+if [[ $ALLOW_LIVE -eq 1 ]]; then
+    echo ""
+    echo "Fixing ownership to openclaw:openclaw..."
+    chown -R openclaw:openclaw "$TARGET_DIR"
+    echo "Ownership fixed."
+fi
+
 echo ""
 echo "Next steps:"
 echo "  1. Run scripts/check-workspace-main.sh $TARGET_DIR"
