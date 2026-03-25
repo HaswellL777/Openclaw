@@ -85,26 +85,94 @@ systemctl status vllm-audit.service
 
 ## 阶段 2：升级 OpenClaw 到 2026.3.23-2
 
+### 2.0 备份飞书插件（升级前必做）
+
 ```bash
-# 2.1 检查当前版本
+# 备份当前飞书插件目录
+sudo cp -a /var/lib/openclaw/.openclaw/extensions/feishu \
+  /var/lib/openclaw/.openclaw/extensions/feishu.bak.$(date +%Y%m%d)
+
+# 记录当前飞书配置（后面要用）
+sudo grep -A 20 '"feishu"' /etc/openclaw/openclaw.json > /tmp/feishu-config-backup.txt
+cat /tmp/feishu-config-backup.txt
+```
+
+### 2.1 升级 OpenClaw
+
+```bash
+# 检查当前版本
 sudo -u openclaw openclaw --version
 
-# 2.2 检查 Node.js 版本（需要 >= 22.16）
+# 检查 Node.js 版本（需要 >= 22.16）
 node --version
 
-# 2.3 升级
+# 升级
 sudo npm i -g openclaw@2026.3.23-2
 
-# 2.4 只读诊断（不要加 --fix 或 --repair！）
+# 只读诊断（不要加 --fix 或 --repair！）
 # CLAUDE.md 安全边界：不运行 auto-repair flows
-# 先看诊断输出，再手动逐项处理
 sudo -u openclaw openclaw doctor 2>&1 | tee /tmp/doctor-output.txt
 cat /tmp/doctor-output.txt
 # 将输出提供给 AI 助手分析，确定哪些需要手动处理
 
-# 2.5 验证新版本
+# 验证新版本
 sudo -u openclaw openclaw --version
 # 期望：2026.3.23-2
+```
+
+### 2.2 移除 bundled feishu 插件残余
+
+```bash
+# 移除旧的 bundled feishu（有 workspace:* 缺陷，升级后必坏）
+sudo rm -rf /var/lib/openclaw/.openclaw/extensions/feishu
+
+# 确认移除
+ls /var/lib/openclaw/.openclaw/extensions/feishu 2>/dev/null && echo "还在！" || echo "已移除 ✓"
+```
+
+### 2.3 安装飞书官方插件
+
+```bash
+# 安装飞书开放平台团队维护的官方插件
+# 独立 npm 包，不受 workspace:* 缺陷影响
+sudo -u openclaw npm install -g @larksuiteoapi/feishu-openclaw-plugin
+
+# 运行安装向导（会引导配置 appId/appSecret 等）
+sudo -u openclaw feishu-plugin-onboard install
+# 按照向导提示输入飞书 app 配置信息
+# 如果已有 appId/appSecret，可以复用现有的
+# appId: cli_a92f314332f8dcd9（来自当前 openclaw.json）
+# appSecret: 从 /etc/openclaw/openclaw.env 中获取 FEISHU_APP_SECRET
+```
+
+### 2.4 更新 openclaw.json 中的 plugins 配置
+
+编辑 openclaw.json 时，将 plugins 部分更新：
+
+```json5
+plugins: {
+  // 旧：allow: ["feishu", "tool-audit-plugin"],
+  // 新：使用官方插件名，移除 test hook
+  allow: ["@larksuiteoapi/feishu-openclaw-plugin"],
+  entries: {
+    "@larksuiteoapi/feishu-openclaw-plugin": { enabled: true },
+  },
+  // installs 部分：移除旧的 feishu 安装记录
+  // 官方插件通过 npm -g 独立安装，不需要 installs 条目
+},
+```
+
+注意：`channels.feishu` 配置保持不变（appId、appSecret、connectionMode 等）。
+官方插件读取同一个 channels.feishu 配置块。
+
+### 2.5 验证飞书插件
+
+```bash
+# 重启 gateway（阶段 6 会统一重启，这里先跳过）
+# 如果想提前验证飞书：
+# sudo systemctl restart openclaw-gateway
+# 从飞书发一条消息测试
+# 在飞书对话中输入 /feishu doctor 检查配置
 ```
 
 ---
@@ -137,12 +205,23 @@ sudo nano /etc/openclaw/openclaw.json
   },
 ```
 
-### 3.2b 修改 plugins.allow
+### 3.2b 修改 plugins（配合飞书官方插件）
 ```
 // 旧：
 allow: ["feishu", "tool-audit-plugin"],
-// 新：
-allow: ["feishu"],
+entries: {
+  feishu: { enabled: true },
+},
+installs: {
+  feishu: { ... }  // 整个 feishu installs 条目
+},
+
+// 新（如果阶段 2.3 安装向导已自动写入，则检查确认即可）：
+allow: ["@larksuiteoapi/feishu-openclaw-plugin"],
+entries: {
+  "@larksuiteoapi/feishu-openclaw-plugin": { enabled: true },
+},
+// installs 中的旧 feishu 条目：删除
 ```
 
 ### 3.2c 添加 acp 顶级块
