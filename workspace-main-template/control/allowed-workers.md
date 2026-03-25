@@ -5,18 +5,24 @@ This file defines which subagents main is allowed to spawn.
 
 ## Allowed subagents
 
-### task-runner (Phase 3, deployed 2026-03-23)
+### task-runner (Phase 3+, updated 2026-03-25)
 - **Purpose**: Execute engineering tasks in Docker sandbox
 - **Status**: Deployed and operational
-- **Image**: openclaw-task-claude:2026-03-v3
-- **Network**: openclaw-task-net
+- **Image**: `openclaw-task-claude:2026-03-v3-full` (Ubuntu 24.04)
+- **Network**: openclaw-task-net (outbound allowed)
+- **Session scope**: **shared** (container persists across sessions, files visible between spawns)
+- **Available in container**:
+  - Python 3.12, Node.js 22, bash, git, ripgrep, jq, curl, pip, npm, build-essential
+  - **Scrapling 0.4.2** — web scraping framework (`python3 -c "import scrapling"`)
+  - `/workspace/knowledge/LabClaw/` — 240 biomedical research SKILL.md (read-only)
+  - `/workspace/knowledge/autoresearch/` — ML experiment loop framework (read-only)
+  - Skills: coding, testing, research, report, scrapling, autoresearch
 - **Spawn conditions**:
-  - User requests engineering work (code, tests, builds)
-  - Task requires exec/process tools
-  - Task is scoped to specific repository
+  - User requests engineering work (code, tests, builds, research)
+  - Task requires code execution, web scraping, or data analysis
+  - Task needs Python/Node.js runtime
   - Task produces structured artifacts
 - **Max spawn depth**: 2 (main → task-runner)
-- **Session scope**: Per-task (one container per task)
 
 ## Denied subagents
 
