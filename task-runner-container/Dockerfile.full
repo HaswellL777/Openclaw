@@ -1,7 +1,7 @@
 # Full task-runner image for production engineering tasks.
 # Base: openclaw-task-claude:2026-03-v3-full
 # Extends the slim image (Dockerfile) with Node.js 22 LTS, Python pip/venv,
-# build-essential, curl, and proper locale setup.
+# build-essential, curl, Scrapling, and proper locale setup.
 
 FROM ubuntu:24.04
 
@@ -44,7 +44,16 @@ RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
     && rm -rf /var/lib/apt/lists/* \
     && node --version && npm --version
 
-# ── Layer 4: Runner user and workspace ──
+# ── Layer 4: Python packages (Scrapling) ──
+# Scrapling: adaptive web scraping framework (BSD-3-Clause).
+# ADR: docs/adr/adr-scrapling-placement.md — positioned as task-runner capability.
+# Install HTTP-only mode (no browser engine). For Playwright/Camoufox browser
+# support, add a separate layer or build variant.
+# --break-system-packages: required on Ubuntu 24.04 with system Python.
+RUN pip3 install --no-cache-dir --break-system-packages scrapling \
+    && python3 -c "import scrapling; print(f'Scrapling {scrapling.__version__} installed')"
+
+# ── Layer 5: Runner user and workspace ──
 # OpenClaw gateway runs docker exec as the openclaw user (UID 997, GID 984).
 # The container user must match so file ownership is correct and /home/runner
 # is accessible when operator does `docker exec -it <container> bash`.
@@ -54,7 +63,7 @@ RUN groupadd --gid 984 runner \
     && chmod -R 1777 /workspace \
     && chown -R runner:runner /home/runner
 
-# ── Layer 5: Entrypoint and bootstrap scripts ──
+# ── Layer 6: Entrypoint and bootstrap scripts ──
 COPY entrypoint.sh /usr/local/bin/task-runner-entrypoint
 COPY bootstrap/prepare-workspace.sh /usr/local/bin/prepare-workspace
 COPY bootstrap/bootstrap-codex.sh /usr/local/bin/bootstrap-codex

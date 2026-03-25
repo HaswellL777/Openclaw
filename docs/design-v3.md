@@ -620,20 +620,25 @@ v3.1 继续把 Claude Code CLI 分成两个角色，但必须明确写出：**�
 └── tests/
 ```
 
-### 5.3.2 角色 B：任务容器内的工程执行器（尚未落地）
+### 5.3.2 角色 B：ACP 驱动的工程执行器（尚未落地，架构已修正）
+
+> **架构修正（2026-03-25）**：原设计假定 Claude Code 运行在 task-runner 容器内。
+> 实际上 ACP（acpx）在宿主机上以 `openclaw` 用户 spawn Claude Code 进程，
+> 不进入 Docker sandbox。容器仍用于工具执行沙箱（Phase 3 task-runner），
+> 而 Claude Code 作为 ACP session 在宿主机完成”思考”层工作。
 
 用途：
 
-- 在 sandbox 容器内处理 repo 级工程任务；
-- 通过项目级 `.claude/` 读取任务规则；
-- 通过 `PreToolUse` hooks 执行本地 gate；
+- 通过 ACP（acpx）在宿主机以 `openclaw` 用户运行 Claude Code session；
+- 处理代码分析、生成、审查等工程任务；
+- 可通过 `sessions_spawn(runtime: “subagent”)` 将重执行委托给 task-runner 容器；
 - 通过 project subagents 细分 coder / tester / reviewer / doc-writer 等角色。
 
 当前状态：
 
-- 该角色仍属于后续 Phase 3+ / 4+；
-- 当前尚未进入生产可用状态；
-- 不应在文档中写成“已上线”。
+- 研究完成，推荐 Option A（官方 ACP via acpx）；
+- spike 测试 pending（候选配置见 `candidates/openclaw.acp-spike.candidate.json5`）；
+- 不应在文档中写成”已上线”。
 
 ### 5.3.3 双角色存在的必要性
 
@@ -650,7 +655,10 @@ v3.1 继续把 Claude Code CLI 分成两个角色，但必须明确写出：**�
 
 ---
 
-## 5.4 Claude Code 项目规范（容器内）
+## 5.4 Claude Code 项目规范（ACP session / task project）
+
+> **修正（2026-03-25）**：原标题"容器内"不准确。Claude Code 通过 ACP 在宿主机运行，
+> 但仍使用 task project 目录结构。以下规范适用于 ACP session 的工作目录。
 
 ### 5.4.1 项目根
 
@@ -721,7 +729,24 @@ tasks/<task-id>/repo/
 
 ---
 
-## 5.5 硬门控：gate shim + vLLM audit
+## 5.5 ~~硬门控：gate shim + vLLM audit~~ **ABANDONED (2026-03-25)**
+
+> **决策（2026-03-25）**：Operator 决定放弃 vLLM 审查门控方案。
+>
+> **原因**：
+> 1. vLLM 当前占用 ~14.2GB / 16.3GB 显存，几乎耗尽 RTX 5060 Ti 全部 VRAM
+> 2. gate shim + vLLM audit 的 ROI 不足以证明保留 vLLM 进程的资源成本
+> 3. ACP Claude Code session 改为宿主机运行（非容器内），原设计的 PreToolUse command hook 链不再适用
+> 4. 现有 OpenClaw plugin `before_tool_call` + broker 结构化包裹已提供足够的安全层
+>
+> **后续**：vLLM 进程可考虑停掉以释放显存给容器 GPU 任务（需 operator 决策，见文末 operator 操作清单）。
+>
+> **以下内容保留为历史参考，不再作为实施目标。**
+
+---
+
+<details>
+<summary>已废弃内容（点击展开）</summary>
 
 ### 5.5.1 v3.1 的核心修正
 
@@ -838,6 +863,8 @@ v3.1 不是放弃 OpenClaw `before_tool_call`，而是重新定位：
 原因：
 
 OpenClaw 外层工具调用看不到 Claude Code 内部所有真实待执行 payload；Claude Code hook 才能拿到内部真实 Bash / Edit / Write 事件。
+
+</details>
 
 ---
 
@@ -1060,14 +1087,14 @@ openclaw-task-claude:2026-03-v3
 
 镜像内容：
 
-- Claude Code CLI（固定版本）
+- ~~Claude Code CLI（固定版本）~~ **已移除（2026-03-25）**：Claude Code 通过 ACP 在宿主机运行，不安装在容器内
 - git
 - bash
 - jq
 - ripgrep
 - Python / Node 等任务需要的最小工具链
 - 测试工具
-- 非 root 运行用户
+- 非 root 运行用户（UID 997:GID 984，匹配宿主机 openclaw 用户）
 - 固定工作目录
 - 固定 entrypoint
 
@@ -1921,27 +1948,23 @@ Phase 2 repo prep 全部完成。完整 prep 退出标准见 `docs/specs/phase2-
 
 ## 8.5 Phase 4 TODO
 
-- [ ] 在镜像中安装固定版本 Claude Code CLI
+> **修正（2026-03-25）**：gate shim / vLLM audit 相关项已移除（§5.5 ABANDONED）。
+> Claude Code 不在容器内运行，改为 ACP（acpx）宿主机进程。
+
+- [ ] 启用 acpx plugin（bundled in 2026.3.13）
+- [ ] 配置 `acp` block in openclaw.json（候选：`candidates/openclaw.acp-spike.candidate.json5`）
+- [ ] 设置 ANTHROPIC_BASE_URL + ANTHROPIC_API_KEY 环境变量
+- [ ] Spike 测试 ACP session spawn（claude-engineer agent）
+- [ ] 验证 cwd bug #27627 workaround
 - [ ] 创建 task project 模板
-- [ ] 写 `repo/CLAUDE.md`
+- [ ] 写 task project `CLAUDE.md`
 - [ ] 写 `.claude/settings.json`
 - [ ] 写 `.claude/agents/coder.md`
 - [ ] 写 `.claude/agents/tester.md`
 - [ ] 写 `.claude/agents/reviewer.md`
 - [ ] 写 `.claude/agents/doc-writer.md`
-- [ ] 写 `.claude/hooks/gate-check.sh`
-- [ ] 实现 gate shim
-- [ ] 对接 vLLM `/v1/chat/completions`
-- [ ] 定义 gate response schema
-- [ ] 定义 deterministic deny policy
-- [ ] 定义 rewrite policy
 - [ ] 写 `outputs/summary.json` schema
 - [ ] 写 `outputs/host-change-request.json` schema
-- [ ] 验证 `PreToolUse` allow
-- [ ] 验证 `PreToolUse` deny
-- [ ] 验证超时 fail-closed
-- [ ] 验证解析失败 fail-closed
-- [ ] 验证 gate 事件日志
 
 ---
 
@@ -1977,7 +2000,7 @@ Phase 2 repo prep 全部完成。完整 prep 退出标准见 `docs/specs/phase2-
 ### 9.1 关于 Claude Code CLI
 
 - 只能在 `nick` 用户域做人类开发辅助；
-- 只能在 task container 内做受限工程执行；
+- 可通过 ACP（acpx）以 `openclaw` 用户在宿主机运行受控 session（Phase 4）；
 - 不允许在 `openclaw` 用户域交互登录；
 - 不允许替代 OpenClaw gateway 运行模型；
 - 不允许长期凭证直灌入任务镜像。
@@ -2009,7 +2032,7 @@ Phase 2 repo prep 全部完成。完整 prep 退出标准见 `docs/specs/phase2-
 
 | 风险 | 说明 | v3.1 对策 |
 |------|------|-----------|
-| HTTP hook 被误认为硬阻断 | 超时 / 连接失败其实会继续执行 | 改为 command hook + gate shim + exit 2 |
+| HTTP hook 被误认为硬阻断 | 超时 / 连接失败其实会继续执行 | ~~改为 command hook + gate shim + exit 2~~ §5.5 已废弃；改为 ACP permissionMode + OpenClaw plugin before_tool_call 审计 |
 | runner 污染长期 workspace | `workspaceAccess=rw` 面太大 | 改为只写 per-task repo / outputs |
 | Docker 接入方式不明 | 未证实某个 `DOCKER_HOST` 方案可完整支撑 OpenClaw sandbox | 在 Phase 3 做 capability probe，不把未验证方案写死 |
 | 容器持有长期凭证 | 一旦泄漏影响宿主机长期安全 | 使用上游 proxy + task token |

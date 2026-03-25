@@ -71,4 +71,8 @@ Scrapling 是 Python 3.10+ 的自适应 Web 抓取框架（BSD-3-Clause），核
 
 ## 当前状态
 
-**本轮不接入 Scrapling。** 本 ADR 仅冻结其系统定位，实际接入等待 Phase 3 任务镜像构建时落地。
+**Scrapling 已加入 Dockerfile.full（2026-03-25）。**
+- HTTP-only mode（pip install scrapling，无浏览器引擎）
+- 浏览器自动化（Playwright Chromium）作为可选扩展，当前未安装
+- Scrapling skill 模板已创建：`workspace-task-runner-template/skills/scrapling/SKILL.md`（待镜像重建后启用）
+- 镜像重建命令见下方 operator 操作清单

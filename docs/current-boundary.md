@@ -79,10 +79,14 @@
 | Capability probe P3 | **Caution** — 配置结构正确, 待 live spawn 验证 |
 | Phase 3 (Docker sandbox / task-runner) | **operational** — 端到端验证通过：sessions_spawn → 容器内 git clone + 文件生成 → 结果回传飞书 |
 | Phase 3+ (full image / per-task isolation / prune) | **image upgrade deployed + verified (2026-03-25)** — `v3-full` 镜像已生效（Node.js v22.22.1 confirmed）；prune config 已部署；knowledge bind 通过宿主机 `mount --bind` 实现（`/workspace/knowledge/` 可见）；docker-level binds 因 sandbox 路径限制已移除 |
-| Phase 4 (ACP Claude Code 执行链) | **研究完成，待实施** — 推荐 Option A（官方 ACP via acpx），研究报告见 `docs/planning/phase4-acp-claude-code-research.md`。下一步：spike 测试 ACP session spawn |
+| Phase 4 (ACP Claude Code 执行链) | **研究完成，spike candidate 已生成** — 推荐 Option A（官方 ACP via acpx），候选配置见 `candidates/openclaw.acp-spike.candidate.json5`，变更计划见 `candidates/openclaw.acp-spike.delta.md`。下一步：operator 审阅 + 部署 spike 测试 |
 | Phase 5 (LLM gateway / token 最小化) | 未开始 |
 | Phase 6 (备份扩展 / 长期收口) | 未开始 |
-| Scrapling 接入 | 未开始 |
+| Scrapling 接入 | **Dockerfile.full 已修改，待镜像重建** — HTTP-only mode（pip install scrapling）；ADR 状态已更新 |
+| Skills 体系扩展 | **设计完成（repo-side）** — task-runner 新增 5 个 skill 模板（coding, testing, research, report, scrapling）；main agent 新增 task-delegation skill；设计文档见 `docs/planning/skills-extension-design.md` |
+| 长期任务支持 | **设计完成** — 推荐 Option B（Task Orchestration Skill）；设计文档见 `docs/planning/long-running-tasks-design.md` |
+| design-v3 清理 | **完成** — §5.5 gate/vLLM ABANDONED；§5.3.2/§5.4/§5.9.4/§8.5/§9.1 修正 ACP 架构 |
+| Main agent memory | **MEMORY.md 模板已创建** — workspace-main-template/memory/MEMORY.md；memory-core plugin 默认启用，无需额外配置 |
 
 ## 当前下一步
 
@@ -103,9 +107,12 @@
 当前可进入 Phase 3 日常使用阶段。后续方向：
 1. 通过飞书给 main agent 发送工程任务，自动路由到 task-runner
 2. ~~按需构建更多镜像模板（Codex 镜像、带 Node.js 的镜像等）~~ ✅ v3-full 已部署
-3. Phase 4：ACP Claude Code session（研究完成，spike 测试 pending）
-4. Skills 扩展：将科研/autoresearch 等 skill 加入 workspace 模板
+3. Phase 4：ACP Claude Code session（研究完成，**spike candidate 已生成**，待 operator 部署）
+4. Skills 扩展：**设计完成**，task-runner + main 新增 skill 模板（待 publish）
 5. Knowledge repos：在 `/home/nick/repos/` 中 clone 参考仓库
+6. Scrapling：**Dockerfile.full 已修改**，待重建镜像
+7. 长期任务：**设计完成**，推荐 Option B（待 operator 决策）
+8. vLLM：**建议停掉**释放显存（§5.5 gate 设计已废弃，本地 LLM 无生产用途）
 
 ### Phase 3+ 部署事实（2026-03-25）
 - image 升级：`openclaw-task-claude:2026-03-v3` → `openclaw-task-claude:2026-03-v3-full`（已验证，Node.js v22.22.1）

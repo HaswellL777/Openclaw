@@ -2,9 +2,10 @@
 control/state/*
 !control/state/.gitkeep
 
-# Memory files (optional, if used)
+# Memory files (runtime daily logs should not be committed)
 memory/*.md
 !memory/.gitkeep
+!memory/MEMORY.md
 
 # Temporary files
 *.tmp

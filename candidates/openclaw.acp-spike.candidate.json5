@@ -1,0 +1,138 @@
+// openclaw.json candidate: ACP spike — Claude Code via acpx
+// Target sections:
+//   - acp (new top-level block)
+//   - plugins.allow (add "acpx")
+//   - plugins.entries.acpx (new)
+//   - agents.list[] (add claude-engineer agent)
+// Date: 2026-03-25
+// Prerequisite: docs/planning/phase4-acp-claude-code-research.md (Option A)
+//
+// This is a DELTA candidate — only the new/changed sections are shown.
+// Apply by merging into the existing live openclaw.json.
+// ESCALATION: This changes /etc/openclaw/openclaw.json. Full plan in
+//   candidates/openclaw.acp-spike.delta.md
+
+{
+  // ═══════════════════════════════════════════════════════════════
+  // NEW: ACP top-level block
+  // ═══════════════════════════════════════════════════════════════
+  acp: {
+    enabled: true,
+    dispatch: {
+      enabled: true,
+    },
+    backend: "acpx",
+    defaultAgent: "claude",
+    allowedAgents: ["claude"],
+
+    // Conservative: 2 concurrent ACP sessions max for spike.
+    // Production may raise to 4-8 after stability is confirmed.
+    maxConcurrentSessions: 2,
+
+    stream: {
+      coalesceIdleMs: 300,
+      maxChunkChars: 1200,
+    },
+
+    runtime: {
+      // 60-minute session lifetime for spike testing.
+      // Long enough for meaningful tasks, short enough to catch hangs.
+      ttlMinutes: 60,
+    },
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // CHANGE: plugins — add acpx to allow list and entries
+  // ═══════════════════════════════════════════════════════════════
+  plugins: {
+    // CHANGE: add "acpx" to existing allow list
+    // Old: ["feishu", "tool-audit-plugin"]
+    // New: ["feishu", "tool-audit-plugin", "acpx"]
+    allow: ["feishu", "tool-audit-plugin", "acpx"],
+
+    entries: {
+      // ... existing entries preserved ...
+      acpx: {
+        enabled: true,
+        config: {
+          // REQUIRED: Without approve-all, ACP sessions crash immediately
+          // on any write/exec with "Permission prompt unavailable in
+          // non-interactive mode". This is the #1 failure cause.
+          //
+          // Security context: ACP runs as `openclaw` user (nologin,
+          // limited fs access). Not equivalent to full root approve-all.
+          permissionMode: "approve-all",
+
+          // fail = crash on unexpected permission prompts (loud failure,
+          // easier to debug than silent deny).
+          nonInteractivePermissions: "fail",
+
+          // Workaround for issue #43997: version mismatch blocks startup.
+          // Remove once acpx version stabilizes.
+          expectedVersion: "any",
+        },
+      },
+    },
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // NEW: claude-engineer agent (ACP runtime)
+  // ═══════════════════════════════════════════════════════════════
+  agents: {
+    list: [
+      // ... existing entries preserved (task-runner, etc.) ...
+      {
+        id: "claude-engineer",
+        // Display name in Feishu / admin UI
+        name: "Claude Engineer (ACP)",
+
+        // Use the MotChat Claude proxy for the orchestration model
+        model: {
+          primary: "motchat-claude-4-6/claude-opus-4-6",
+        },
+
+        tools: {
+          // ACP agent should have read/write/edit + sessions for
+          // delegating heavy execution to task-runner.
+          // No exec (Claude Code itself handles execution).
+          // No elevated.
+          profile: "coding",
+        },
+
+        workspace: "workspace-claude-engineer",
+
+        runtime: {
+          type: "acp",
+          acp: {
+            agent: "claude",
+            backend: "acpx",
+            mode: "persistent",
+
+            // cwd bug #27627 workaround: set explicit cwd.
+            // If ignored by acpx, add this path to Claude Code's
+            // ~/.claude/settings.json allowedPaths.
+            cwd: "/var/lib/openclaw/task-workspaces",
+          },
+        },
+      },
+    ],
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // ENVIRONMENT VARIABLES (NOT in openclaw.json — external config)
+  // ═══════════════════════════════════════════════════════════════
+  // The following must be set in the gateway process environment
+  // so acpx child processes (Claude Code) inherit them.
+  //
+  // Option 1 (recommended): /etc/openclaw/openclaw.env
+  //   ANTHROPIC_BASE_URL=https://new.motchat.com
+  //   ANTHROPIC_API_KEY=<motchat-api-key>
+  //
+  // Option 2: systemd override
+  //   /etc/systemd/system/openclaw-gateway.service.d/acp-env.conf
+  //   [Service]
+  //   Environment=ANTHROPIC_BASE_URL=https://new.motchat.com
+  //   Environment=ANTHROPIC_API_KEY=<motchat-api-key>
+  //
+  // Both require: systemctl daemon-reload && systemctl restart openclaw-gateway
+}
