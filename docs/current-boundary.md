@@ -113,6 +113,7 @@
 
 ## 待解决
 
+- **workspace-task-runner 无 publish 脚本**：只有 `scripts/publish-workspace-main.sh`，没有 task-runner 版本。task-runner 的 AGENTS.md/TOOLS.md/skills 模板更新后需手动 `sudo cp` 到 `/var/lib/openclaw/.openclaw/workspace-task-runner/`。这些文件是 OpenClaw 注入到 subagent session 的唯一策略面——如果过时，task-runner 不知道自己有 Scrapling、knowledge repos 等能力。应创建 `scripts/publish-workspace-task-runner.sh`。
 - **飞书官方插件**: `@larksuiteoapi/feishu-openclaw-plugin` 需要 `openclaw/plugin-sdk` 模块解析，从 extensions 目录加载失败。需要研究 symlink 方案或其他安装方式
 - **GPU 透传**: `sandbox.docker.gpus` 不被 config schema 识别。需要通过 Docker daemon 默认 runtime 或其他方式实现
 - **日志文件大小**: `log file size cap reached`，需要轮转 `/var/log/openclaw/openclaw.log`
