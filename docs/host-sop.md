@@ -1899,3 +1899,6 @@ Phase 1A 完成后，已执行 post-change 里程碑快照与 Vault 入库：
 | 2026-03-24 | publish 权限修复：`publish-workspace-main.sh` 添加 `chown -R openclaw:openclaw` 自动修正（修复 gateway EACCES 问题）；workspace-main skills 更新至 Phase 3 operational 并 publish 到 live |
 | 2026-03-24 | 清理旧容器 b419a023dede；per-task isolation 脚本（`prepare-task-dir.sh`、`cleanup-task-dir.sh`）已就绪；sandbox auto-prune candidate 已生成。Post snapshot `root-post-phase3-fixes-20260324-1559` |
 | 2026-03-25 | host-sop.md Phase 3 更新：§0.2 阶段定位更新为 Phase 3 operational；§11.3 添加 Phase 3 部署记录；§11.4 添加 Phase 3 里程碑快照；§13.9.3 修正 Claude Code 角色 B 架构描述（容器是工具沙箱，LLM 在宿主机）；§16 变更记录追加 Phase 3 全部事件 |
+| 2026-03-25 | Image 升级部署：openclaw.json `task-runner.sandbox.docker.image` 改为 `openclaw-task-claude:2026-03-v3-full`；`agents.defaults.sandbox.prune` 添加 `{ idleHours: 4, maxAgeDays: 3 }`；gateway 重启后验证新容器 Node.js v22.22.1 可用 |
+| 2026-03-25 | Knowledge bind 实施：docker-level `binds` 因 sandbox 路径白名单限制被拒（源路径 `/home/nick/repos` 不在 workspace root 下）；改用宿主机 `mount --bind /home/nick/repos /var/lib/openclaw/.openclaw/workspace-task-runner/knowledge`（ro），容器内 `/workspace/knowledge/` 已验证可见；fstab 持久化 |
+| 2026-03-25 | Phase 4 ACP 研究完成：推荐 Option A（官方 ACP via acpx，内置于 2026.3.13）；MotChat 中转通过 env vars；`permissionMode: approve-all` 必需；cwd bug #27627 仍 open；研究报告 `docs/planning/phase4-acp-claude-code-research.md` |

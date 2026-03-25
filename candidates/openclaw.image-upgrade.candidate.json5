@@ -41,13 +41,15 @@
 
             // ... existing fields preserved (network, readOnlyRoot, tmpfs) ...
 
-            // NEW: bind mount for knowledge/reference repositories
-            // operator places reference repos in /home/nick/repos/ on host,
-            // agent sees them read-only at /knowledge/ in container
-            // NOTE: must NOT be under /workspace/ — OpenClaw sandbox manages that path
-            binds: [
-              "/home/nick/repos:/knowledge:ro"
-            ]
+            // KNOWLEDGE REPOS: docker-level binds removed (sandbox rejects source
+            // paths outside workspace root). Use host-level mount --bind instead:
+            //   sudo mount --bind /home/nick/repos \
+            //     /var/lib/openclaw/.openclaw/workspace-task-runner/knowledge
+            //   sudo mount -o remount,bind,ro \
+            //     /var/lib/openclaw/.openclaw/workspace-task-runner/knowledge
+            // Container sees /workspace/knowledge/ via existing workspace mount.
+            // Persist in fstab:
+            //   /home/nick/repos /var/lib/openclaw/.openclaw/workspace-task-runner/knowledge none bind,ro 0 0
           }
         }
       }

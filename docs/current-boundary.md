@@ -78,8 +78,8 @@
 | Capability probe P4 | **Go** — 含 sandbox.docker 的 candidate validate passed |
 | Capability probe P3 | **Caution** — 配置结构正确, 待 live spawn 验证 |
 | Phase 3 (Docker sandbox / task-runner) | **operational** — 端到端验证通过：sessions_spawn → 容器内 git clone + 文件生成 → 结果回传飞书 |
-| Phase 3+ (full image / per-task isolation / prune) | **image-upgrade candidate ready** — `candidates/openclaw.image-upgrade.candidate.json5`（full image + knowledge binds + auto-prune 合并 candidate）待 operator 部署 |
-| Phase 4 (ACP Claude Code 执行链) | **方案已修正** — 容器是工具沙箱，不运行 LLM 进程；Claude Code 通过 ACP 在宿主机运行。下一步：验证 ACP session spawn + sandbox routing probe |
+| Phase 3+ (full image / per-task isolation / prune) | **image upgrade deployed + verified (2026-03-25)** — `v3-full` 镜像已生效（Node.js v22.22.1 confirmed）；prune config 已部署；knowledge bind 通过宿主机 `mount --bind` 实现（`/workspace/knowledge/` 可见）；docker-level binds 因 sandbox 路径限制已移除 |
+| Phase 4 (ACP Claude Code 执行链) | **研究完成，待实施** — 推荐 Option A（官方 ACP via acpx），研究报告见 `docs/planning/phase4-acp-claude-code-research.md`。下一步：spike 测试 ACP session spawn |
 | Phase 5 (LLM gateway / token 最小化) | 未开始 |
 | Phase 6 (备份扩展 / 长期收口) | 未开始 |
 | Scrapling 接入 | 未开始 |
@@ -102,8 +102,18 @@
 
 当前可进入 Phase 3 日常使用阶段。后续方向：
 1. 通过飞书给 main agent 发送工程任务，自动路由到 task-runner
-2. 按需构建更多镜像模板（Codex 镜像、带 Node.js 的镜像等）
-3. Phase 4：ACP Claude Code session（宿主机进程 + sandbox routing probe）
+2. ~~按需构建更多镜像模板（Codex 镜像、带 Node.js 的镜像等）~~ ✅ v3-full 已部署
+3. Phase 4：ACP Claude Code session（研究完成，spike 测试 pending）
+4. Skills 扩展：将科研/autoresearch 等 skill 加入 workspace 模板
+5. Knowledge repos：在 `/home/nick/repos/` 中 clone 参考仓库
+
+### Phase 3+ 部署事实（2026-03-25）
+- image 升级：`openclaw-task-claude:2026-03-v3` → `openclaw-task-claude:2026-03-v3-full`（已验证，Node.js v22.22.1）
+- prune config：`idleHours: 4, maxAgeDays: 3`（已部署）
+- knowledge bind：宿主机 `mount --bind /home/nick/repos → workspace-task-runner/knowledge`（ro），容器内 `/workspace/knowledge/`（已验证可见）
+- docker-level binds：因 sandbox 路径白名单限制已移除（源路径必须在 workspace root 下）
+- 旧容器（9 个 v3 slim）：仍在运行，新 spawn 使用 v3-full
+- Post snapshot：待 operator 执行（`root-post-image-upgrade-YYYYMMDD-HHMM`）
 
 Probe 记录：`docs/records/post-upgrade-capability-probe-rerun-2026-03-23.md`
 
