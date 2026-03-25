@@ -10,7 +10,7 @@ Three changes in one candidate, applied to the existing live `openclaw.json`:
 | # | Section | Change | Old Value | New Value |
 |---|---------|--------|-----------|-----------|
 | 1 | `agents.list[task-runner].sandbox.docker.image` | Switch from slim to full image | `openclaw-task-claude:2026-03-v3` | `openclaw-task-claude:2026-03-v3-full` |
-| 2 | `agents.list[task-runner].sandbox.docker.binds` | Add knowledge repo bind mount | *(not present)* | `["/home/nick/repos:/workspace/knowledge:ro"]` |
+| 2 | `agents.list[task-runner].sandbox.docker.binds` | Add knowledge repo bind mount | *(not present)* | `["/home/nick/repos:/knowledge:ro"]` |
 | 3 | `agents.defaults.sandbox.prune` | Add sandbox auto-prune | *(not present)* | `{ idleHours: 4, maxAgeDays: 3 }` |
 
 ## Rationale
@@ -27,9 +27,13 @@ Both images use UID 997:984 matching the `openclaw` system user. No UID mismatch
 ### Change 2: Knowledge Binds
 
 Operator wants reference repositories accessible inside the container. The bind mount
-`/home/nick/repos:/workspace/knowledge:ro` gives the agent read-only access to cloned
+`/home/nick/repos:/knowledge:ro` gives the agent read-only access to cloned
 reference repos at a predictable container-side path. The `:ro` flag prevents any
 container-side writes to the host filesystem.
+
+**Important**: The mount point must NOT be under `/workspace/` — OpenClaw's sandbox
+system manages that path and will conflict with user-defined bind mounts targeting
+subdirectories of `/workspace`.
 
 **Prerequisite**: Operator must create `/home/nick/repos/` and clone desired repos there
 before this takes effect.
@@ -49,8 +53,9 @@ Prevents container accumulation in the one-task-one-container model.
 | Risk | Severity | Mitigation |
 |------|----------|------------|
 | Full image larger than slim (~500MB vs ~200MB) | Low | Disk space is ample; build already completed |
-| Knowledge bind mount exposes host files | Low | Read-only (`:ro`); only `/home/nick/repos/` exposed; container cannot escalate |
+| Knowledge bind mount exposes host files | Low | Read-only (`:ro`); only `/home/nick/repos/` exposed; mounted at `/knowledge` (outside `/workspace`); container cannot escalate |
 | Bind path doesn't exist on host | Low | Docker creates it as empty dir; no crash; operator creates and populates it |
+| Bind mount conflicts with sandbox /workspace | **Resolved** | Mount point changed from `/workspace/knowledge` to `/knowledge` to avoid sandbox path conflict |
 | Active task container pruned early | Low | `idleHours=4` checks idle time, not wall clock; active tasks generate exec activity |
 | Container outputs lost to prune | Low | Outputs are in workspace bind mount, not container filesystem |
 | Gateway misparses new config fields | Low | P4 probe passed for `sandbox.docker`; `binds` and `prune` are documented features in 2026.3.13 |
@@ -80,7 +85,7 @@ If full rollback needed, restore from pre-change snapshot.
 - [ ] Spawn test task-runner and verify:
   - Container uses `v3-full` image: `sudo docker ps --format '{{.Image}}'`
   - Node.js available: `node --version` inside container
-  - Knowledge mount exists: `ls /workspace/knowledge/` inside container
+  - Knowledge mount exists: `ls /knowledge/` inside container
 - [ ] Post-change snapshot: `sudo btrfs subvolume snapshot -r / /.snapshots/root-post-image-upgrade-$(date +%Y%m%d-%H%M)`
 - [ ] Vault sync (post): `sudo /usr/local/sbin/vault-backup-root-btrfs`
 - [ ] (Later) Verify prune: idle container removed after ~4 hours
@@ -105,7 +110,7 @@ sudo /usr/local/sbin/vault-backup-root-btrfs
 # Step 4: Merge the three delta changes into /etc/openclaw/openclaw.json
 # Changes:
 #   a) agents.list[task-runner].sandbox.docker.image = "openclaw-task-claude:2026-03-v3-full"
-#   b) agents.list[task-runner].sandbox.docker.binds = ["/home/nick/repos:/workspace/knowledge:ro"]
+#   b) agents.list[task-runner].sandbox.docker.binds = ["/home/nick/repos:/knowledge:ro"]
 #   c) agents.defaults.sandbox.prune = { idleHours: 4, maxAgeDays: 3 }
 # Save merged candidate to: /var/lib/openclaw/approvals/candidates/openclaw.json
 
@@ -126,7 +131,7 @@ sudo systemctl status openclaw-gateway.service
 # (via Feishu or main agent: ask to run a simple task)
 # Verify: docker ps shows v3-full image
 # Verify: node --version works in container
-# Verify: /workspace/knowledge/ is readable
+# Verify: /knowledge/ is readable
 
 # Step 10: Post-change snapshot
 sudo btrfs subvolume snapshot -r / /.snapshots/root-post-image-upgrade-$(date +%Y%m%d-%H%M)

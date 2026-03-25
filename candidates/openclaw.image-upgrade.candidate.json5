@@ -43,9 +43,10 @@
 
             // NEW: bind mount for knowledge/reference repositories
             // operator places reference repos in /home/nick/repos/ on host,
-            // agent sees them read-only at /workspace/knowledge/ in container
+            // agent sees them read-only at /knowledge/ in container
+            // NOTE: must NOT be under /workspace/ — OpenClaw sandbox manages that path
             binds: [
-              "/home/nick/repos:/workspace/knowledge:ro"
+              "/home/nick/repos:/knowledge:ro"
             ]
           }
         }
