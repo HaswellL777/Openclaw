@@ -6,7 +6,7 @@
 
 ## System identity
 - Hostname: Ubuntu 24.04 LTS / Btrfs / systemd
-- OpenClaw version: 2026.3.13
+- OpenClaw version: 2026.3.23-2 (upgraded 2026-03-25)
 - Gateway port: 17777 (loopback)
 - Default model: deepseek-chat (task-runner)
 
@@ -25,9 +25,17 @@
 
 ## Deployed capabilities
 - Broker: 8/8 actions operational
-- Task-runner: Docker sandbox, v3-full image, openclaw-task-net
-- Knowledge: /workspace/knowledge/ via host mount --bind (read-only)
-- GPU: RTX 5060 Ti 16GB (vLLM occupying ~14.2GB)
+- Task-runner: Docker sandbox, scope=shared, v3-full image (Ubuntu 24.04, Python 3, Node.js 22, Scrapling)
+- Knowledge repos: /workspace/knowledge/ via host mount --bind (read-only)
+  - LabClaw: 240 biomedical research SKILL.md files
+  - autoresearch: ML autonomous experiment loop (Karpathy)
+- GPU: RTX 5060 Ti 16GB available (vLLM stopped, SecureBoot disabled)
+- ACP: configured but not yet verified (claude-engineer agent defined)
+
+## Maintenance log
+- 2026-03-25: Major maintenance window — upgrade to 2026.3.23-2, vLLM shutdown,
+  hook cleanup, scope→shared, Scrapling added, LabClaw+autoresearch cloned,
+  workspace-main republished
 
 ## Operator preferences
 <!-- Agent should update this section based on interactions -->
