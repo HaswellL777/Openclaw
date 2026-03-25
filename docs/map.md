@@ -1,6 +1,6 @@
 # OpenClaw Dev Repo 文档地图
 
-> 更新日期：2026-03-23（文档树重整后）
+> 更新日期：2026-03-25
 
 ---
 
@@ -25,7 +25,9 @@
 
 ## 活跃规划 `[active]`
 
-当前无活跃 planning 文档。Phase 3 Docker prerequisite 已建立，下一步为重跑 capability probe 并进入 Phase 3 实施。
+| 文件 | 描述 |
+|------|------|
+| `docs/planning/phase4-acp-claude-code-research.md` | Phase 4 ACP Claude Code 集成研究报告（close-by: 2026-03-30） |
 
 ## 架构决策记录 `[active]`
 

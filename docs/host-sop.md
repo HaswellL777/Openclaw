@@ -87,7 +87,7 @@ sudo mv /var/lib/openclaw/.openclaw/extensions/<plugin>.bak-* /var/lib/openclaw/
 
 ### 0.1 当前时间与主机
 - 时区：CST (+0800)
-- 日期：2026-03-22（2026-03-18 升级完成；2026-03-22 边界冻结）
+- 日期：2026-03-25（2026-03-18 升级完成；2026-03-23 Phase 3 operational）
 - 主机：`nick-MS-7D73`（管理用户：`nick`，服务用户：`openclaw`）
 - OpenClaw 版本：**2026.3.13**（2026-03-18 从 2026.3.2 升级，P0 19/19 PASS，rollback 未触发）
 
@@ -96,11 +96,14 @@ sudo mv /var/lib/openclaw/.openclaw/extensions/<plugin>.bak-* /var/lib/openclaw/
 - **Phase 1B（控制面收口）已完成**（2026-03-11）：脚本化发布链首次 live target 校验通过。
 - **Phase 2 broker deployment 已完成**（2026-03-14）：broker daemon 运行中、8 个 wrapper 已安装（production，`BROKER_DRY_RUN=false`）、host-ops-tool plugin 注册并被 gateway 接受。
 - **Phase 2 agent-facing host_ops 8/8 live E2E verified**（2026-03-17）：`gateway_health`、`validate_openclaw_json_candidate`、`deploy_openclaw_json_candidate`、`snapshot_pre`、`snapshot_post`、`rollback_prepare`、`gateway_restart`、`vault_sync` 全部通过。逐 action 证据见 `docs/records/README.md`。
-- **Phase 3（task-runner / Docker sandbox）、Phase 4+ 均未开始**。
+- **Phase 3（task-runner / Docker sandbox）已 operational**（2026-03-23 基础部署完成，2026-03-24 端到端验证通过）：Docker group 建立 → capability probe 重跑 P5 PASS → 镜像构建 → sandbox.docker 配置部署 → sessions_spawn 验证 → 容器内 git clone + 文件生成 → 结果回传飞书。详见 `docs/current-boundary.md`。
+- **Phase 4（ACP Claude Code 执行链）、Phase 5、Phase 6 均未开始**。
 - **OpenClaw 2026.3.13 升级已完成**（2026-03-18）：pre/post snapshot + vault_sync 完成，P0 focused regression 19/19 PASS，Phase 2 host_ops 8/8 升级后回归全部通过。升级记录见 `docs/records/openclaw-2026.3.13-upgrade-activation-2026-03-18.md`。
-- **升级后 capability probe 已执行**（2026-03-19）：在 `P5 Docker / task-runner prerequisites` 处 hard gate FAIL，结论为 `P5 FAIL / Phase 3 = NO-GO`。执行记录见 `docs/records/post-upgrade-capability-probe-execution-2026-03-19.md`。
-- **`2026-03-21` temporary restricted proxy feasibility window 已收口为 `HARD_STOP before proxy start`**：唯一 hard-stop reason = `hello-world image missing`；`proxy not started`；`audit jsonl not created`；gateway / broker remained active。执行记录见 `docs/records/temporary-restricted-proxy-feasibility-window-execution-2026-03-21.md`。
-- **`2026-03-22` hello-world prerequisite remediation 微窗口已 PASS 收口**：`hello-world` prerequisite 已补齐；`proxy not started`；`audit jsonl not created`；`proxy execution not validated`。blocked-state 仍为 `BLOCKED_BEFORE_HOST_SIDE_CHANGE` 且 `APPROVED_PROXY_EXEC_CMD=NO`；但截至 `2026-03-23`，repo-side 控制面 dry-run、execution-plane scaffold、reviewed task -> handoff pack 与 first-live-pilot candidate pack 已收口，当前 direct next 已切换为 `operator-side / future execution seam prep for first live pilot`，remaining blocker 仅剩 `future execution seam / operator input`。Gate 0-3 green 不等于可进入 pre-snapshot；未来 live-side 仍必须单独遵守 `快照 -> 变更 -> 健康检查 -> post 快照 -> Vault 入库`；repo-side 文档同步本身不需要 host-side 快照。执行记录见 `docs/records/hello-world-image-prerequisite-remediation-micro-window-2026-03-22.md`。
+- **升级后 capability probe 首次执行**（2026-03-19）：在 `P5 Docker / task-runner prerequisites` 处 hard gate FAIL，结论为 `P5 FAIL / Phase 3 = NO-GO`。（首次 probe 记录见 `docs/records/post-upgrade-capability-probe-execution-2026-03-19.md`）
+- **Docker prerequisite 建立 + capability probe 重跑**（2026-03-23）：docker group 方案完成（`sudo usermod -aG docker openclaw`），probe 重跑结果：P5 PASS（Docker 28.2.2 active, openclaw 在 docker 组），P2 Go，P1 Caution（sessions_yield 不存在），P4 Go，P3 Caution（待 live spawn 验证）。记录见 `docs/records/post-upgrade-capability-probe-rerun-2026-03-23.md`。
+- **Phase 3 基础部署完成**（2026-03-23）：task-runner 基线镜像构建、Docker network 创建、openclaw.json sandbox.docker 配置部署、sessions_spawn 验证通过、容器内 exec/写入验证通过、首次真实任务执行通过。Post snapshot：`root-post-phase3-complete-20260323-1847`，Vault sync 完成。
+- **Phase 3 端到端验证通过**（2026-03-24）：飞书 → main → sessions_spawn("task-runner") → 容器内 git clone + 文件生成 → 结果回传飞书。生产级镜像 `openclaw-task-claude:2026-03-v3-full` 已构建（Node.js 22 + pip + build-essential）。Dockerfile UID 修复（997:984）。publish 脚本权限修复（auto-chown）。Post snapshot：`root-post-phase3-fixes-20260324-1559`。
+- *(历史) `2026-03-21` temporary restricted proxy feasibility window 收口为 HARD_STOP before proxy start；`2026-03-22` hello-world prerequisite remediation 收口为 PASS。上述 proxy 路线后弃用，改用 docker group 方案于 2026-03-23 完成。历史记录已归档至 `docs/archive/planning/phase3-stall/` 和 `docs/archive/records/phase3-stall/`。*
 
 ### 0.2.1 升级窗口事实记录（2026-03-18）
 - Pre snapshot：`root-pre-upgrade-2026.3.13-20260318-1530`
@@ -473,7 +476,15 @@ xfconf-query -c xfwm4 -p /general/use_compositing -s false
 - 8 个 wrapper 已安装（production 逻辑，`BROKER_DRY_RUN=false`）；
 - host-ops-tool plugin 已注册进 `openclaw.json`（gateway 接受，健康运行）；
 - **plugin lifecycle activation 已完成（2026-03-15）**；registerTool 版 plugin 已部署到 live（2026-03-15）；**agent-facing 全部 8 个 action 已 live E2E verified（2026-03-17）**（`gateway_health` + `validate_openclaw_json_candidate` + `deploy_openclaw_json_candidate` + `snapshot_pre` + `snapshot_post` + `rollback_prepare` + `gateway_restart` + `vault_sync`）；
-- `task-runner` / Docker 执行面仍未进入生产落地。
+- **Phase 3 / task-runner + Docker sandbox — 已 operational（2026-03-23 部署，2026-03-24 端到端验证通过）**
+- task-runner 基线镜像：`openclaw-task-claude:2026-03-v3`（slim）+ `openclaw-task-claude:2026-03-v3-full`（生产级，Node.js 22 + pip + build-essential）
+- Docker network：`openclaw-task-net`
+- sandbox 配置：`scope: "session"`（一任务一容器），`workspaceAccess: "rw"`，`readOnlyRoot: true`
+- 默认模型（task-runner）：`custom-api-deepseek-com/deepseek-chat`
+- 端到端验证：sessions_spawn → 容器内 git clone + 文件生成 → 结果回传飞书（2026-03-24）
+- Dockerfile UID 修复：`runner` 用户 UID/GID 改为 997:984 匹配 `openclaw`（2026-03-24）
+- publish 权限修复：`publish-workspace-main.sh` 添加自动 `chown -R openclaw:openclaw`（2026-03-24）
+- workspace-main skills 已更新至 Phase 3 operational 并 publish 到 live（2026-03-24）
 
 #### 11.3.1 Phase 1B 退出条件（摘要）
 
@@ -512,6 +523,10 @@ Phase 2 broker deployment 于 2026-03-14 完成，退出条件满足情况：
   - `/.snapshots/root-post-phase1b-publish-2026-03-11-1319`（Phase 1B 首次现网发布后）
   - `/.snapshots/root-pre-phase2-broker-20260314`（ID 309，Phase 2 broker 部署前）
   - `/.snapshots/root-post-phase2-broker-20260314`（ID 310，Phase 2 broker 部署后）
+  - `/.snapshots/root-pre-docker-group-20260323-1456`（Docker group 建立前）
+  - `/.snapshots/root-post-docker-group-20260323-1457`（Docker group 建立后）
+  - `/.snapshots/root-post-phase3-complete-20260323-1847`（Phase 3 基础部署完成后）
+  - `/.snapshots/root-post-phase3-fixes-20260324-1559`（Phase 3 UID 修复 + publish 修复后）
 - 最近自动备份快照（由 `vault-backup-root-btrfs` 生成）：
   - `/.snapshots/root-auto-2026-03-06-2031`
   - `/.snapshots/root-auto-2026-03-06-2051`
@@ -1188,8 +1203,10 @@ A. **`nick` 用户的开发工具**
   - 绝不以 `openclaw` 用户登录
   - 绝不把它当成宿主后台常驻控制面
 
-B. **未来 `task-runner` 容器内工程执行器**
-- 运行位置：OpenClaw sandbox / Docker 任务容器内
+B. **`task-runner` 工程执行器（架构已修正：2026-03-24）**
+- 运行位置：**LLM 对话循环在宿主机 gateway**；工具执行（bash, read, write, edit）通过 `docker exec` 路由到容器 sandbox
+- 容器内没有 LLM 进程、Claude Code CLI 或 ACP client
+- 未来通过 ACP 在宿主机运行 Claude Code 进程，sandbox 仅作为工具执行沙箱
 - 工作目录：`tasks/<task-id>/repo/`
 - 用途：工程任务、代码改动、测试、文档整理、patch 输出
 - 硬边界：
@@ -1734,7 +1751,7 @@ Phase 1A 完成后，已执行 post-change 里程碑快照与 Vault 入库：
 - `main` 已正式上线；
 - `main` 的 file tools 已修正；
 - 默认主模型已切至 `g54`；
-- 但 `host-ops` broker / `task-runner` / Docker 执行面尚未进入生产落地。
+- 但 `host-ops` broker / `task-runner` / Docker 执行面尚未进入生产落地。（注：截至 2026-03-23，Phase 2 broker 8/8 action 和 Phase 3 task-runner 均已完成。）
 
 ### 15.7 `workspace-main` 当前事实
 
@@ -1873,3 +1890,12 @@ Phase 1A 完成后，已执行 post-change 里程碑快照与 Vault 入库：
 | 2026-03-11 | Phase 2 开发仓准备第六轮——收口型加固（不涉及现网部署）：创建单一来源 action inventory（`broker/schemas/action-inventory.json`，frozen=true，映射 schema/wrapper/fixture/required_inputs）；创建 fixture registry（`examples/broker/fixture-registry.json`，24 negative + 8 happy-path + 1 special，含 action/error_type/expected_status）；创建 prep 入口门控文档（`docs/specs/phase2-repo-prep-gate.md`，定义 21 条退出标准、10 条明确 deferred 事项、3 条残留低优先级项）；在 host-ops-api.md 补充 error_code 可选字段文档；在 contract-matrix-v1.md §7 添加验证脚本实现状态与单一来源引用；增强 test_contract_freeze.sh（action inventory 冻结验证 + fixture registry 一致性验证）；增强 validate-phase2-prep.sh（新增 §12-15：inventory / registry / gate / validator parity freeze）——**所有产物仅在开发仓内，Phase 2 现网部署尚未启动** |
 | 2026-03-11 | Phase 2 部署设计包（不涉及现网部署）：创建部署布局规格文档（`docs/specs/phase2-broker-deployment-layout.md`，定义 broker daemon / socket / wrappers / logs / state / systemd unit 的目标路径、权限与归属模型）；创建部署 runbook（`docs/runbook-phase2-broker-deployment.md`，含 10 项进入条件、7 项禁止条件、Go/No-Go checklist、10 阶段部署序列、8 项最终验证、回滚规程与快照纪律）；创建分步执行包（`docs/execution-pack-phase2-broker-deployment.md`，15 步命令块 + 人工确认点 + 回退速查卡）；创建现场记录模板（`docs/templates/phase2-broker-deployment-record-template.md`）；创建文档回写模板（`docs/templates/phase2-broker-deployment-syncback-template.md`）；创建只读预检脚本（`scripts/preflight-phase2-broker-deployment.sh`，10 段验证 + GO/NO-GO 结论，不访问 live path）；更新 design-v3 §7 Phase 2 状态与 §8.3 TODO——**所有产物均为部署设计材料，broker 未部署，Phase 2 现网部署尚未启动** |
 | 2026-03-14 | Phase 2 broker live deployment（现网部署）：operator-led 手动执行，按 runbook 全流程完成；broker daemon 部署到 `/opt/openclaw/broker/openclaw-broker`（bash + Python3 socket listener）；8 个 wrapper 安装为 production 版本（`BROKER_DRY_RUN=false`）；systemd unit `openclaw-broker.service` 安装并 enabled；Unix socket `/run/openclaw/broker.sock`（`root:openclaw 660`）已创建；`gateway_health` 正向测试通过；invalid action、bad path、path traversal 三类负面测试通过；host-ops-tool plugin 安装到 extensions 目录并注册进 `openclaw.json`（`plugins.allow` + `plugins.entries`）；gateway 重启后健康；pre snapshot `root-pre-phase2-broker-20260314`（ID 309），post snapshot `root-post-phase2-broker-20260314`（ID 310），Vault 入库完成（auto snapshot `root-auto-2026-03-14-1454`，parent `root-auto-2026-03-14-0340`）；`last_sent` 更新为 `root-auto-2026-03-14-1454`；**部署结论：PASS**；plugin activation（`index.js` register/activate export）和 agent-facing `host_ops` tool access 仍 pending；详见 `docs/records/phase2-broker-deployment-2026-03-14.md` |
+| 2026-03-23 | Docker prerequisite 建立：`sudo usermod -aG docker openclaw`；验证 `docker version` + `docker run hello-world` 通过；pre snapshot `root-pre-docker-group-20260323-1456`，post snapshot `root-post-docker-group-20260323-1457`，Vault sync 完成。方案选型理由：openclaw 为 nologin 系统用户，攻击面增量有限，支持完整 Docker API |
+| 2026-03-23 | Capability probe 重跑（5 probe）：P5 PASS（Docker 28.2.2 active, openclaw 在 docker 组），P2 Go，P1 Caution（sessions_yield 不存在），P4 Go（sandbox.docker candidate validate passed），P3 Caution（待 live spawn 验证）。记录见 `docs/records/post-upgrade-capability-probe-rerun-2026-03-23.md` |
+| 2026-03-23 | Phase 3 基础部署：构建 task-runner 基线镜像 `openclaw-task-claude:2026-03-v3`；创建 Docker network `openclaw-task-net`；部署 openclaw.json sandbox.docker 配置（task-runner agent, scope=session, workspaceAccess=rw）；sessions_spawn("task-runner") 验证通过；容器内 exec/写入验证通过；首次真实任务执行通过（系统信息收集 + 文件创建）；post snapshot `root-post-phase3-complete-20260323-1847`，Vault sync 完成。**Phase 3 基础部署：PASS** |
+| 2026-03-24 | Phase 3 端到端验证：飞书 → main → sessions_spawn("task-runner") → 容器内 git clone + 文件生成 → 结果回传飞书。验证通过 |
+| 2026-03-24 | 生产级镜像构建：`openclaw-task-claude:2026-03-v3-full`（基于 Dockerfile.full：Node.js 22 + npm + pip + build-essential + 全部 slim 工具）；网络检查 4/4 PASS（DNS、GitHub、PyPI、npm）；gateway 端口 FAIL 为预期（bind=loopback） |
+| 2026-03-24 | Dockerfile UID 修复：Dockerfile 和 Dockerfile.full 的 runner 用户改为 `useradd --uid 997 --gid 984`，匹配宿主机 openclaw 用户；两个镜像均重建 |
+| 2026-03-24 | publish 权限修复：`publish-workspace-main.sh` 添加 `chown -R openclaw:openclaw` 自动修正（修复 gateway EACCES 问题）；workspace-main skills 更新至 Phase 3 operational 并 publish 到 live |
+| 2026-03-24 | 清理旧容器 b419a023dede；per-task isolation 脚本（`prepare-task-dir.sh`、`cleanup-task-dir.sh`）已就绪；sandbox auto-prune candidate 已生成。Post snapshot `root-post-phase3-fixes-20260324-1559` |
+| 2026-03-25 | host-sop.md Phase 3 更新：§0.2 阶段定位更新为 Phase 3 operational；§11.3 添加 Phase 3 部署记录；§11.4 添加 Phase 3 里程碑快照；§13.9.3 修正 Claude Code 角色 B 架构描述（容器是工具沙箱，LLM 在宿主机）；§16 变更记录追加 Phase 3 全部事件 |

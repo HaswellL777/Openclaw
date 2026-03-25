@@ -1,6 +1,6 @@
 # OpenClaw 当前真实边界
 
-> 更新日期：2026-03-24
+> 更新日期：2026-03-25
 > 基线版本：OpenClaw 2026.3.13（2026-03-18 从 2026.3.2 升级完成）
 > 阶段：**Phase 3 operational**（task-runner deployed, Docker sandbox verified, 端到端任务执行已验证）
 
@@ -78,7 +78,7 @@
 | Capability probe P4 | **Go** — 含 sandbox.docker 的 candidate validate passed |
 | Capability probe P3 | **Caution** — 配置结构正确, 待 live spawn 验证 |
 | Phase 3 (Docker sandbox / task-runner) | **operational** — 端到端验证通过：sessions_spawn → 容器内 git clone + 文件生成 → 结果回传飞书 |
-| Phase 3+ (full image / per-task isolation / prune) | **repo-side artifacts ready** — Dockerfile.full 已构建，网络检查 4/4 PASS，待 Dockerfile UID 修复后重建镜像 |
+| Phase 3+ (full image / per-task isolation / prune) | **image-upgrade candidate ready** — `candidates/openclaw.image-upgrade.candidate.json5`（full image + knowledge binds + auto-prune 合并 candidate）待 operator 部署 |
 | Phase 4 (ACP Claude Code 执行链) | **方案已修正** — 容器是工具沙箱，不运行 LLM 进程；Claude Code 通过 ACP 在宿主机运行。下一步：验证 ACP session spawn + sandbox routing probe |
 | Phase 5 (LLM gateway / token 最小化) | 未开始 |
 | Phase 6 (备份扩展 / 长期收口) | 未开始 |

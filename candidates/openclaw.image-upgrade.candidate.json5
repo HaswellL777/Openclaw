@@ -1,0 +1,55 @@
+// openclaw.json candidate: full image upgrade + knowledge binds + sandbox auto-prune
+// Target sections:
+//   - agents.list[task-runner].sandbox.docker.image
+//   - agents.list[task-runner].sandbox.docker.binds
+//   - agents.defaults.sandbox.prune
+// Date: 2026-03-25
+// Supersedes: candidates/openclaw.prune.candidate.json5 (prune config merged here)
+//
+// This is a DELTA candidate — only the new/changed sections are shown.
+// Apply by merging into the existing live openclaw.json.
+
+{
+  agents: {
+    defaults: {
+      // ... existing defaults preserved ...
+      sandbox: {
+        prune: {
+          // Remove idle containers after 4 hours of no activity.
+          // Appropriate for one-task-one-container model where tasks
+          // typically complete in under 1 hour.
+          idleHours: 4,
+
+          // Hard age limit: remove all containers older than 3 days,
+          // regardless of activity. Prevents stale container accumulation
+          // from orphaned or abandoned tasks.
+          maxAgeDays: 3
+        }
+      }
+    },
+    list: [
+      {
+        id: "task-runner",
+        // ... existing fields preserved (workspace, tools, etc.) ...
+        sandbox: {
+          // ... existing fields preserved (mode, scope, workspaceAccess) ...
+          docker: {
+            // CHANGE: switch from slim to full image
+            // Old: "openclaw-task-claude:2026-03-v3"
+            // New: "openclaw-task-claude:2026-03-v3-full"
+            image: "openclaw-task-claude:2026-03-v3-full",
+
+            // ... existing fields preserved (network, readOnlyRoot, tmpfs) ...
+
+            // NEW: bind mount for knowledge/reference repositories
+            // operator places reference repos in /home/nick/repos/ on host,
+            // agent sees them read-only at /workspace/knowledge/ in container
+            binds: [
+              "/home/nick/repos:/workspace/knowledge:ro"
+            ]
+          }
+        }
+      }
+    ]
+  }
+}

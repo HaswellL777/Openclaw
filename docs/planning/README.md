@@ -7,10 +7,13 @@
 
 ## 活跃规划
 
-当前无活跃 planning 文档。
+### Phase 4: ACP Claude Code Integration (`phase4-acp-claude-code-research.md`)
+- 状态：research complete, awaiting operator decision
+- Close-by: 2026-03-30
+- 推荐方案：Option A (Official ACP via acpx)
+- 摘要：acpx 已内置于 2026.3.13；MotChat 中转通过 env vars 传递；需设 `permissionMode: approve-all`；cwd bug #27627 仍 open 但有 workaround
 
-Phase 3 Docker prerequisite 已于 2026-03-23 建立完成（docker group 方案）。
-下一步为重跑 capability probe 并进入 Phase 3 实施。
+Phase 3 基础部署已于 2026-03-23 完成，端到端验证于 2026-03-24 通过。
 
 ---
 
