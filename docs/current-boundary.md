@@ -1,8 +1,8 @@
 # OpenClaw 当前真实边界
 
-> 更新日期：2026-03-25
-> 基线版本：OpenClaw 2026.3.13（2026-03-18 从 2026.3.2 升级完成）
-> 阶段：**Phase 3 operational**（task-runner deployed, Docker sandbox verified, 端到端任务执行已验证）
+> 更新日期：2026-03-25（维护窗口后全量更新）
+> 基线版本：**OpenClaw 2026.3.23-2**（2026-03-25 从 2026.3.13 升级完成）
+> 阶段：**Phase 3+ operational, Phase 4 配置已部署待验证**
 
 ---
 
@@ -20,148 +20,134 @@
 | Docker prerequisite establishment | 完成 | 2026-03-23 |
 | Capability probe rerun (P5/P2/P1/P4/P3) | 完成 — **全部 PASS** | 2026-03-23 |
 | Phase 3 基础部署 (task-runner + Docker sandbox) | 完成 | 2026-03-23 |
-| Phase 3 端到端验证 (sessions_spawn → 容器内 git clone → 结果回传) | 完成 | 2026-03-24 |
-| Phase 3+ artifacts (Dockerfile.full, network check, per-task isolation, prune candidate) | 完成 (repo-side) | 2026-03-24 |
-| workspace-main skills 更新至 Phase 3 operational | 完成 | 2026-03-24 |
+| Phase 3 端到端验证 | 完成 | 2026-03-24 |
+| Phase 3+ image upgrade (v3-full + Scrapling) | 完成 | 2026-03-25 |
+| **OpenClaw 版本升级 (2026.3.13 → 2026.3.23-2)** | **完成** | **2026-03-25** |
+| **vLLM 关停 + SecureBoot 修复** | **完成** | **2026-03-25** |
+| **Hook 清理 (tool-audit-probe)** | **完成** | **2026-03-25** |
+| **长期任务配置 (scope:shared + timeout)** | **已部署** | **2026-03-25** |
+| **ACP 配置 (acp block + claude-engineer agent)** | **已部署，待验证** | **2026-03-25** |
+| **Knowledge repos (LabClaw + autoresearch)** | **已 clone + mount 可见** | **2026-03-25** |
+| **workspace-main publish (MEMORY.md + skills)** | **已发布** | **2026-03-25** |
+| **design-v3 清理 (§5.5 ABANDONED + ACP 修正)** | **完成** | **2026-03-25** |
+| **Skills 体系扩展 (6 task-runner + 1 main)** | **模板已发布** | **2026-03-25** |
 
-### 已验证的 8 个 host_ops action
+### 2026-03-25 维护窗口事实
 
-| Action | 验证日期 | 类型 |
-|--------|----------|------|
-| `gateway_health` | 2026-03-15 | 只读 |
-| `validate_openclaw_json_candidate` | 2026-03-15 | 只读 |
-| `deploy_openclaw_json_candidate` | 2026-03-15 | 写（Route C） |
-| `snapshot_pre` | 2026-03-16 | 写 |
-| `snapshot_post` | 2026-03-16 | 写 |
-| `rollback_prepare` | 2026-03-16 | 只读（prepare-only） |
-| `gateway_restart` | 2026-03-16 | 写（两段式） |
-| `vault_sync` | 2026-03-17 | 写（incremental send） |
+**Pre snapshot**: `root-pre-maintenance-20260325-HHMM`
+**Post snapshot**: `root-post-maintenance-20260325-1558`
 
-全部 8 action 证据见 `docs/records/`。
+**升级路径**:
+- 升级方式：`cd /opt/openclaw && sudo npm install --omit=dev openclaw@2026.3.23-2`（SOP §13.5.3）
+- 注意：`sudo npm i -g` 是**错误方式**（装到了 `/usr/lib/node_modules/`，不影响 `/opt/openclaw/`）
+- 已清理错误安装：`sudo npm uninstall -g openclaw`
+- `/usr/local/bin/openclaw` 是 symlink → `/opt/openclaw/node_modules/.bin/openclaw`
 
-### 2026.3.13 升级窗口事实
+**vLLM 关停**:
+- 服务名：`vllm-audit.service`（不是 `vllm.service`）
+- 根因：SecureBoot 启用 → 拒绝加载未签名 NVIDIA DKMS 模块 → vLLM 崩溃循环 278+ 次
+- 修复：BIOS 关闭 SecureBoot → nvidia.ko 正常加载 → `nvidia-smi` 正常
+- vllm-audit.service：stopped + disabled
+- GPU：RTX 5060 Ti 16GB 完全释放（15MiB/16311MiB）
 
-- Pre snapshot：`root-pre-upgrade-2026.3.13-20260318-1530`
-- Post snapshot：`root-post-upgrade-2026.3.13-20260318-1615`
-- Pre / post vault_sync：均已完成
-- Plugin 文件级备份：`/var/lib/openclaw/host-ops-tool-backups/host-ops-tool-pre-upgrade-20260318-1530.tar.gz`
-- P0 focused regression：19/19 PASS
-- Phase 2 host_ops 升级后回归：8/8 PASS
-- Rollback：未触发
-- 升级记录：`docs/records/openclaw-2026.3.13-upgrade-activation-2026-03-18.md`
+**飞书插件**:
+- 尝试切换到飞书官方插件 `@larksuiteoapi/feishu-openclaw-plugin` → 失败（`Cannot find module 'openclaw/plugin-sdk'`，extensions 目录的模块解析无法找到 OpenClaw SDK）
+- 回退到 bundled feishu 插件（从备份恢复）→ 成功
+- 飞书 WebSocket 连接正常，消息收发正常
+- 官方插件集成需要后续解决 SDK 解析问题（可能需要 symlink 或不同安装方式）
 
-### Docker prerequisite establishment 事实（2026-03-23）
+**配置变更（已部署到 /etc/openclaw/openclaw.json）**:
+- 删除 `hooks` 块（tool-audit-probe 测试残留）
+- `plugins.allow`: `["feishu", "host-ops-tool"]`（移除 tool-audit-plugin）
+- 添加 `acp` 顶级块（enabled, maxConcurrentSessions=2, ttl=60min）
+- `subagents`: runTimeoutSeconds=14400, archiveAfterMinutes=1440
+- `sandbox.prune`: idleHours=24, maxAgeDays=7
+- task-runner `scope`: session → shared
+- 添加 `claude-engineer` agent（ACP runtime）
+- 注意：`acp.runtime.permissionMode` 和 `sandbox.docker.gpus` 被 config schema 拒绝，已移除
 
-- 方案选型：docker group（`sudo usermod -aG docker openclaw`）
-- 选型理由：OpenClaw `sandbox.docker` 设计假定运行用户有权访问 Docker；openclaw 是 nologin 系统用户，攻击面增量有限；支持完整 Docker API（镜像模板库、multi-agent 并发所需）
-- Pre snapshot：`root-pre-docker-group-20260323-1456`
-- Post snapshot：`root-post-docker-group-20260323-1457`
-- Vault sync：已完成
-- daemon-reload：已执行
-- 验证结果：
-  - `sudo -u openclaw docker version`：client + server 正常
-  - `sudo -u openclaw docker run --rm hello-world`：Hello from Docker!
-  - `openclaw-gateway.service`：active
-  - `openclaw-broker.service`：active
-  - `id openclaw`：groups 包含 docker
-- P5 原始 blocker（Docker 未安装 + openclaw 无 Docker 访问权）：**已全部解决**
+**环境变量（已追加到 /etc/openclaw/openclaw.env）**:
+- `ANTHROPIC_BASE_URL=https://new.motchat.com`
+- `ANTHROPIC_API_KEY=<motchat-key>`
+
+**目录创建**:
+- `/var/lib/openclaw/.openclaw/workspace-claude-engineer/`（openclaw:openclaw）
+- `/var/lib/openclaw/task-workspaces/`（openclaw:openclaw）
+- `/var/lib/openclaw/.claude/settings.json`（全权限 allow）
+
+**Docker image 重建**:
+- `openclaw-task-claude:2026-03-v3-full`：重建成功（含 Scrapling 0.4.2）
+- UID 验证：uid=997(runner) gid=984(runner) ✅
 
 ## 当前真实边界
 
 | 事项 | 状态 |
 |------|------|
-| Docker Engine | **已安装并运行** — Docker 28.2.2, `docker.service` active, `docker.socket` active |
-| `openclaw` Docker 访问 | **已建立** — `openclaw` 在 `docker` 组，`docker version` / `docker run hello-world` 均已验证通过 |
-| 升级后 capability probe P5 | **PASS** — Docker 28.2.2 active, openclaw 在 docker 组, 完整 API 访问 |
-| Capability probe P2 | **Go** — provenance 警告为信息性, plugins.allow 已 pin trust |
-| Capability probe P1 | **Caution** — sessions_yield 不存在于当前版本, 非前置, 不阻塞 |
-| Capability probe P4 | **Go** — 含 sandbox.docker 的 candidate validate passed |
-| Capability probe P3 | **Caution** — 配置结构正确, 待 live spawn 验证 |
-| Phase 3 (Docker sandbox / task-runner) | **operational** — 端到端验证通过：sessions_spawn → 容器内 git clone + 文件生成 → 结果回传飞书 |
-| Phase 3+ (full image / per-task isolation / prune) | **image upgrade deployed + verified (2026-03-25)** — `v3-full` 镜像已生效（Node.js v22.22.1 confirmed）；prune config 已部署；knowledge bind 通过宿主机 `mount --bind` 实现（`/workspace/knowledge/` 可见）；docker-level binds 因 sandbox 路径限制已移除 |
-| Phase 4 (ACP Claude Code 执行链) | **研究完成，spike candidate 已生成** — 推荐 Option A（官方 ACP via acpx），候选配置见 `candidates/openclaw.acp-spike.candidate.json5`，变更计划见 `candidates/openclaw.acp-spike.delta.md`。下一步：operator 审阅 + 部署 spike 测试 |
-| Phase 5 (LLM gateway / token 最小化) | 未开始 |
-| Phase 6 (备份扩展 / 长期收口) | 未开始 |
-| Scrapling 接入 | **Dockerfile.full 已修改，待镜像重建** — HTTP-only mode（pip install scrapling）；ADR 状态已更新 |
-| Skills 体系扩展 | **设计完成（repo-side）** — task-runner 新增 6 个 skill 模板（coding, testing, research, report, scrapling, autoresearch）；main agent 新增 task-delegation skill；设计文档见 `docs/planning/skills-extension-design.md` |
-| 长期任务支持 | **设计完成 + 配置 candidate 已生成** — 推荐 Option B；配置候选见 `candidates/openclaw.longtask-gpu-cleanup.candidate.json5` |
-| design-v3 清理 | **完成** — §5.5 gate/vLLM ABANDONED；§5.3.2/§5.4/§5.9.4/§8.5/§9.1 修正 ACP 架构 |
-| Main agent memory | **MEMORY.md 模板已创建** — workspace-main-template/memory/MEMORY.md；memory-core plugin 默认启用，无需额外配置 |
-| vLLM 关停 + Hook 清理 | **candidate 已生成** — 清理 tool-audit-plugin + tool-audit-probe hook；配置候选见 `candidates/openclaw.longtask-gpu-cleanup.candidate.json5` |
-| GPU 支持 | **Dockerfile.gpu 已创建** — CUDA runtime + PyTorch + uv；需 vLLM 停掉后才能使用 |
-| LabClaw + autoresearch | **集成方案已完成** — LabClaw（240 biomedical SKILL.md）+ autoresearch（ML 实验循环）；待 operator clone 到 /home/nick/repos/；集成文档见 `docs/planning/labclaw-autoresearch-integration.md` |
-| OpenClaw 升级评估 | **评估完成，推荐升级到 2026.3.23-2** — ACP 移入 core（关键变更）；OOM 修复；默认 timeout 48h；12 个 breaking changes 影响分析完成；评估文档见 `docs/planning/openclaw-upgrade-3.23-evaluation.md` |
-| 综合测试计划 | **已生成** — 11 个 section、~40 项检查；测试脚本见 `tests/test-phase4-readiness.sh` |
+| OpenClaw 版本 | **2026.3.23-2** (7ffe7e4) — 升级自 2026.3.13 |
+| Gateway | **active (running)** — ws://127.0.0.1:17777 |
+| Broker | **active (running)** — Unix socket |
+| 飞书 | **连接正常** — WebSocket, bundled feishu plugin |
+| host-ops-tool | **已加载** — provenance 警告为信息性 |
+| GPU | **可用** — RTX 5060 Ti 16GB, nvidia-smi 正常, vLLM 已停 |
+| vLLM | **stopped + disabled** — vllm-audit.service |
+| SecureBoot | **disabled** — NVIDIA DKMS 模块正常加载 |
+| task-runner scope | **shared** — 容器跨 session 共享 |
+| task-runner image | **v3-full** — 含 Scrapling 0.4.2 |
+| ACP 配置 | **已部署，待验证** — acp.enabled=true, claude-engineer agent 已定义 |
+| Knowledge repos | **LabClaw + autoresearch 已 clone** — `/workspace/knowledge/` 可见 |
+| Memory | **MEMORY.md 已发布到 live workspace** |
+| Skills | **7 个 skill 已发布** — task-delegation(main) + coding/testing/research/report/scrapling/autoresearch(task-runner 模板) |
+| 长期任务 | **配置已部署** — runTimeout=4h, archive=24h, prune idle=24h/age=7d |
+
+## 待验证项
+
+以下通过飞书向 main agent 发消息测试：
+
+1. **Shared scope**: 第一次 spawn task-runner 创建容器，第二次复用同一容器，文件跨 session 可见
+2. **Memory**: 私聊说"记住：维护窗口 2026-03-25 完成"，检查 MEMORY.md 是否更新
+3. **Broker**: 发"执行系统健康检查"，验证 gateway_health action
+4. **Knowledge**: 让 task-runner 执行 `ls /workspace/knowledge/`，确认 LabClaw + autoresearch 可见
+5. **ACP**: 发"使用 claude-engineer 列出 task-workspaces 目录"，观察日志
+
+## 待解决
+
+- **飞书官方插件**: `@larksuiteoapi/feishu-openclaw-plugin` 需要 `openclaw/plugin-sdk` 模块解析，从 extensions 目录加载失败。需要研究 symlink 方案或其他安装方式
+- **GPU 透传**: `sandbox.docker.gpus` 不被 config schema 识别。需要通过 Docker daemon 默认 runtime 或其他方式实现
+- **日志文件大小**: `log file size cap reached`，需要轮转 `/var/log/openclaw/openclaw.log`
+- **Vault sync**: 维护窗口后的 vault sync 尚未执行
 
 ## 当前下一步
 
-**Phase 3 基础部署已完成（2026-03-23）。** 全部验证通过：
-
-- task-runner 基线镜像：`openclaw-task-claude:2026-03-v3` (构建完成)
-- Docker network：`openclaw-task-net` (创建完成)
-- openclaw.json：task-runner agent 配置已部署（sandbox.docker, workspaceAccess=rw）
-- 默认模型：已切换为 `custom-api-deepseek-com/deepseek-chat`
-- workspace-task-runner：已创建
-- workspace-main 控制文件：已更新为 Phase 3 operational 状态并发布
-- sessions_spawn("task-runner")：验证通过
-- 容器内 exec/写入：验证通过（/workspace/repo 可写）
-- 首次真实任务执行：通过（系统信息收集 + 文件创建）
-- Post snapshot：`root-post-phase3-complete-20260323-1847`
-- Vault sync：已完成
-
-当前可进入 Phase 3 日常使用阶段。后续方向：
-1. 通过飞书给 main agent 发送工程任务，自动路由到 task-runner
-2. ~~按需构建更多镜像模板（Codex 镜像、带 Node.js 的镜像等）~~ ✅ v3-full 已部署
-3. Phase 4：ACP Claude Code session（研究完成，**spike candidate 已生成**，待 operator 部署）
-4. Skills 扩展：**设计完成**，task-runner + main 新增 skill 模板（待 publish）
-5. Knowledge repos：在 `/home/nick/repos/` 中 clone 参考仓库
-6. Scrapling：**Dockerfile.full 已修改**，待重建镜像
-7. 长期任务：**设计完成**，推荐 Option B（待 operator 决策）
-8. vLLM：**建议停掉**释放显存（§5.5 gate 设计已废弃，本地 LLM 无生产用途）
-
-### Phase 3+ 部署事实（2026-03-25）
-- image 升级：`openclaw-task-claude:2026-03-v3` → `openclaw-task-claude:2026-03-v3-full`（已验证，Node.js v22.22.1）
-- prune config：`idleHours: 4, maxAgeDays: 3`（已部署）
-- knowledge bind：宿主机 `mount --bind /home/nick/repos → workspace-task-runner/knowledge`（ro），容器内 `/workspace/knowledge/`（已验证可见）
-- docker-level binds：因 sandbox 路径白名单限制已移除（源路径必须在 workspace root 下）
-- 旧容器（9 个 v3 slim）：仍在运行，新 spawn 使用 v3-full
-- Post snapshot：待 operator 执行（`root-post-image-upgrade-YYYYMMDD-HHMM`）
-
-Probe 记录：`docs/records/post-upgrade-capability-probe-rerun-2026-03-23.md`
-
-## 当前执行器状态
-
-- **Claude Code (claude-opus-4-6)** 是当前主执行者，用于 repo-side 和 live-side 工作。
-- **Codex** 暂不用于 live-side 操作，保留 repo-side 文档/脚本辅助能力。详见 `.codex/config.toml` 注释。
-- `CLAUDE.md` 是 repo 级协作规则入口。
+1. 执行上述 5 项验证
+2. Vault sync
+3. 飞书官方插件 SDK 解析问题研究
+4. GPU 透传替代方案
+5. 日志轮转
 
 ## 已知非阻塞观察项
 
-- 权威脚本 `vault-backup-root-btrfs` 检查的是 `openclaw.service`，而历史文档中曾写 `openclaw-gateway.service`。属于脚本/文档命名漂移，不影响 vault_sync 已收口的结论。
-- Broker 不会随 gateway 自动启动，需 operator 手动 `systemctl start openclaw-broker.service`（2026-03-18 升级窗口发现）。
-- Plugin provenance 警告出现但不阻塞功能（P1）。
-- OpenClaw log file size cap reached（P1）。
+- Plugin provenance 警告（host-ops-tool）：信息性，不影响功能
+- doctor 报告 28 个 orphan transcript files：可清理，不紧急
+- Memory search 无 embedding provider：语义搜索不可用，但文件级记忆正常
+- doctor 报告 gateway.mode unset：doctor 读取的是 state 目录配置，不是 `/etc/openclaw/openclaw.json`
 
 ## 已发现并修复的 recurring issues
 
 ### publish-workspace-main.sh 权限问题（多次发生）
-- **现象**：publish 后 gateway 报 EACCES: permission denied, mkdir `.openclaw`
-- **原因**：publish 脚本以 root/nick 运行，生成文件属 root:root 或 nick:nick，gateway 以 openclaw 运行
-- **修复**：publish 脚本已添加 auto-chown（`chown -R openclaw:openclaw`）
-- **验证**：publish 后检查 `ls -la /var/lib/openclaw/.openclaw/workspace-main/`
+- **修复**：publish 脚本已添加 auto-chown
 
 ### 容器 UID 不匹配（"I have no name!"）
-- **现象**：`docker exec -it` 进容器后显示 "I have no name!"，/home/runner permission denied
-- **原因**：Dockerfile 的 runner 用户 UID 与 openclaw 用户 UID (997) 不匹配
-- **修复**：Dockerfile 改为 `useradd --uid 997 --gid 984`，需重建镜像
-- **验证**：`docker exec -it <container> id` 应显示 `uid=997(runner) gid=984(runner)`
+- **修复**：Dockerfile 改为 `useradd --uid 997 --gid 984`
 
-## 历史记录
+### OpenClaw 升级路径错误（2026-03-25 发现）
+- **现象**：`sudo npm i -g openclaw@2026.3.23-2` 后版本仍为 2026.3.13
+- **原因**：全局 npm 装到 `/usr/lib/node_modules/`，但 production 在 `/opt/openclaw/`
+- **正确做法**：`cd /opt/openclaw && sudo npm install --omit=dev openclaw@<version>`（SOP §13.5.3）
+- **修复**：`sudo npm uninstall -g openclaw` 清理 + 正确路径安装
 
-Mar 19-22 期间曾探索 "temporary restricted proxy" 路线作为 Docker 访问模型，
-两次 feasibility execution 均在 proxy start 前 hard-stop（hello-world image missing / artifact alignment）。
-经评估后改用 docker group 方案，于 2026-03-23 完成。
-相关历史文档已归档至 `docs/archive/planning/phase3-stall/` 和 `docs/archive/records/phase3-stall/`。
+### vLLM 服务名混淆
+- **实际名称**：`vllm-audit.service`（不是 `vllm.service`）
+- **记忆已更新**
 
 ## 关键参考
 
@@ -169,5 +155,5 @@ Mar 19-22 期间曾探索 "temporary restricted proxy" 路线作为 Docker 访�
 - 架构设计：`docs/design-v3.md`
 - 文档地图：`docs/map.md`
 - 证据索引：`docs/records/README.md`
-- Runbooks：`docs/runbooks/`
-- Execution packs：`docs/execution-packs/`
+- 维护窗口执行包：`docs/execution-packs/execution-pack-phase4-maintenance.md`
+- 升级评估：`docs/planning/openclaw-upgrade-3.23-evaluation.md`

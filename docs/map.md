@@ -27,11 +27,16 @@
 
 | 文件 | 描述 |
 |------|------|
-| `docs/planning/phase4-acp-claude-code-research.md` | Phase 4 ACP Claude Code 集成研究报告（close-by: 2026-03-30） |
-| `docs/planning/skills-extension-design.md` | Skills 体系扩展设计（close-by: 2026-04-01） |
-| `docs/planning/long-running-tasks-design.md` | 长期任务支持方案设计（close-by: 2026-04-01） |
-| `docs/planning/openclaw-upgrade-3.23-evaluation.md` | OpenClaw 2026.3.23-2 升级评估（close-by: 2026-03-30） |
-| `docs/planning/labclaw-autoresearch-integration.md` | LabClaw + autoresearch 集成方案（close-by: 2026-03-28） |
+| `docs/planning/phase4-acp-claude-code-research.md` | Phase 4 ACP 研究报告（close-by: 2026-03-30）— ACP 配置已部署待验证 |
+| `docs/planning/labclaw-autoresearch-integration.md` | LabClaw + autoresearch 集成（close-by: 2026-03-28）— repos 已 clone，待功能验证 |
+
+## 已实施规划 `[implemented → archive pending]`
+
+| 文件 | 描述 | 状态 |
+|------|------|------|
+| `docs/planning/openclaw-upgrade-3.23-evaluation.md` | 升级评估 | ✅ 升级已完成 (2026-03-25) |
+| `docs/planning/skills-extension-design.md` | Skills 扩展设计 | ✅ 模板已发布 (2026-03-25) |
+| `docs/planning/long-running-tasks-design.md` | 长期任务设计 | ✅ 配置已部署 (2026-03-25) |
 
 ## 架构决策记录 `[active]`
 
@@ -80,12 +85,13 @@ Phase 2 交付的协议/契约规格，处于冻结状态。
 | `docs/runbooks/runbook-first-live-publish.md` | Phase 1B live publish runbook |
 | `docs/runbooks/runbook-phase2-broker-deployment.md` | Phase 2 broker 部署 runbook |
 
-## 执行包 `[archived]`
+## 执行包 `[active/archived]`
 
-| 文件 | 描述 |
-|------|------|
-| `docs/execution-packs/execution-pack-first-live-publish.md` | Phase 1B 执行包 |
-| `docs/execution-packs/execution-pack-phase2-broker-deployment.md` | Phase 2 执行包 |
+| 文件 | 描述 | 状态 |
+|------|------|------|
+| `docs/execution-packs/execution-pack-phase4-maintenance.md` | Phase 4 维护窗口执行包（升级+vLLM+ACP+飞书+镜像） | **执行中 (2026-03-25)** |
+| `docs/execution-packs/execution-pack-first-live-publish.md` | Phase 1B 执行包 | archived |
+| `docs/execution-packs/execution-pack-phase2-broker-deployment.md` | Phase 2 执行包 | archived |
 
 ## 参考文档 `[active]`
 
