@@ -1,0 +1,92 @@
+// openclaw.json candidate: hook cleanup + long-running tasks + GPU support
+// Target sections:
+//   - plugins.allow (remove tool-audit-plugin)
+//   - hooks (remove entire block)
+//   - agents.defaults.subagents (increase timeouts)
+//   - agents.defaults.sandbox.prune (increase limits)
+//   - agents.list[task-runner].sandbox.scope (session → shared)
+//   - agents.list[task-runner].sandbox.docker.gpus (new: GPU passthrough)
+// Date: 2026-03-25
+// Prerequisite: vLLM stopped (frees GPU for container use)
+//
+// This is a DELTA candidate — only the new/changed sections are shown.
+
+{
+  // ═══════════════════════════════════════════════════════════════
+  // CHANGE: plugins — remove test audit plugin from allow list
+  // ═══════════════════════════════════════════════════════════════
+  plugins: {
+    // Old: ["feishu", "tool-audit-plugin"]
+    // New: ["feishu"]
+    // Reason: tool-audit-plugin was a Phase 2 test probe, no longer needed
+    allow: ["feishu"],
+
+    // entries: feishu stays as-is, no other changes
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // REMOVE: hooks block entirely
+  // ═══════════════════════════════════════════════════════════════
+  // Old:
+  //   hooks: {
+  //     internal: {
+  //       enabled: true,
+  //       entries: {
+  //         "tool-audit-probe": { enabled: true }
+  //       }
+  //     }
+  //   }
+  // New: remove entire hooks block
+  // Reason: tool-audit-probe was a Phase 2 验证用 hook, comment says "验证后删除"
+  // hooks: <REMOVE>,
+
+  // ═══════════════════════════════════════════════════════════════
+  // CHANGE: agents — long-running task support
+  // ═══════════════════════════════════════════════════════════════
+  agents: {
+    defaults: {
+      subagents: {
+        // Old: runTimeoutSeconds: 3600 (1h)
+        // New: 14400 (4h) — supports multi-step research cycles
+        runTimeoutSeconds: 14400,
+
+        // Old: archiveAfterMinutes: 120 (2h)
+        // New: 1440 (24h) — keeps sub-agent context alive longer
+        archiveAfterMinutes: 1440,
+      },
+      sandbox: {
+        prune: {
+          // Old: idleHours: 4
+          // New: 24 — shared containers may be idle between task steps
+          idleHours: 24,
+
+          // Old: maxAgeDays: 3
+          // New: 7 — allows week-long research cycles
+          maxAgeDays: 7,
+        },
+      },
+    },
+    list: [
+      {
+        id: "task-runner",
+        sandbox: {
+          // Old: scope: "session" (container destroyed per session)
+          // New: scope: "shared" (all sessions share one container)
+          // Reason: enables multi-step task cycles where files persist
+          //   between sessions_spawn calls
+          scope: "shared",
+
+          docker: {
+            // ... existing fields preserved ...
+
+            // NEW: GPU passthrough — requires vLLM stopped first
+            // RTX 5060 Ti 16GB will be fully available to containers
+            // If OpenClaw sandbox.docker doesn't support "gpus" field,
+            // this may need to go in a docker run wrapper instead.
+            gpus: "all",
+          },
+        },
+      },
+    ],
+  },
+}

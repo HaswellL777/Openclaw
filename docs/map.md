@@ -30,6 +30,8 @@
 | `docs/planning/phase4-acp-claude-code-research.md` | Phase 4 ACP Claude Code 集成研究报告（close-by: 2026-03-30） |
 | `docs/planning/skills-extension-design.md` | Skills 体系扩展设计（close-by: 2026-04-01） |
 | `docs/planning/long-running-tasks-design.md` | 长期任务支持方案设计（close-by: 2026-04-01） |
+| `docs/planning/openclaw-upgrade-3.23-evaluation.md` | OpenClaw 2026.3.23-2 升级评估（close-by: 2026-03-30） |
+| `docs/planning/labclaw-autoresearch-integration.md` | LabClaw + autoresearch 集成方案（close-by: 2026-03-28） |
 
 ## 架构决策记录 `[active]`
 

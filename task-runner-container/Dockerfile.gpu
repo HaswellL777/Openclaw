@@ -1,0 +1,89 @@
+# GPU-enabled task-runner image for ML/CUDA workloads.
+# Base: nvidia/cuda runtime + all tools from Dockerfile.full
+# Tag: openclaw-task-claude:2026-03-v3-gpu
+#
+# IMPORTANT: Requires --gpus all at docker run time.
+# Host must have: NVIDIA driver 590+, nvidia-container-toolkit installed.
+# vLLM must be stopped to free GPU memory before using this image.
+
+FROM nvidia/cuda:12.8.1-runtime-ubuntu24.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV WORKSPACE_ROOT=/workspace
+ENV TASK_REPO_PATH=/workspace/repo
+ENV TASK_INPUTS_PATH=/workspace/inputs
+ENV TASK_OUTPUTS_PATH=/workspace/outputs
+ENV ARTIFACT_EXPORT_PATH=/workspace/outputs/export
+ENV HOME=/home/runner
+
+# ── Layer 1: System packages (same as Dockerfile.full) ──
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        bash \
+        ca-certificates \
+        git \
+        jq \
+        python3 \
+        ripgrep \
+        build-essential \
+        curl \
+        locales \
+        python3-pip \
+        python3-venv \
+    && rm -rf /var/lib/apt/lists/*
+
+# ── Layer 2: Locale (UTF-8) ──
+RUN sed -i 's/^# *en_US.UTF-8/en_US.UTF-8/' /etc/locale.gen \
+    && locale-gen en_US.UTF-8
+
+ENV LANG=en_US.UTF-8
+ENV LC_ALL=en_US.UTF-8
+
+# ── Layer 3: Node.js 22 LTS via NodeSource ──
+RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
+    && apt-get install -y --no-install-recommends nodejs \
+    && rm -rf /var/lib/apt/lists/* \
+    && node --version && npm --version
+
+# ── Layer 4: Python packages ──
+# Scrapling (HTTP-only) + PyTorch (CUDA) + common ML tools
+# uv: fast Python package manager (required by autoresearch)
+# --break-system-packages: required on Ubuntu 24.04 with system Python.
+RUN pip3 install --no-cache-dir --break-system-packages \
+        uv \
+        scrapling \
+        torch torchvision torchaudio \
+        numpy pandas scikit-learn matplotlib \
+    && python3 -c "import torch; print(f'PyTorch {torch.__version__}, CUDA available: {torch.cuda.is_available()}')" \
+    && python3 -c "import scrapling; print(f'Scrapling {scrapling.__version__} installed')" \
+    && uv --version
+
+# ── Layer 5: Runner user and workspace ──
+RUN groupadd --gid 984 runner \
+    && useradd --uid 997 --gid 984 --create-home --home-dir /home/runner --shell /bin/bash runner \
+    && mkdir -p /workspace/repo /workspace/inputs /workspace/outputs/export \
+    && chmod -R 1777 /workspace \
+    && chown -R runner:runner /home/runner
+
+# ── Layer 6: Entrypoint and bootstrap scripts ──
+COPY entrypoint.sh /usr/local/bin/task-runner-entrypoint
+COPY bootstrap/prepare-workspace.sh /usr/local/bin/prepare-workspace
+COPY bootstrap/bootstrap-codex.sh /usr/local/bin/bootstrap-codex
+COPY bootstrap/bootstrap-claudecode.sh /usr/local/bin/bootstrap-claudecode
+
+RUN chmod 0755 \
+    /usr/local/bin/task-runner-entrypoint \
+    /usr/local/bin/prepare-workspace \
+    /usr/local/bin/bootstrap-codex \
+    /usr/local/bin/bootstrap-claudecode
+
+# ── Layer 7: NVIDIA runtime env ──
+# Ensure CUDA libraries are visible at runtime
+ENV NVIDIA_VISIBLE_DEVICES=all
+ENV NVIDIA_DRIVER_CAPABILITIES=compute,utility
+
+USER runner
+WORKDIR /workspace/repo
+
+ENTRYPOINT []
+CMD ["sleep", "infinity"]

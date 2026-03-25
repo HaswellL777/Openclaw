@@ -83,10 +83,15 @@
 | Phase 5 (LLM gateway / token 最小化) | 未开始 |
 | Phase 6 (备份扩展 / 长期收口) | 未开始 |
 | Scrapling 接入 | **Dockerfile.full 已修改，待镜像重建** — HTTP-only mode（pip install scrapling）；ADR 状态已更新 |
-| Skills 体系扩展 | **设计完成（repo-side）** — task-runner 新增 5 个 skill 模板（coding, testing, research, report, scrapling）；main agent 新增 task-delegation skill；设计文档见 `docs/planning/skills-extension-design.md` |
-| 长期任务支持 | **设计完成** — 推荐 Option B（Task Orchestration Skill）；设计文档见 `docs/planning/long-running-tasks-design.md` |
+| Skills 体系扩展 | **设计完成（repo-side）** — task-runner 新增 6 个 skill 模板（coding, testing, research, report, scrapling, autoresearch）；main agent 新增 task-delegation skill；设计文档见 `docs/planning/skills-extension-design.md` |
+| 长期任务支持 | **设计完成 + 配置 candidate 已生成** — 推荐 Option B；配置候选见 `candidates/openclaw.longtask-gpu-cleanup.candidate.json5` |
 | design-v3 清理 | **完成** — §5.5 gate/vLLM ABANDONED；§5.3.2/§5.4/§5.9.4/§8.5/§9.1 修正 ACP 架构 |
 | Main agent memory | **MEMORY.md 模板已创建** — workspace-main-template/memory/MEMORY.md；memory-core plugin 默认启用，无需额外配置 |
+| vLLM 关停 + Hook 清理 | **candidate 已生成** — 清理 tool-audit-plugin + tool-audit-probe hook；配置候选见 `candidates/openclaw.longtask-gpu-cleanup.candidate.json5` |
+| GPU 支持 | **Dockerfile.gpu 已创建** — CUDA runtime + PyTorch + uv；需 vLLM 停掉后才能使用 |
+| LabClaw + autoresearch | **集成方案已完成** — LabClaw（240 biomedical SKILL.md）+ autoresearch（ML 实验循环）；待 operator clone 到 /home/nick/repos/；集成文档见 `docs/planning/labclaw-autoresearch-integration.md` |
+| OpenClaw 升级评估 | **评估完成，推荐升级到 2026.3.23-2** — ACP 移入 core（关键变更）；OOM 修复；默认 timeout 48h；12 个 breaking changes 影响分析完成；评估文档见 `docs/planning/openclaw-upgrade-3.23-evaluation.md` |
+| 综合测试计划 | **已生成** — 11 个 section、~40 项检查；测试脚本见 `tests/test-phase4-readiness.sh` |
 
 ## 当前下一步
 
