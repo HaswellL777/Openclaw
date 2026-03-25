@@ -145,8 +145,11 @@ ls -lh /var/lib/openclaw/.openclaw/sessions.json
 # 5. 升级 OpenClaw
 sudo npm i -g openclaw@2026.3.23-2
 
-# 6. 运行 doctor 修复
-sudo -u openclaw openclaw doctor --fix
+# 6. 只读诊断（不要加 --fix 或 --repair！）
+# CLAUDE.md 安全边界禁止 auto-repair flows
+sudo -u openclaw openclaw doctor 2>&1 | tee /tmp/doctor-output.txt
+# 查看输出，逐项手动处理问题
+cat /tmp/doctor-output.txt
 
 # 7. 清理 stale acpx plugin 条目（如果 config 中存在）
 # 手动编辑 /etc/openclaw/openclaw.json：

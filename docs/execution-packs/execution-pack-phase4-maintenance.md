@@ -95,8 +95,12 @@ node --version
 # 2.3 升级
 sudo npm i -g openclaw@2026.3.23-2
 
-# 2.4 运行 doctor 修复
-sudo -u openclaw openclaw doctor --fix
+# 2.4 只读诊断（不要加 --fix 或 --repair！）
+# CLAUDE.md 安全边界：不运行 auto-repair flows
+# 先看诊断输出，再手动逐项处理
+sudo -u openclaw openclaw doctor 2>&1 | tee /tmp/doctor-output.txt
+cat /tmp/doctor-output.txt
+# 将输出提供给 AI 助手分析，确定哪些需要手动处理
 
 # 2.5 验证新版本
 sudo -u openclaw openclaw --version
