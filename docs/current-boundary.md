@@ -61,10 +61,12 @@
 - `plugins.allow`: `["feishu", "host-ops-tool"]`（移除 tool-audit-plugin）
 - 添加 `acp` 顶级块（enabled, maxConcurrentSessions=2, ttl=60min）
 - `subagents`: runTimeoutSeconds=14400, archiveAfterMinutes=1440
+- `agents.defaults.sandbox.docker`: image/network/readOnlyRoot/tmpfs（**必须在 defaults 级别设置**）
 - `sandbox.prune`: idleHours=24, maxAgeDays=7
 - task-runner `scope`: session → shared
 - 添加 `claude-engineer` agent（ACP runtime）
 - 注意：`acp.runtime.permissionMode` 和 `sandbox.docker.gpus` 被 config schema 拒绝，已移除
+- **关键发现：scope=shared 时 per-agent docker 配置被忽略**（源码 `params.scope === "shared" ? void 0 : params.agentDocker`），必须在 `agents.defaults.sandbox.docker` 设置镜像
 
 **环境变量（已追加到 /etc/openclaw/openclaw.env）**:
 - `ANTHROPIC_BASE_URL=https://new.motchat.com`
@@ -101,13 +103,13 @@
 
 ## 待验证项
 
-以下通过飞书向 main agent 发消息测试：
-
-1. **Shared scope**: 第一次 spawn task-runner 创建容器，第二次复用同一容器，文件跨 session 可见
-2. **Memory**: 私聊说"记住：维护窗口 2026-03-25 完成"，检查 MEMORY.md 是否更新
-3. **Broker**: 发"执行系统健康检查"，验证 gateway_health action
-4. **Knowledge**: 让 task-runner 执行 `ls /workspace/knowledge/`，确认 LabClaw + autoresearch 可见
-5. **ACP**: 发"使用 claude-engineer 列出 task-workspaces 目录"，观察日志
+1. ~~Shared scope~~: ✅ 通过（文件跨 session 可见）
+2. ~~Broker~~: ✅ 通过（gateway_health action 成功）
+3. ~~Knowledge~~: ✅ 通过（LabClaw + autoresearch 目录可见）
+4. ~~Scrapling~~: ✅ 通过（v0.4.2）
+5. ~~正确镜像~~: ✅ 通过（`openclaw-task-claude:2026-03-v3-full`）
+6. Memory: ⚠️ agent 写入 health state 而非 MEMORY.md（需调查 memory-core 行为）
+7. ACP claude-engineer: ❌ 未通过（"not allowed by ACP policy"——需进一步调试 ACP core 配置）
 
 ## 待解决
 
