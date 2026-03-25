@@ -1,12 +1,13 @@
 # 综合维护窗口执行指引
 
-> 日期：2026-03-25
-> 预估时间：30-60 分钟（不含镜像构建）
+> 日期：2026-03-25（修订：SecureBoot / vllm-audit.service 发现）
+> 预估时间：30-60 分钟（不含镜像构建和重启）
 > 前置：确保飞书暂时不需要 agent 回复（gateway 会重启）
+> 需要一次物理重启（关闭 SecureBoot）
 
 ---
 
-## 阶段 0：Pre-snapshot
+## 阶段 0：Pre-snapshot ✅ 已完成
 
 ```bash
 # 0.1 创建变更前快照
@@ -15,23 +16,69 @@ sudo btrfs subvolume snapshot -r / /.snapshots/root-pre-maintenance-20260325-$(d
 
 ---
 
-## 阶段 1：停掉 vLLM
+## 阶段 1：停掉 vLLM + 修复 NVIDIA 驱动
+
+### 问题诊断结果（2026-03-25）
+
+- vLLM 服务实际名称是 `vllm-audit.service`（不是 `vllm.service`）
+- 服务一直在崩溃重启（restart counter 278+），因为 NVIDIA 驱动无法加载
+- 根因：**SecureBoot 启用**，拒绝加载未签名的 NVIDIA DKMS 内核模块
+- `nvidia-smi` 失败，`lsmod` 无 nvidia 模块
+- 模块文件存在于 `/lib/modules/6.17.0-19-generic/updates/dkms/nvidia.ko.zst`
+- DKMS 状态：`nvidia/590.48.01, 6.17.0-19-generic, x86_64: installed`
+
+### 1.1 停止并禁用 vllm-audit.service（重启前执行）
 
 ```bash
-# 1.1 检查 vLLM 运行方式
+# 停止崩溃循环
+sudo systemctl stop vllm-audit.service
+sudo systemctl disable vllm-audit.service
+
+# 验证
+systemctl status vllm-audit.service
+# 期望：inactive (dead), disabled
+
+# 确认没有 vllm 残余进程
 ps aux | grep -v grep | grep vllm
-systemctl status vllm 2>/dev/null || echo "不是 systemd 服务"
+# 期望：无输出
+```
 
-# 1.2 如果是 systemd 服务：
-sudo systemctl stop vllm
-sudo systemctl disable vllm
+### 1.2 重启并在 BIOS 关闭 SecureBoot
 
-# 1.3 如果是手动进程：
-# sudo kill $(pgrep -f vllm)
+```
+重启机器，进入 BIOS/UEFI 设置：
+1. 找到 Secure Boot 选项（通常在 Security / Boot 菜单下）
+2. 设置 Secure Boot = Disabled
+3. 保存并退出
+4. 系统正常启动
+```
 
-# 1.4 验证 GPU 已释放
+### 1.3 重启后验证 NVIDIA 驱动
+
+```bash
+# 验证内核模块加载
+lsmod | grep nvidia
+# 期望：nvidia, nvidia_uvm, nvidia_modeset 等模块已加载
+
+# 验证 nvidia-smi
 nvidia-smi
-# 期望：Processes 列表无 vllm，GPU Memory Used 接近 0
+# 期望：显示 RTX 5060 Ti 16GB，Processes 列表为空（vllm 已 disabled）
+
+# 验证 DKMS
+dkms status
+# 期望：nvidia/590.48.01, 6.17.0-19-generic, x86_64: installed
+
+# 验证 SecureBoot 确实关闭
+mokutil --sb-state
+# 期望：SecureBoot disabled
+```
+
+### 1.4 确认 vllm-audit 仍然 disabled
+
+```bash
+systemctl status vllm-audit.service
+# 期望：inactive (dead), disabled
+# 不会自动启动了
 ```
 
 ---
@@ -431,8 +478,8 @@ sudo cp /etc/openclaw/openclaw.json.bak.* /etc/openclaw/openclaw.json
 sudo sed -i '/ANTHROPIC_BASE_URL/d; /ANTHROPIC_API_KEY/d' /etc/openclaw/openclaw.env
 
 # 如果需要恢复 vLLM
-sudo systemctl start vllm
-sudo systemctl enable vllm
+sudo systemctl start vllm-audit
+sudo systemctl enable vllm-audit
 
 # 如果需要降级 OpenClaw
 sudo npm i -g openclaw@2026.3.13
