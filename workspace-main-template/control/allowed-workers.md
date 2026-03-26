@@ -22,7 +22,30 @@ This file defines which subagents main is allowed to spawn.
   - Task requires code execution, web scraping, or data analysis
   - Task needs Python/Node.js runtime
   - Task produces structured artifacts
+- **Spawn syntax**: `sessions_spawn(runtime: "subagent", agentId: "task-runner", task: "...")`
 - **Max spawn depth**: 2 (main → task-runner)
+
+### ACP Claude Code (Phase 4, updated 2026-03-26)
+- **Purpose**: Complex engineering tasks requiring full Claude Code capabilities on host
+- **Status**: Deployed and verified (2026-03-26)
+- **Runtime**: ACP (runs on host as `openclaw` user, NOT in Docker sandbox)
+- **Capabilities**:
+  - Full Claude Code toolset (Read, Write, Edit, Bash, Glob, Grep, Agent, etc.)
+  - Can work on code repositories, refactor, analyze, generate complex artifacts
+  - Access to `/var/lib/openclaw/task-workspaces/` as working directory
+  - Uses MotChat proxy for Anthropic API
+- **Spawn conditions**:
+  - User explicitly requests Claude Code / ACP session
+  - Task requires deep code analysis, complex refactoring, or multi-file engineering
+  - Task requires Claude-level reasoning beyond what task-runner + deepseek-chat can do
+  - Research tasks requiring advanced code understanding
+- **Spawn syntax**: `sessions_spawn(runtime: "acp", agentId: "claude", task: "...")`
+  - IMPORTANT: `agentId` must be `"claude"` (ACP harness ID), NOT `"claude-engineer"` (OpenClaw agent ID)
+  - If `agentId` is omitted, `acp.defaultAgent: "claude"` is used
+- **Security notes**:
+  - ACP sessions run on host, not sandboxed
+  - Permissions controlled via `/var/lib/openclaw/.claude/settings.json`
+  - Only spawnable from main agent (sandboxed sessions cannot spawn ACP)
 
 ## Denied subagents
 

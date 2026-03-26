@@ -97,7 +97,7 @@ sudo mv /var/lib/openclaw/.openclaw/extensions/<plugin>.bak-* /var/lib/openclaw/
 - **Phase 2 broker deployment 已完成**（2026-03-14）：broker daemon 运行中、8 个 wrapper 已安装（production，`BROKER_DRY_RUN=false`）、host-ops-tool plugin 注册并被 gateway 接受。
 - **Phase 2 agent-facing host_ops 8/8 live E2E verified**（2026-03-17）：`gateway_health`、`validate_openclaw_json_candidate`、`deploy_openclaw_json_candidate`、`snapshot_pre`、`snapshot_post`、`rollback_prepare`、`gateway_restart`、`vault_sync` 全部通过。逐 action 证据见 `docs/records/README.md`。
 - **Phase 3（task-runner / Docker sandbox）已 operational**（2026-03-23 基础部署完成，2026-03-24 端到端验证通过）：Docker group 建立 → capability probe 重跑 P5 PASS → 镜像构建 → sandbox.docker 配置部署 → sessions_spawn 验证 → 容器内 git clone + 文件生成 → 结果回传飞书。详见 `docs/current-boundary.md`。
-- **Phase 4（ACP Claude Code 执行链）、Phase 5、Phase 6 均未开始**。
+- **Phase 4（ACP Claude Code 执行链）已 operational（2026-03-26 验证），Phase 5、Phase 6 均未开始**。
 - **OpenClaw 2026.3.13 升级已完成**（2026-03-18）：pre/post snapshot + vault_sync 完成，P0 focused regression 19/19 PASS，Phase 2 host_ops 8/8 升级后回归全部通过。升级记录见 `docs/records/openclaw-2026.3.13-upgrade-activation-2026-03-18.md`。
 - **升级后 capability probe 首次执行**（2026-03-19）：在 `P5 Docker / task-runner prerequisites` 处 hard gate FAIL，结论为 `P5 FAIL / Phase 3 = NO-GO`。（首次 probe 记录见 `docs/records/post-upgrade-capability-probe-execution-2026-03-19.md`）
 - **Docker prerequisite 建立 + capability probe 重跑**（2026-03-23）：docker group 方案完成（`sudo usermod -aG docker openclaw`），probe 重跑结果：P5 PASS（Docker 28.2.2 active, openclaw 在 docker 组），P2 Go，P1 Caution（sessions_yield 不存在），P4 Go，P3 Caution（待 live spawn 验证）。记录见 `docs/records/post-upgrade-capability-probe-rerun-2026-03-23.md`。

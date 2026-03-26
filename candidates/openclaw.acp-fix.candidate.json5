@@ -1,0 +1,72 @@
+// openclaw.json candidate: ACP policy fix — allowedAgents correction
+// Target: /etc/openclaw/openclaw.json
+// Date: 2026-03-26
+// Prerequisite: Phase 4 maintenance window completed (2026-03-25)
+// Root cause analysis: docs/planning/acp-policy-fix-analysis.md
+//
+// DELTA candidate — only changed fields shown.
+// Apply by editing the live openclaw.json.
+// ESCALATION: This changes /etc/openclaw/openclaw.json.
+//
+// === ROOT CAUSE ===
+//
+// Error: "ACP agent "claude-engineer" is not allowed by policy."
+//
+// The acp.allowedAgents field controls which ACP harness IDs (e.g., "claude",
+// "codex", "gemini") are allowed — NOT OpenClaw agent IDs (e.g., "claude-engineer").
+//
+// When main agent calls sessions_spawn(runtime: "acp", agentId: "claude-engineer"),
+// the system treats "claude-engineer" as an ACP harness ID and checks it against
+// allowedAgents: ["claude"]. Since "claude-engineer" != "claude", it fails.
+//
+// Source code evidence (pi-embedded-CbCYZxIb.js:6283-6290):
+//   function isAcpAgentAllowedByPolicy(cfg, agentId) {
+//     const allowed = (cfg.acp?.allowedAgents ?? []).map(entry => normalizeAgentId(entry));
+//     if (allowed.length === 0) return true;  // empty = allow all
+//     return allowed.includes(normalizeAgentId(agentId));
+//   }
+//
+// === FIX ===
+//
+// Remove allowedAgents (or set to []) so the empty-array-allows-all path is taken.
+// The acp.defaultAgent: "claude" already constrains the default harness.
+// Adding "claude-engineer" to allowedAgents would be wrong conceptually — it's not
+// an ACP harness, it's an OpenClaw agent.
+//
+// Additionally, ensure main agent's workspace guidance tells it to use
+// agentId: "claude" (the ACP harness ID) when spawning ACP sessions.
+{
+  acp: {
+    enabled: true,
+    dispatch: {
+      enabled: true,
+    },
+    defaultAgent: "claude",
+    // REMOVED: allowedAgents: ["claude"],
+    // Reason: empty/absent = allow all ACP harnesses.
+    // The defaultAgent field already sets the default.
+    // If we want to restrict, use: allowedAgents: ["claude"]
+    // BUT then main agent must use agentId: "claude" (not "claude-engineer")
+    // when calling sessions_spawn(runtime: "acp").
+    maxConcurrentSessions: 2,
+    stream: {
+      coalesceIdleMs: 300,
+      maxChunkChars: 1200,
+    },
+    runtime: {
+      ttlMinutes: 60,
+      // NOTE: permissionMode is NOT a valid field here in 2026.3.23-2.
+      // The acp.runtime schema only accepts: ttlMinutes, installCommand.
+      // Permission is controlled via Claude Code's ~/.claude/settings.json
+      // (already deployed at /var/lib/openclaw/.claude/settings.json with
+      // full allow list) and the acpx backend's built-in config.
+    },
+  },
+
+  // Also ensure plugins.allow includes host-ops-tool (currently deployed)
+  // and does NOT include "acpx" (not needed in 2026.3.22+).
+  plugins: {
+    allow: ["feishu", "host-ops-tool"],
+    // No acpx entry needed — ACP is in core for 2026.3.22+
+  },
+}

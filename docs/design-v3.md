@@ -1954,7 +1954,7 @@ Phase 2 repo prep 全部完成。完整 prep 退出标准见 `docs/specs/phase2-
 - [ ] 启用 acpx plugin（bundled in 2026.3.13）
 - [ ] 配置 `acp` block in openclaw.json（候选：`candidates/openclaw.acp-spike.candidate.json5`）
 - [ ] 设置 ANTHROPIC_BASE_URL + ANTHROPIC_API_KEY 环境变量
-- [ ] Spike 测试 ACP session spawn（claude-engineer agent）
+- [x] Spike 测试 ACP session spawn（claude-engineer agent）— 2026-03-26 验证通过（飞书 → main → sessions_spawn → Claude Code → 结果返回）
 - [ ] 验证 cwd bug #27627 workaround
 - [ ] 创建 task project 模板
 - [ ] 写 task project `CLAUDE.md`

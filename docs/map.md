@@ -27,7 +27,8 @@
 
 | 文件 | 描述 |
 |------|------|
-| `docs/planning/phase4-acp-claude-code-research.md` | Phase 4 ACP 研究报告（close-by: 2026-03-30）— ACP 配置已部署待验证 |
+| `docs/planning/phase4-acp-claude-code-research.md` | Phase 4 ACP 研究报告（close-by: 2026-03-30）— ✅ ACP 已部署并验证 (2026-03-26) |
+| `docs/planning/acp-policy-fix-analysis.md` | ACP policy 错误根因分析 + 修复方案（close-by: 2026-03-27）— ✅ 修复已部署并验证 (2026-03-26) |
 | `docs/planning/labclaw-autoresearch-integration.md` | LabClaw + autoresearch 集成（close-by: 2026-03-28）— repos 已 clone，待功能验证 |
 
 ## 已实施规划 `[implemented → archive pending]`

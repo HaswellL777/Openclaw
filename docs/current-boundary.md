@@ -26,7 +26,7 @@
 | **vLLM 关停 + SecureBoot 修复** | **完成** | **2026-03-25** |
 | **Hook 清理 (tool-audit-probe)** | **完成** | **2026-03-25** |
 | **长期任务配置 (scope:shared + timeout)** | **已部署** | **2026-03-25** |
-| **ACP 配置 (acp block + claude-engineer agent)** | **已部署，待验证** | **2026-03-25** |
+| **ACP 配置 (acp block + claude-engineer agent)** | **已部署并验证 ✅** | **2026-03-26** |
 | **Knowledge repos (LabClaw + autoresearch)** | **已 clone + mount 可见** | **2026-03-25** |
 | **workspace-main publish (MEMORY.md + skills)** | **已发布** | **2026-03-25** |
 | **design-v3 清理 (§5.5 ABANDONED + ACP 修正)** | **完成** | **2026-03-25** |
@@ -95,7 +95,7 @@
 | SecureBoot | **disabled** — NVIDIA DKMS 模块正常加载 |
 | task-runner scope | **shared** — 容器跨 session 共享 |
 | task-runner image | **v3-full** — 含 Scrapling 0.4.2 |
-| ACP 配置 | **已部署，待验证** — acp.enabled=true, claude-engineer agent 已定义 |
+| ACP 配置 | **已验证 ✅** — acpx-wrapper.sh + acpx plugin + 飞书 E2E 通过 |
 | Knowledge repos | **LabClaw + autoresearch 已 clone** — `/workspace/knowledge/` 可见 |
 | Memory | **MEMORY.md 已发布到 live workspace** |
 | Skills | **7 个 skill 已发布** — task-delegation(main) + coding/testing/research/report/scrapling/autoresearch(task-runner 模板) |
@@ -109,7 +109,9 @@
 4. ~~Scrapling~~: ✅ 通过（v0.4.2）
 5. ~~正确镜像~~: ✅ 通过（`openclaw-task-claude:2026-03-v3-full`）
 6. Memory: ⚠️ agent 写入 health state 而非 MEMORY.md（需调查 memory-core 行为）
-7. ACP claude-engineer: ❌ 未通过（"not allowed by ACP policy"——需进一步调试 ACP core 配置）
+7. ACP Claude Code: ✅ 通过（2026-03-26）
+   - 修复三层问题：(a) 移除 allowedAgents (b) claude CLI → /usr/local/bin/ (c) acpx plugin + acpx-wrapper.sh 绕过 env var stripping
+   - 验证: 飞书 → main agent → sessions_spawn(runtime: "acp") → Claude Code → 结果返回 + 网页可见
 
 ## 待解决
 

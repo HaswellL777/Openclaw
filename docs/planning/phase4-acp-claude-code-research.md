@@ -2,7 +2,7 @@
 
 > Date: 2026-03-25
 > Close-by: 2026-03-30 (implementation decision) or archive
-> Status: research complete, awaiting operator decision on integration option
+> Status: research complete, implementation verified (2026-03-26). ACP E2E operational.
 
 ---
 

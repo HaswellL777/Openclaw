@@ -66,7 +66,28 @@ This policy defines how main agent routes requests to appropriate execution cont
 - Control plane queries
 - Operations that don't require host mutation
 
-### 4. Claude Code CLI (external to OpenClaw)
+### 4. ACP Claude Code (Phase 4, deployed 2026-03-26)
+**Capabilities**:
+- Full Claude Code toolset on host (Read, Write, Edit, Bash, Glob, Grep, etc.)
+- Advanced code analysis, refactoring, and generation
+- Multi-file engineering tasks with Claude-level reasoning
+- Access to /var/lib/openclaw/task-workspaces/
+
+**Use for**:
+- Complex engineering tasks requiring deep reasoning
+- Tasks user explicitly requests Claude Code / ACP for
+- Research tasks requiring advanced code understanding
+- Multi-file refactoring or analysis beyond task-runner capabilities
+
+**Spawn syntax**: `sessions_spawn(runtime: "acp", agentId: "claude", task: "...")`
+- IMPORTANT: agentId must be "claude" (ACP harness), NOT "claude-engineer"
+
+**Do NOT use for**:
+- Simple tasks that task-runner can handle
+- Host mutations (use broker)
+- Control plane operations (handle in main)
+
+### 5. Claude Code CLI (external to OpenClaw)
 **Capabilities**:
 - Full development environment access
 - Git operations
@@ -86,7 +107,7 @@ This policy defines how main agent routes requests to appropriate execution cont
 - Live runtime modifications
 - Operations requiring OpenClaw context
 
-### 5. Human escalation
+### 6. Human escalation
 **Use for**:
 - Operations requiring approval (see approval-policy.md)
 - Policy conflicts or ambiguities
@@ -105,8 +126,12 @@ User request
   ├─ Is it a control plane query?
   |    └─ YES → Handle in main agent
   |
+  ├─ Does user explicitly request ACP / Claude Code session?
+  |    └─ YES → sessions_spawn(runtime: "acp", agentId: "claude", task: "...")
+  |
   ├─ Does it require engineering work?
-  |    └─ YES → Spawn task-runner via sessions_spawn
+  |    ├─ Complex / deep reasoning → ACP Claude Code
+  |    └─ Standard / sandbox-safe → Spawn task-runner via sessions_spawn
   |
   ├─ Does it require host mutation?
   |    ├─ Check approval-policy.md
@@ -120,8 +145,9 @@ User request
        └─ Escalate to human
 ```
 
-## Current capabilities (Phase 3 operational)
+## Current capabilities (Phase 3+ operational, Phase 4 ACP verified 2026-03-26)
 - task-runner: operational (2026-03-23) → Engineering tasks routed to Docker sandbox
+- ACP Claude Code: deployed (2026-03-26) → Complex engineering via `sessions_spawn(runtime: "acp", agentId: "claude")`
 - host-ops broker: operational (2026-03-17) → Host mutations via broker + wrapper chain
 - All 8 host_ops actions live E2E verified
 

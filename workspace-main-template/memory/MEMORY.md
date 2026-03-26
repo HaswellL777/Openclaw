@@ -30,7 +30,7 @@
   - LabClaw: 240 biomedical research SKILL.md files
   - autoresearch: ML autonomous experiment loop (Karpathy)
 - GPU: RTX 5060 Ti 16GB available (vLLM stopped, SecureBoot disabled)
-- ACP: configured but not yet verified (claude-engineer agent defined)
+- ACP: configured and verified operational (2026-03-26) — spawnable via sessions_spawn(runtime: "acp", agentId: "claude")
 
 ## Maintenance log
 - 2026-03-25: Major maintenance window — upgrade to 2026.3.23-2, vLLM shutdown,

@@ -4,7 +4,7 @@
 - **Name**: `task-delegation`
 - **Owner**: `main` agent
 - **Purpose**: Delegate engineering tasks to task-runner or claude-engineer agents
-- **Status**: operational (task-runner); pending (claude-engineer, awaiting ACP spike)
+- **Status**: operational (task-runner); operational (claude-engineer via ACP, verified 2026-03-26)
 
 ## Prerequisites
 - Phase 3 operational (task-runner available)
@@ -25,7 +25,7 @@ Selects between task-runner (Docker sandbox, tool execution) and claude-engineer
 1. Analyze the task request
 2. Determine routing:
    - **task-runner**: tasks needing Docker sandbox (build, test, data processing, web scraping)
-   - **claude-engineer**: tasks needing Claude Code (complex code analysis, multi-file refactoring) — *available after ACP spike*
+   - **claude-engineer**: tasks needing Claude Code (complex code analysis, multi-file refactoring) — *available via ACP sessions_spawn(runtime: "acp", agentId: "claude")*
 3. Prepare task inputs (structured prompt, reference files)
 4. Call `sessions_spawn` with appropriate runtime and agent
 5. Monitor task progress
