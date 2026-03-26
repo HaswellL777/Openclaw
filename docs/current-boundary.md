@@ -156,6 +156,17 @@
 - **实际名称**：`vllm-audit.service`（不是 `vllm.service`）
 - **记忆已更新**
 
+### task-runner live workspace 忘记发布（3+ 次发生）
+- **现象**：更新了 `workspace-task-runner-template/` 中的 skills/AGENTS.md 等，但 live workspace 没变，agent 不知道新能力
+- **原因**：只有 workspace-main 有 publish 脚本，task-runner/research-coordinator/auditor 没有
+- **正确做法**：每次更新模板后必须手动 rsync 到 live workspace
+- **chown 陷阱**：`chown -R` 会失败，因为 `knowledge/` 是 read-only bind mount。必须 chown 具体路径而非整个目录：
+  ```
+  sudo rsync -av workspace-task-runner-template/ /var/lib/openclaw/.openclaw/workspace-task-runner/
+  sudo chown openclaw:openclaw .../AGENTS.md .../TOOLS.md
+  sudo chown -R openclaw:openclaw .../control .../skills .../tasks
+  ```
+
 ## 关键参考
 
 - 权威 SOP：`docs/host-sop.md`
