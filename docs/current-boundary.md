@@ -94,11 +94,14 @@
 | vLLM | **stopped + disabled** — vllm-audit.service |
 | SecureBoot | **disabled** — NVIDIA DKMS 模块正常加载 |
 | task-runner scope | **shared** — 容器跨 session 共享 |
-| task-runner image | **v3-full** — 含 Scrapling 0.4.2 |
+| task-runner image | **v3-gpu** — PyTorch+CUDA, HuggingFace, BioPython, Scrapling, uv |
 | ACP 配置 | **已验证 ✅** — acpx-wrapper.sh + acpx plugin + 飞书 E2E 通过 |
+| GPU Docker 透传 | **已配置 ✅** — nvidia default-runtime, 容器内 torch.cuda.is_available()=True |
+| research-coordinator | **已部署 ✅** — deepseek-chat, scope=shared, spawns task-runner |
+| auditor | **已部署 ✅** — claude-opus, agentToAgent enabled, quality audit |
 | Knowledge repos | **LabClaw + autoresearch 已 clone** — `/workspace/knowledge/` 可见 |
 | Memory | **MEMORY.md 已发布到 live workspace** |
-| Skills | **7 个 skill 已发布** — task-delegation(main) + coding/testing/research/report/scrapling/autoresearch(task-runner 模板) |
+| Skills | **11 个 skill** — experiment-loop/literature-search/hypothesis-generation/data-analysis + 原有 7 个 |
 | 长期任务 | **配置已部署** — runTimeout=4h, archive=24h, prune idle=24h/age=7d |
 
 ## 待验证项
@@ -116,8 +119,7 @@
 ## 待解决
 
 - **workspace-task-runner 无 publish 脚本**：只有 `scripts/publish-workspace-main.sh`，没有 task-runner 版本。task-runner 的 AGENTS.md/TOOLS.md/skills 模板更新后需手动 `sudo cp` 到 `/var/lib/openclaw/.openclaw/workspace-task-runner/`。这些文件是 OpenClaw 注入到 subagent session 的唯一策略面——如果过时，task-runner 不知道自己有 Scrapling、knowledge repos 等能力。应创建 `scripts/publish-workspace-task-runner.sh`。
-- **飞书官方插件**: `@larksuiteoapi/feishu-openclaw-plugin` 需要 `openclaw/plugin-sdk` 模块解析，从 extensions 目录加载失败。需要研究 symlink 方案或其他安装方式
-- **GPU 透传**: `sandbox.docker.gpus` 不被 config schema 识别。需要通过 Docker daemon 默认 runtime 或其他方式实现
+- **GPU 透传**: ✅ 已解决（2026-03-26）— Docker daemon default-runtime=nvidia, 容器内 GPU 可用
 - **日志文件大小**: `log file size cap reached`，需要轮转 `/var/log/openclaw/openclaw.log`
 - **Vault sync**: 维护窗口后的 vault sync 尚未执行
 
