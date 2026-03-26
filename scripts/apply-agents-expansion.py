@@ -40,7 +40,7 @@ def main():
             "name": "Research Coordinator",
             "model": {"primary": "custom-api-deepseek-com/deepseek-chat"},
             "workspace": "workspace-research-coordinator",
-            "subagents": {"allowAgents": ["task-runner"], "maxConcurrent": 3},
+            "subagents": {"allowAgents": ["task-runner"]},
             "sandbox": {"scope": "shared"},
         },
         {

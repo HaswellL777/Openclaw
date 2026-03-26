@@ -39,7 +39,8 @@
         workspace: "workspace-research-coordinator",
         subagents: {
           allowAgents: ["task-runner"],
-          maxConcurrent: 3,
+          // NOTE: maxConcurrent is NOT valid at per-agent level.
+          // Use agents.defaults.subagents.maxConcurrent for global limit.
         },
         sandbox: {
           scope: "shared",  // shares Docker container with task-runner for file access
