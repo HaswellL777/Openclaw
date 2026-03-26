@@ -1,0 +1,95 @@
+// openclaw.json candidate: Agent architecture expansion
+// Target: /etc/openclaw/openclaw.json
+// Date: 2026-03-26
+// Apply via: sudo python3 scripts/apply-agents-expansion.py
+//
+// ESCALATION: This changes /etc/openclaw/openclaw.json.
+// Changes: adds 2 agents, raises maxSpawnDepth, enables agentToAgent.
+//
+// === DELTA — only new/changed fields shown ===
+
+{
+  agents: {
+    defaults: {
+      subagents: {
+        // CHANGED: raise depth ceiling from 1 (default) to 2
+        // Enables: main (depth 0) → research-coordinator (depth 1) → task-runner (depth 2)
+        // Note: depth ceiling and allowAgents are independent constraints.
+        // An agent can spawn only when BOTH: depth < maxSpawnDepth AND target in allowAgents.
+        maxSpawnDepth: 2,
+        // existing fields preserved: maxConcurrent, runTimeoutSeconds, archiveAfterMinutes
+      },
+    },
+
+    list: [
+      // ... existing agents (main, task-runner, claude-engineer) preserved ...
+
+      // NEW: research-coordinator
+      // Purpose: orchestrate long-running research tasks, spawn task-runner for execution
+      // Control flow: main → research-coordinator → task-runner (depth 2, leaf)
+      // NOTE: Starts with deepseek-chat. If orchestration complexity exceeds
+      // deepseek-chat capability (multi-step planning, complex state tracking),
+      // switch to motchat-claude-4-6/claude-opus-4-6.
+      {
+        id: "research-coordinator",
+        name: "Research Coordinator",
+        model: {
+          primary: "custom-api-deepseek-com/deepseek-chat",
+        },
+        workspace: "workspace-research-coordinator",
+        subagents: {
+          allowAgents: ["task-runner"],
+          maxConcurrent: 3,
+        },
+        sandbox: {
+          scope: "shared",  // shares Docker container with task-runner for file access
+        },
+      },
+
+      // NEW: auditor
+      // Purpose: quality auditing of research outputs, code quality, fact-checking
+      // Uses agentToAgent access to read other agents' session history
+      // Read-only: minimal tool profile, cannot spawn subagents
+      {
+        id: "auditor",
+        name: "Quality Auditor",
+        model: {
+          primary: "motchat-claude-4-6/claude-opus-4-6",
+        },
+        workspace: "workspace-auditor",
+        tools: {
+          profile: "minimal",
+        },
+        sandbox: {
+          scope: "shared",  // can read files in shared container
+        },
+      },
+    ],
+  },
+
+  // CHANGED: main agent's subagents.allowAgents
+  // From: ["task-runner"]
+  // To: ["task-runner", "research-coordinator", "auditor"]
+  // Apply by finding the main agent entry in agents.list and updating its subagents.allowAgents
+
+  // NEW: Agent-to-agent cross-session access
+  // Schema: tools.agentToAgent: { enabled: boolean, allow: string[] }
+  // Source: zod-schema.agent-runtime-Dtg4Jy6G.js:578-581
+  // Runtime: createAgentToAgentPolicy in pi-embedded:80980-81004
+  //
+  // Behavior of `allow`:
+  //   - Empty array [] = allow ALL agents (no filtering)
+  //   - ["main", "auditor"] = only these agent IDs can participate
+  //   - Symmetric: BOTH requester AND target must appear in the array
+  //   - No directional control (cannot say "auditor reads task-runner but not vice versa")
+  //
+  // Tradeoff: ["main", "auditor"] means main and auditor can access any agent's sessions.
+  // task-runner and research-coordinator (not in list) cannot access others' sessions.
+  // This is the closest to "auditor-only read access" the schema supports.
+  tools: {
+    agentToAgent: {
+      enabled: true,
+      allow: ["main", "auditor"],
+    },
+  },
+}

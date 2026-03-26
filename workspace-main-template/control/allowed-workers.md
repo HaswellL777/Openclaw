@@ -47,6 +47,42 @@ This file defines which subagents main is allowed to spawn.
   - Permissions controlled via `/var/lib/openclaw/.claude/settings.json`
   - Only spawnable from main agent (sandboxed sessions cannot spawn ACP)
 
+### research-coordinator (Phase 4+, added 2026-03-26)
+- **Purpose**: Orchestrate long-running, multi-phase research tasks
+- **Status**: Deployed (pending Stage 4 config deployment)
+- **Model**: deepseek-chat (may upgrade to claude-opus if orchestration complexity requires)
+- **Runtime**: embedded (Docker shared scope — shares container with task-runner)
+- **Capabilities**:
+  - Spawn task-runner for execution sub-tasks (up to 3 concurrent)
+  - Maintain research state across sessions via workspace files
+  - Track experiments and manage iterative research loops
+  - Synthesize results from multiple task-runner sessions
+- **Spawn conditions**:
+  - User requests a complex, multi-phase research task
+  - Task requires persistent coordination across multiple sessions
+  - Task involves iterative experiment loops (hypothesis → execute → evaluate)
+- **Spawn syntax**: `sessions_spawn(runtime: "subagent", agentId: "research-coordinator", task: "...")`
+- **Depth**: spawned at depth 1; can spawn task-runner at depth 2 (leaf)
+- **Cannot do**: spawn ACP sessions (only main can), access host config, run broker actions
+
+### auditor (Phase 4+, added 2026-03-26)
+- **Purpose**: Independent quality auditing of agent work products
+- **Status**: Deployed (pending Stage 4 config deployment)
+- **Model**: claude-opus-4-6 (high reasoning for quality assessment)
+- **Runtime**: embedded (Docker shared scope — can read task-runner's files)
+- **Capabilities**:
+  - Read other agents' session history (via agentToAgent cross-agent access)
+  - Read shared container filesystem (task-runner outputs)
+  - Fact-check research claims via web_search
+  - Produce structured audit reports
+- **Spawn conditions**:
+  - User requests quality review of research or code output
+  - After a research phase completes (periodic quality gate)
+  - When code quality or factual accuracy needs independent verification
+- **Spawn syntax**: `sessions_spawn(runtime: "subagent", agentId: "auditor", task: "...")`
+- **Tools**: minimal profile (read-only — cannot write, edit, exec, or spawn)
+- **Cannot do**: modify files, execute code, spawn subagents
+
 ## Denied subagents
 
 All other agent IDs are denied unless explicitly added to this whitelist.

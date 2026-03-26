@@ -87,7 +87,46 @@ This policy defines how main agent routes requests to appropriate execution cont
 - Host mutations (use broker)
 - Control plane operations (handle in main)
 
-### 5. Claude Code CLI (external to OpenClaw)
+### 5. Research Coordinator (Phase 4+, added 2026-03-26)
+**Capabilities**:
+- Orchestrate multi-phase research tasks
+- Spawn task-runner for data collection and experiments (up to 3 concurrent)
+- Maintain persistent research state across sessions
+- Track experiments with keep/discard/stop decision rules
+
+**Use for**:
+- Complex research goals requiring multiple phases (literature → analysis → report)
+- Iterative experiment loops (autoresearch pattern)
+- Tasks needing coordination across multiple task-runner sessions
+- Long-running tasks that need state persistence
+
+**Spawn syntax**: `sessions_spawn(runtime: "subagent", agentId: "research-coordinator", task: "...")`
+
+**Do NOT use for**:
+- Simple single-shot tasks (use task-runner directly)
+- Tasks requiring ACP Claude Code (main handles ACP spawning)
+- Host mutations or control plane operations
+
+### 6. Auditor (Phase 4+, added 2026-03-26)
+**Capabilities**:
+- Read other agents' session history (cross-agent access enabled)
+- Read shared container filesystem
+- Fact-check via web search
+- Produce structured audit reports
+
+**Use for**:
+- Quality review after research phases complete
+- Code quality assessment of task-runner outputs
+- Fact-checking research claims and citations
+- Independent verification before reporting to operator
+
+**Spawn syntax**: `sessions_spawn(runtime: "subagent", agentId: "auditor", task: "...")`
+
+**Do NOT use for**:
+- Execution of any kind (auditor is read-only)
+- Tasks requiring file modification or code execution
+
+### 7. Claude Code CLI (external to OpenClaw)
 **Capabilities**:
 - Full development environment access
 - Git operations
@@ -107,7 +146,7 @@ This policy defines how main agent routes requests to appropriate execution cont
 - Live runtime modifications
 - Operations requiring OpenClaw context
 
-### 6. Human escalation
+### 8. Human escalation
 **Use for**:
 - Operations requiring approval (see approval-policy.md)
 - Policy conflicts or ambiguities
@@ -129,6 +168,12 @@ User request
   ├─ Does user explicitly request ACP / Claude Code session?
   |    └─ YES → sessions_spawn(runtime: "acp", agentId: "claude", task: "...")
   |
+  ├─ Is it a complex, multi-phase research task?
+  |    └─ YES → sessions_spawn(agentId: "research-coordinator", task: "...")
+  |
+  ├─ Does user request quality audit / review?
+  |    └─ YES → sessions_spawn(agentId: "auditor", task: "...")
+  |
   ├─ Does it require engineering work?
   |    ├─ Complex / deep reasoning → ACP Claude Code
   |    └─ Standard / sandbox-safe → Spawn task-runner via sessions_spawn
@@ -147,7 +192,9 @@ User request
 
 ## Current capabilities (Phase 3+ operational, Phase 4 ACP verified 2026-03-26)
 - task-runner: operational (2026-03-23) → Engineering tasks routed to Docker sandbox
-- ACP Claude Code: deployed (2026-03-26) → Complex engineering via `sessions_spawn(runtime: "acp", agentId: "claude")`
+- ACP Claude Code: verified (2026-03-26) → Complex engineering via `sessions_spawn(runtime: "acp", agentId: "claude")`
+- research-coordinator: deployed (2026-03-26) → Multi-phase research orchestration
+- auditor: deployed (2026-03-26) → Quality auditing with cross-agent session access
 - host-ops broker: operational (2026-03-17) → Host mutations via broker + wrapper chain
 - All 8 host_ops actions live E2E verified
 
