@@ -4,13 +4,13 @@
 - **Name**: `autoresearch`
 - **Owner**: `task-runner` (GPU variant) / `claude-engineer` (ACP, Phase 4)
 - **Purpose**: Autonomous ML experiment loop — edit code, train, evaluate, iterate
-- **Status**: pending (requires GPU image + vLLM stopped)
+- **Status**: operational (GPU image deployed, nvidia default runtime configured 2026-03-26)
 
 ## Prerequisites
-- GPU image: `openclaw-task-claude:2026-03-v3-gpu` (Dockerfile.gpu)
-- GPU passthrough: `docker.gpus: "all"` in sandbox config
-- vLLM stopped (frees 14.2GB VRAM)
-- `uv` package manager installed in container
+- GPU image: `openclaw-task-claude:2026-03-v3-gpu` (Dockerfile.gpu) — deployed
+- GPU passthrough: Docker daemon default-runtime=nvidia — configured
+- vLLM stopped (frees 14.2GB VRAM) — done (2026-03-25)
+- `uv` package manager installed in container — included in GPU image
 - Reference repo: `/workspace/knowledge/autoresearch/` (clone from github.com/karpathy/autoresearch)
 - Shared scope container (files persist between sessions)
 
