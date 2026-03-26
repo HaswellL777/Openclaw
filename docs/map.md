@@ -1,6 +1,6 @@
 # OpenClaw Dev Repo 文档地图
 
-> 更新日期：2026-03-25
+> 更新日期：2026-03-26
 
 ---
 
@@ -29,7 +29,10 @@
 |------|------|
 | `docs/planning/phase4-acp-claude-code-research.md` | Phase 4 ACP 研究报告（close-by: 2026-03-30）— ✅ ACP 已部署并验证 (2026-03-26) |
 | `docs/planning/acp-policy-fix-analysis.md` | ACP policy 错误根因分析 + 修复方案（close-by: 2026-03-27）— ✅ 修复已部署并验证 (2026-03-26) |
-| `docs/planning/labclaw-autoresearch-integration.md` | LabClaw + autoresearch 集成（close-by: 2026-03-28）— repos 已 clone，待功能验证 |
+| `docs/planning/labclaw-autoresearch-integration.md` | LabClaw + autoresearch 集成（close-by: 2026-03-28）— repos 已 clone，GPU 已验证 |
+| `candidates/openclaw.agents-expansion.candidate.json5` | Agent 扩展配置候选（research-coordinator + auditor）— ✅ 已部署 (2026-03-26) |
+| `scripts/acpx-wrapper.sh` | ACP 环境配置 wrapper（proxy, key, model, telemetry）— ✅ 已部署 |
+| `scripts/apply-agents-expansion.py` | Agent 扩展配置自动化 apply 脚本 |
 
 ## 已实施规划 `[implemented → archive pending]`
 
@@ -90,7 +93,7 @@ Phase 2 交付的协议/契约规格，处于冻结状态。
 
 | 文件 | 描述 | 状态 |
 |------|------|------|
-| `docs/execution-packs/execution-pack-phase4-maintenance.md` | Phase 4 维护窗口执行包（升级+vLLM+ACP+飞书+镜像） | **执行中 (2026-03-25)** |
+| `docs/execution-packs/execution-pack-phase4-maintenance.md` | Phase 4 维护窗口执行包（升级+vLLM+ACP+飞书+镜像） | **完成 (2026-03-26)** |
 | `docs/execution-packs/execution-pack-first-live-publish.md` | Phase 1B 执行包 | archived |
 | `docs/execution-packs/execution-pack-phase2-broker-deployment.md` | Phase 2 执行包 | archived |
 
@@ -109,7 +112,16 @@ Phase 2 交付的协议/契约规格，处于冻结状态。
 |------|------|
 | `docs/milestones/phase0-baseline.md` | Phase 0 基线记录 |
 
-## 模板 `[reference]`
+## Workspace 模板 `[active]`
+
+| 目录 | 描述 |
+|------|------|
+| `workspace-main-template/` | main agent 控制面 workspace 模板 |
+| `workspace-task-runner-template/` | task-runner 工程执行 workspace 模板（10 skills） |
+| `workspace-research-coordinator-template/` | research-coordinator 研究编排 workspace 模板 |
+| `workspace-auditor-template/` | auditor 质量审计 workspace 模板 |
+
+## 文档模板 `[reference]`
 
 | 文件 | 描述 |
 |------|------|
