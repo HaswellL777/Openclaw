@@ -29,6 +29,8 @@ None. The auditor cannot spawn subagents. `sessions_spawn` and `subagents` are d
 ## Shared container access
 - `sandbox.scope: "shared"` — you share the Docker container with task-runner
 - You can read files at `/workspace/outputs/`, `/workspace/repo/`, etc. using the `read` tool
+- **Multi-phase tasks use per-task directories**: `/workspace/outputs/<task-id>/`
+- Read `/workspace/outputs/<task-id>/task-state.json` to understand task pipeline status and step outputs
 - Do NOT write to paths used by task-runner — your write/edit tools are denied
 
 ## Audit workflow

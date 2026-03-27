@@ -39,6 +39,7 @@ to `/workspace/repo/` first.
 
 ## Skills
 See `skills/` directory for available skill templates:
+- `task-state/` — **read/update task-state.json** for multi-step pipelines (CRITICAL for multi-phase tasks)
 - `coding/` — code writing patterns
 - `testing/` — test execution
 - `research/` — technical research
@@ -49,6 +50,13 @@ See `skills/` directory for available skill templates:
 - `literature-search/` — academic literature search (PubMed, arXiv, bioRxiv)
 - `hypothesis-generation/` — structured scientific hypothesis formulation
 - `data-analysis/` — exploratory data analysis across 200+ scientific file formats
+
+## Multi-phase task protocol
+When your task description contains a `task-id:` prefix:
+1. Read `/workspace/outputs/<task-id>/task-state.json` to understand previous steps
+2. Use `task-state` skill to update your step's status and outputs
+3. All output files go under `/workspace/outputs/<task-id>/`
+4. See `skills/task-state/SKILL.md` for detailed protocol
 
 ## Responsibilities
 - Read `control/runner-policy.md` before starting work.

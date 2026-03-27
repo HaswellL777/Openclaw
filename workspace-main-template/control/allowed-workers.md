@@ -49,12 +49,13 @@ This file defines which subagents main is allowed to spawn.
 
 ### research-coordinator (Phase 4+, added 2026-03-26)
 - **Purpose**: Orchestrate long-running, multi-phase research tasks
-- **Status**: Deployed (pending Stage 4 config deployment)
-- **Model**: deepseek-chat (may upgrade to claude-opus if orchestration complexity requires)
+- **Status**: Deployed (model switching to claude-opus pending deployment)
+- **Model**: claude-opus-4-6 (upgraded from deepseek-chat for reliable orchestration)
 - **Runtime**: embedded (Docker shared scope — shares container with task-runner)
 - **Capabilities**:
   - Spawn task-runner for execution sub-tasks (up to 3 concurrent)
-  - Maintain research state across sessions via workspace files
+  - **Select model per task-runner spawn** via `sessions_spawn(model: "provider/model")`
+  - Maintain research state via `/workspace/outputs/<task-id>/task-state.json`
   - Track experiments and manage iterative research loops
   - Synthesize results from multiple task-runner sessions
 - **Spawn conditions**:
@@ -67,14 +68,15 @@ This file defines which subagents main is allowed to spawn.
 
 ### auditor (Phase 4+, added 2026-03-26)
 - **Purpose**: Independent quality auditing of agent work products
-- **Status**: Deployed (pending Stage 4 config deployment)
+- **Status**: Deployed (sessions.visibility fix pending deployment)
 - **Model**: claude-opus-4-6 (high reasoning for quality assessment)
 - **Runtime**: embedded (Docker shared scope — can read task-runner's files)
 - **Capabilities**:
   - Read other agents' session history (via agentToAgent cross-agent access)
-  - Read shared container filesystem (task-runner outputs)
+  - Read shared container filesystem (task-runner outputs, task-state.json)
   - Fact-check research claims via web_search
   - Produce structured audit reports
+- **Note**: Cross-agent access requires `tools.sessions.visibility=all` AND `agents.defaults.sandbox.sessionToolsVisibility=all` (pending deployment)
 - **Spawn conditions**:
   - User requests quality review of research or code output
   - After a research phase completes (periodic quality gate)

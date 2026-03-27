@@ -202,15 +202,35 @@ User request
 
 **When a task requires multiple phases, you MUST orchestrate the full sequence before reporting to the user.**
 
+### Task directory + task-state.json protocol
+
+Every multi-phase task uses:
+- **task-id**: `YYYYMMDD-<short-slug>` (e.g., `20260328-model-routing-bench`)
+- **task directory**: `/workspace/outputs/<task-id>/`
+- **state file**: `/workspace/outputs/<task-id>/task-state.json`
+
+Each step reads task-state.json to find previous step's outputs (file paths, summaries), then updates it with its own results. This avoids passing large data through spawn task descriptions.
+
+### Model selection per step
+
+Use `sessions_spawn(model: "provider/model")` to choose the right model per step:
+- **Data collection** → default model (no override)
+- **Algorithm implementation** → `motchat-claude-4-6/claude-opus-4-6`
+- **Analysis/reasoning** → `motchat-claude-4-6/claude-opus-4-6`
+- **Simple formatting/scripting** → default model
+
 Do NOT:
 - Report to user after the first subagent completes
 - Spawn one subagent and consider the task done
 - Treat a multi-phase task as a single spawn
 
 DO:
-- Identify all phases upfront (e.g., collect → analyze → report → audit)
-- Spawn each phase sequentially, passing previous results as context
+- Identify all phases upfront (e.g., collect → implement → test → analyze → report)
+- Include task-id in every spawn description
+- Instruct each step to read/update task-state.json
+- Spawn each phase sequentially, passing context via task-state.json
 - Wait for each phase's completion event before spawning the next
+- Select model per step based on complexity
 - Spawn auditor for quality gates at critical points
 - Report to user ONLY after all phases complete
 

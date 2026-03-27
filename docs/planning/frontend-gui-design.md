@@ -1,186 +1,234 @@
 # 前端 GUI 需求规格 & 技术选型
 
-> 日期：2026-03-27
+> 日期：2026-03-27（v2: 集成内置 Control UI 功能）
 > close-by：2026-04-05（设计文档，作为独立工程的启动输入）
 > 状态：**设计完成，未实施**
 
 ---
 
-## 1. Operator 核心需求
+## 1. 设计原则
 
-| # | 需求 | 优先级 |
-|---|------|--------|
-| 1 | Agent 拓扑可视化——名字、状态、父子关系图 | P0 |
-| 2 | Session 内容查看——完整对话、agent 间消息流向 | P0 |
-| 3 | **直接对话**——在 GUI 中直接与任意 agent 对话 | P0 |
-| 4 | 文件浏览器——容器内 + 宿主机 workspace，可下载 | P1 |
-| 5 | **Docker 容器管理**——查看容器状态、浏览容器内文件、执行操作 | P1 |
-| 6 | 监控仪表盘——token 用量、耗时、错误率 | P1 |
-| 7 | **Broker 管理**——查看 broker action 历史、审批队列、手动触发 action | P1 |
-| 8 | **模型/地址/Key 管理**——便捷修改 provider endpoint、API key、agent 模型选择 | P1 |
-| 9 | 不重复 Gateway 内置 dashboard 已有功能 | 约束 |
+**替代而非补充**：新前端完全替代内置 Control UI，成为唯一管理入口。内置 UI 保留但仅作为紧急后备。原因：
+- 内置 UI 功能已全部有 RPC API 支撑，可完整集成
+- 维护两个 UI 增加认知负担
+- 新前端可以做到内置 UI 做不到的事（拓扑图、broker、Docker）
 
-## 2. Gateway API 能力清单
+## 2. 需求清单
 
-### 可用 RPC 方法（WebSocket JSON-RPC at ws://127.0.0.1:17777）
+### P0 — 核心操作
 
-**源码**：`gateway-cli-Dsd9gHBa.js`
+| # | 功能 | Gateway API | 状态 |
+|---|------|------------|------|
+| 1 | Agent 拓扑可视化 | `agents.list` + `sessions.list` + `presence` 事件 | ✅ 可直接实现 |
+| 2 | Session 对话查看 | `chat.history` + `sessions.messages.subscribe` | ✅ 可直接实现 |
+| 3 | 直接对话 | `sessions.create` + `chat.send` + streaming | ✅ 可直接实现 |
+| 4 | Session 管理 | `sessions.list/create/patch/delete/abort/reset/compact` | ✅ 可直接实现 |
 
-#### Session 管理（覆盖需求 #1, #2）
+### P1 — 管理 & 监控
+
+| # | 功能 | Gateway API | 状态 |
+|---|------|------------|------|
+| 5 | Token 用量仪表盘 | `sessions.usage` (date range, 分组, per-session) | ✅ 可直接实现 |
+| 6 | 健康 & Presence 监控 | `health` + `system-presence` + `channels.status` | ✅ 可直接实现 |
+| 7 | Gateway 日志 | `logs.tail` (cursor, limit, maxBytes) | ✅ 可直接实现 |
+| 8 | Cron 定时任务管理 | `cron.list/add/update/remove/run/runs/status` | ✅ 可直接实现 |
+| 9 | Skills 管理 | `skills.status/bins/install/update` | ✅ 可直接实现 |
+| 10 | Tools 目录 | `tools.catalog` (per-agent, 含 plugin tools) | ✅ 可直接实现 |
+| 11 | Workspace 文件浏览 | `agents.files.list/get/set` | ✅ 可直接实现 |
+| 12 | 模型/Provider/Key 管理 | `config.get/patch/schema` + `models.list` | ✅ 可直接实现 |
+| 13 | Agent 配置管理 | `agents.create/update/delete` + config API | ✅ 可直接实现 |
+| 14 | Docker 容器管理 | **[GAP]** 需 broker action | 需开发 |
+| 15 | Broker 管理 | **[GAP]** 需 broker-proxy plugin | 需开发 |
+
+### P2 — 增强
+
+| # | 功能 | 说明 |
+|---|------|------|
+| 16 | Heartbeat 配置 | per-agent heartbeat 开关 + 间隔配置（via config.patch） |
+| 17 | 设备配对管理 | `device.pair.list/approve/reject/remove` + `device.token.rotate` |
+| 18 | 渠道管理 | `channels.status` + config 中 channel 块编辑 |
+| 19 | 用量成本追踪 | `usage.status/cost` + `sessions.usage` 组合 |
+
+---
+
+## 3. Gateway API 完整清单
+
+### RPC 方法（WebSocket JSON-RPC at ws://127.0.0.1:17777）
+
+源码：`gateway-cli-Dsd9gHBa.js`、`method-scopes-BiEi0X2g.js`
+
+#### Session 管理
 
 | Method | 功能 | 关键参数 |
 |--------|------|----------|
-| `sessions.list` | 列出所有 session（含 agent/parent 关系） | — |
+| `sessions.list` | 列出 session | limit, activeMinutes, agentId, search, spawnedBy, includeLastMessage |
 | `sessions.create` | 创建 session | agentId, label, model, parentSessionKey |
-| `sessions.send` | 发送消息 | key, message |
-| `sessions.abort` | 中断运行 | key |
+| `sessions.send` | 发送消息（streaming） | key, message |
+| `sessions.abort` | 中断运行中的 session | key |
 | `sessions.delete` | 删除 session | key, deleteTranscript |
-| `sessions.patch` | 修改 session（label/model） | key, label, model |
-| `sessions.preview` | 获取消息预览（截断） | keys[], limit, maxChars |
-| `sessions.usage` | Token 用量统计 | startDate, endDate, mode, key |
-| `sessions.subscribe` | 订阅 session 变更事件 | — |
-| `sessions.messages.subscribe` | 订阅实时消息流 | key |
+| `sessions.patch` | 修改 session | key, label, model |
+| `sessions.reset` | 重置 session（清空历史） | key, reason |
+| `sessions.compact` | 压缩 session 历史 | key |
+| `sessions.preview` | 批量获取消息预览 | keys[] (max 64), limit, maxChars |
+| `sessions.usage` | Token 用量统计 | startDate, endDate, mode, utcOffset, limit, key |
+| `sessions.subscribe` | 订阅 session 元数据变更 | — |
+| `sessions.messages.subscribe` | 订阅指定 session 实时消息 | key |
 
 #### Agent 管理
 
 | Method | 功能 |
 |--------|------|
-| `agents.list` | 列出所有 agent |
-| `agents.create/update/delete` | Agent CRUD |
-| `agents.files.list/get/set` | Agent workspace 文件操作 |
+| `agents.list` | 列出所有 agent 配置 |
+| `agents.create` | 创建新 agent |
+| `agents.update` | 更新 agent 配置 |
+| `agents.delete` | 删除 agent |
+| `agents.files.list` | 列出 agent workspace 文件 |
+| `agents.files.get` | 读取 workspace 文件内容 |
+| `agents.files.set` | 写入 workspace 文件 |
+| `agent.wait` | 等待 agent run 完成 (runId, timeoutMs) |
 
-#### 配置 & 监控
+#### Cron 定时任务
+
+| Method | 功能 | 关键参数 |
+|--------|------|----------|
+| `cron.list` | 列出定时任务 | includeDisabled, limit, offset, query, sortBy |
+| `cron.status` | Cron 系统健康状态 | — |
+| `cron.add` | 创建定时任务 | name, schedule, sessionTarget, wakeMode, payload, delivery, failureAlert |
+| `cron.update` | 更新定时任务 | id, patch (name, schedule, state, failureAlert...) |
+| `cron.remove` | 删除定时任务 | id |
+| `cron.run` | 立即触发执行 | id, mode ("due"\|"force") |
+| `cron.runs` | 查看执行历史 | scope, id, limit, offset, statuses, sortDir |
+
+#### Skills 管理
 
 | Method | 功能 |
 |--------|------|
-| `config.get` | 获取完整配置 |
-| `config.schema` | 获取 config JSON schema |
+| `skills.status` | 获取 skill 状态（per agent） |
+| `skills.bins` | 列出所有可用 skill binary |
+| `skills.install` | 安装 skill（local 或 ClawHub） |
+| `skills.update` | 更新已安装 skill |
+
+#### 配置 & 系统
+
+| Method | 功能 |
+|--------|------|
+| `config.get` | 读取配置 |
+| `config.set` | 写入配置 |
+| `config.patch` | 部分更新配置 |
+| `config.schema` | 获取完整 JSON Schema |
+| `config.schema.lookup` | 查找指定路径的 schema |
 | `models.list` | 列出可用模型 |
-| `tools.catalog` | 获取工具目录 |
-| `health` | 健康状态 |
+| `tools.catalog` | 获取工具目录（per-agent, 含 plugin） |
+| `health` | 健康状态快照 (probe=true 触发全量探测) |
 | `status` | 系统状态（需 admin scope） |
 | `channels.status` | 渠道连接状态 |
+| `logs.tail` | 获取 gateway 日志 (cursor, limit, maxBytes) |
+| `usage.status` | 用量统计概览 |
+| `usage.cost` | 成本统计 |
 
-#### 推送事件（Server → Client）
+#### 系统 Presence & Heartbeat
 
-| Event | 触发条件 |
-|-------|----------|
-| `sessions.changed` | Session 元数据变更 |
-| `sessions.messages` | 订阅 session 的新消息 |
-| `presence` | Agent 在线状态变更 |
-| `health` | 健康快照更新 |
+| Method | 功能 |
+|--------|------|
+| `system-presence` | 列出当前设备/实例在线状态 |
+| `last-heartbeat` | 最后一次 heartbeat 时间戳 |
+| `set-heartbeats` | 全局 heartbeat 开关 |
+| `gateway.identity.get` | 获取 gateway 设备 ID |
 
-### HTTP 端点
+#### 设备配对
 
-| Path | 功能 |
-|------|------|
-| `/health`, `/healthz` | 健康检查探针 |
-| `/__openclaw__/control-ui-config.json` | 内置 Control UI 配置 |
+| Method | 功能 |
+|--------|------|
+| `device.pair.list` | 列出已配对设备 |
+| `device.pair.approve/reject/remove` | 配对审批 |
+| `device.token.rotate/revoke` | Token 管理 |
 
-### API 覆盖度分析
+#### Chat
 
-| 需求 | Gateway API 覆盖 | 需额外开发 |
-|------|------------------|-----------|
-| Agent 拓扑 | `agents.list` + `sessions.list`（含 parent 关系） ✅ | 前端可视化渲染 |
-| Session 内容 | `chat.history` ✅ | 消息格式化展示 |
-| 直接对话 | `sessions.create` + `chat.send` + `sessions.messages.subscribe` ✅ | 聊天 UI 组件 |
-| 实时更新 | `sessions.subscribe` + `sessions.messages.subscribe` ✅ | WebSocket 客户端 |
-| Token 用量 | `sessions.usage` ✅ | 图表渲染 |
-| Workspace 文件 | `agents.files.list/get/set` ✅ | 文件树 + 编辑器 |
-| 容器内文件 | 无直接 API **[API GAP]** | broker action: `container-files-*` |
-| 容器管理 | 无直接 API **[API GAP]** | broker action: `container-lifecycle/stats` |
-| Broker 管理 | 无直接 API **[API GAP]** | broker-proxy gateway plugin 或 HTTP sidecar |
-| 模型/Key 管理 | `config.get/patch` + `config.schema` ✅ | 表单 UI + 验证 |
-| 错误率 | 无聚合 API **[API GAP]** | 从 session 状态推导 |
+| Method | 功能 |
+|--------|------|
+| `chat.history` | 读取 session 对话历史 |
+| `chat.send` | 发送消息（支持 streaming） |
+| `chat.abort` | 中断生成 |
 
-### [API GAP] 标注
+### WebSocket 推送事件
 
-1. **容器内文件浏览**：`agents.files.list/get` 只操作 workspace 文件，不直接暴露容器文件系统。
-   - **方案**：新增 broker actions（`container-files-list`, `container-files-get`, `container-files-put`）
-   - 封装 `docker exec` 和 `docker cp`，通过 broker 审批链控制访问权限
+| Event | 触发条件 | 刷新频率 |
+|-------|----------|----------|
+| `health` | 健康状态变更 | ~5-10s |
+| `presence` | 设备/实例在线状态变更 | 按需 |
+| `tick` | Heartbeat | ~10s |
+| `sessions.changed` | Session 元数据变更 | 按需 |
+| `sessions.messages` | 订阅 session 的新消息 | 实时 |
+| `chat` | 对话消息 streaming delta | 实时 |
+| `agent` | Agent run 事件 (状态、token、cache) | 实时 |
+| `cron` | Cron 任务执行事件 | 按需 |
+| `shutdown` | Gateway 关闭通知 | 一次 |
 
-2. **容器管理操作**：Gateway 不暴露 Docker 操作。
-   - **方案**：新增 broker actions（`container-list`, `container-stats`, `container-lifecycle`）
-   - 封装 `docker ps`、`docker stats`、`docker stop/restart`
+---
 
-3. **Broker 管理 API**：Broker 走 Unix socket，前端无法直接访问。
-   - **方案 A（推荐）**：gateway broker-proxy plugin，将 broker RPC 暴露为 gateway method
-   - **方案 B**：HTTP proxy sidecar，独立进程转发到 Unix socket
+## 4. API Gap 分析
 
-4. **错误率统计**：Gateway 没有聚合错误率的 API。
-   - **方案**：前端从 session 列表中统计 error 状态，自行聚合
+| Gap | 影响功能 | 方案 |
+|-----|----------|------|
+| Docker 容器操作 | 容器管理、容器内文件浏览 | broker 新增 `container-*` actions |
+| Broker 管理暴露 | Broker action 历史、审批 | gateway broker-proxy plugin（推荐）或 HTTP sidecar |
+| 错误率聚合 | 监控仪表盘 | 前端从 session 状态推导 |
 
-5. **完整对话历史 API**：`chat.history` 存在，但需确认返回格式。
-   - **验证方式**：通过 WebSocket 调用 `chat.history` 测试
+### broker-proxy plugin 设计（推荐方案）
 
-## 3. 内置 Dashboard 功能（避免重复）
+在 gateway 加载一个 plugin，将 broker Unix socket API 暴露为 gateway RPC method：
+```
+broker.action.list    → 列出可用 action
+broker.action.invoke  → 触发 action（含参数）
+broker.action.history → 查看执行历史
+broker.approval.list  → 查看待审批项
+broker.approval.approve/reject → 审批操作
+```
 
-Gateway 在 `:17777` 端口提供内置 Control UI：
-- Session 列表和基本管理
-- 配置编辑器（带 schema 验证）
-- Channel 状态
-- 基本监控
+前端统一用一个 WebSocket 连接访问所有 API。
 
-**不重复的策略**：
-- 自定义 GUI 聚焦于 **多 agent 编排视图** 和 **研究任务管理**
-- 内置 dashboard 保留为 **低级管理/调试工具**
-- 两者共存，面向不同使用场景
+### container-* broker actions
 
-## 4. 技术选型
+| Action | 实现 | 参数 |
+|--------|------|------|
+| `container-list` | `docker ps --format json` | — |
+| `container-stats` | `docker stats --no-stream --format json` | containerId |
+| `container-files-list` | `docker exec <id> find <path> -maxdepth 1` | containerId, path |
+| `container-files-get` | `docker exec <id> cat <path>` | containerId, path |
+| `container-files-put` | `docker cp` | containerId, path, content |
+| `container-lifecycle` | `docker stop/restart/rm` | containerId, action |
+| `container-logs` | `docker logs --tail N` | containerId, tail |
 
-### 前端框架
+---
 
-**推荐：React + TypeScript + Vite**
+## 5. 技术选型
 
-| 选项 | 优势 | 劣势 |
-|------|------|------|
-| React + TS + Vite (**推荐**) | 生态最大、组件库丰富、Claude/GPT 生成质量最高 | 无明显劣势 |
-| Vue 3 + TS | 轻量、模板直观 | 生态略小、agent 生成质量稍低 |
-| Svelte 5 | 极轻量、编译时优化 | 组件库少、agent 生成质量不稳定 |
+### 前端框架：React + TypeScript + Vite
 
-### UI 组件库
+### UI 组件库：Shadcn/UI + Tailwind CSS（dark mode 默认）
 
-**推荐：Shadcn/UI + Tailwind CSS**
-- 组件可定制性强，不引入重依赖
-- 支持 dark mode（运维工具标配）
-
-### 图表/可视化
+### 可视化库
 
 | 用途 | 库 |
 |------|-----|
-| Agent 拓扑图 | **React Flow**（节点编辑器/流程图） |
-| Token 用量图表 | **Recharts**（轻量 React 图表库） |
-| 文件树 | 自实现或 Shadcn Tree |
+| Agent 拓扑图 | **React Flow** |
+| Token/用量图表 | **Recharts** |
+| 日志查看器 | **@xterm/xterm**（终端风格）或自实现 |
+| 文件树 | Shadcn Tree / 自实现 |
+| Markdown 渲染 | **react-markdown** + rehype |
 
-### WebSocket 客户端
-
-- 使用原生 WebSocket + 自定义 JSON-RPC 封装
-- Gateway 使用标准 JSON-RPC 2.0 over WebSocket
-
-### 部署方式
-
-**方案：静态文件 + Nginx reverse proxy**
+### 部署：Nginx reverse proxy
 
 ```
-┌─────────────────────────────────┐
-│  Browser                        │
-│  http://localhost:3000          │
-│  ├── / → GUI 静态文件           │
-│  └── /ws → ws://127.0.0.1:17777│
-└─────────────┬───────────────────┘
-              │ nginx proxy
-┌─────────────▼───────────────────┐
-│  OpenClaw Gateway :17777        │
-│  ├── WebSocket RPC              │
-│  └── /__openclaw__/ 内置 UI     │
-└─────────────────────────────────┘
+Browser :3000 → Nginx → Gateway :17777 (WebSocket + HTTP)
 ```
 
-**替代方案**：直接在 gateway 端口上部署（通过 gateway 的 controlUi.assetsRoot 配置替换内置 UI），但这会覆盖内置 dashboard，不推荐。
+---
 
-## 5. 功能模块设计
+## 6. 功能模块设计
 
-### 5.1 Agent 拓扑视图（P0）
+### 6.1 Agent 拓扑视图（P0）
 
 ```
 ┌─────────────────────────────────────────┐
@@ -204,269 +252,288 @@ Gateway 在 `:17777` 端口提供内置 Control UI：
 └─────────────────────────────────────────┘
 ```
 
-数据源：
-- `agents.list` → agent 配置（id, name, model）
-- `sessions.list` → 活跃 session（parentSessionKey → 父子关系）
-- `presence` 事件 → 实时状态更新
+数据源：`agents.list` + `sessions.list` (spawnedBy → 父子) + `presence` + `health` 事件
 
-### 5.2 Session 对话查看器（P0）
+### 6.2 Session 管理 & 对话查看（P0）
 
-```
-┌──────────┬──────────────────────────────┐
-│ Sessions │  main / session-abc123        │
-│          │                               │
-│ ▸ main   │  [user] 请分析蛋白质折叠数据 │
-│   s-abc  │  [assistant] 好的，我来...    │
-│ ▸ t-run  │  [tool:sessions_spawn]        │
-│   s-def  │    → spawned task-runner      │
-│ ▸ audit  │  [assistant] task-runner 已   │
-│   s-ghi  │    完成初步分析...            │
-│          │                               │
-│          │  [12:34] 3,420 tokens         │
-└──────────┴──────────────────────────────┘
-```
+左栏 session 列表 + 右栏对话内容。支持：
+- 按 agent 过滤、搜索
+- 实时消息流（subscribe）
+- Session 操作：patch label/model、abort、reset、compact、delete
+- Tool call 展开显示
+- Token 用量 per-message
 
-数据源：
-- `chat.history` → 完整对话
-- `sessions.messages.subscribe` → 实时消息流
-- `sessions.preview` → 列表中的消息预览
+数据源：`sessions.list/preview` + `chat.history` + `sessions.messages.subscribe`
 
-### 5.3 直接对话（P0）
+### 6.3 直接对话（P0）
+
+内嵌聊天组件，支持：
+- 选择目标 agent
+- 选择 model override（下拉菜单 from `models.list`）
+- Streaming 输出
+- 创建新 session 或继续已有 session
+
+数据源：`sessions.create` + `chat.send` + `sessions.messages.subscribe`
+
+### 6.4 监控仪表盘（P1）
+
+四格面板：
 
 ```
-┌──────────────────────────────────────────┐
-│  Chat with: [main ▾]                      │
-│                                            │
-│  [user] 帮我分析一下最近的 token 消耗趋势 │
-│  [assistant] 好的，让我查看最近的用量...   │
-│  [assistant] 过去7天平均每天消耗...        │
-│                                            │
-│  ┌──────────────────────────────────┐      │
-│  │ 输入消息...                  [⏎] │      │
-│  └──────────────────────────────────┘      │
-└──────────────────────────────────────────┘
+┌──────────────────┬──────────────────┐
+│ Token Usage      │ System Health    │
+│ [7d chart]       │ Gateway: ● OK   │
+│ 今日: 125k      │ Feishu:  ● OK   │
+│ 本周: 890k      │ Broker:  ● OK   │
+│                  │ GPU: 45% used   │
+├──────────────────┼──────────────────┤
+│ Active Sessions  │ Presence         │
+│ main: 2 active   │ Host: nick-pc   │
+│ t-run: 3 active  │ IP: 10.0.0.1   │
+│ audit: 0 idle    │ Ver: 2026.3.23  │
+│                  │ Uptime: 48h     │
+└──────────────────┴──────────────────┘
 ```
 
-数据源：
-- `sessions.create` → 创建新 session（指定 agentId）
-- `chat.send` → 发送消息
-- `sessions.messages.subscribe` → 实时消息流
-- 支持选择目标 agent（main, task-runner, research-coordinator, auditor）
-- 支持选择 model override
+数据源：`sessions.usage` + `health` + `system-presence` + `channels.status` + `health` 事件 (5-10s)
 
-### 5.4 文件浏览器（P1）
+### 6.5 Gateway 日志（P1）
 
-```
-┌───────────────────┬────────────────────────┐
-│ workspace-main/   │  control/SOP.md        │
-│ ├── control/      │                        │
-│ │   ├── SOP.md ◄──│  # Host SOP            │
-│ │   └── state/    │  ## Current state       │
-│ ├── skills/       │  ...                    │
-│ └── memory/       │                        │
-│                   │  [Download] [Raw]       │
-│ ── Docker ──      │                        │
-│ /workspace/       │                        │
-│ ├── outputs/      │                        │
-│ │   └── 20260328- │                        │
-│ └── knowledge/    │                        │
-└───────────────────┴────────────────────────┘
-```
+终端风格的实时日志查看器，支持：
+- 自动滚动 + 暂停
+- 按级别过滤（info/warn/error）
+- 关键词搜索
+- 时间范围
 
-数据源：
-- `agents.files.list/get` → workspace 文件 ✅
-- 容器内文件 → **需要 broker action 或 Docker exec 封装**（见下方 §5.6）
+数据源：`logs.tail` (cursor 分页, limit max 5000, maxBytes max 1MB)
 
-### 5.5 监控仪表盘（P1）
-
-数据源：
-- `sessions.usage` → token 用量（支持 date range + 分组）
-- `health` → 系统健康状态
-- `channels.status` → 渠道连接状态
-
-### 5.6 Docker 容器管理（P1）
+### 6.6 Cron 定时任务（P1）
 
 ```
 ┌──────────────────────────────────────────┐
-│  Containers                               │
+│ Cron Jobs                                 │
 │                                           │
-│  openclaw-sbx-shared  ● running  16h ago │
-│  Image: openclaw-task-claude:2026-03-v3   │
-│  CPU: 12%  MEM: 1.2G/16G  GPU: 45%      │
+│ ✅ daily-health-check  0 9 * * *  ● on  │
+│    Last: 09:00 today (0.3s, 1.2k tokens)│
+│    Next: 09:00 tomorrow                  │
+│    [Run Now] [Edit] [Disable] [Delete]   │
 │                                           │
-│  [Files] [Shell] [Logs] [Stop] [Restart] │
+│ ⏸ weekly-report       0 18 * * 5  ○ off │
+│    Last: never                            │
+│    [Enable] [Edit] [Delete]              │
 │                                           │
-│  ── Container Files ──                    │
-│  /workspace/outputs/                      │
-│  ├── 20260328-model-routing-bench/       │
-│  │   ├── task-state.json (3min ago)      │
-│  │   ├── data/ (4 files)                 │
-│  │   └── src/ (3 files)                  │
+│ [+ Add Job]                              │
+│                                           │
+│ ── Run History ──                        │
+│ 09:00 daily-health  ✅ 0.3s  1.2k tok   │
+│ 08:00 hourly-check  ✅ 0.1s  0.5k tok   │
+│ 07:00 hourly-check  ❌ timeout           │
 └──────────────────────────────────────────┘
 ```
 
-**API 方案**：Gateway API 不直接暴露 Docker 操作。需要通过 broker 或新的 gateway plugin 封装。
+数据源：`cron.list/add/update/remove/run/runs/status` + `cron` WebSocket 事件
 
-| 操作 | 实现方式 |
-|------|----------|
-| 列出容器 | broker action: `container-list` → `docker ps` |
-| 容器内文件列表 | broker action: `container-files-list` → `docker exec ls` |
-| 容器内文件内容 | broker action: `container-files-get` → `docker exec cat` |
-| 容器文件上传 | broker action: `container-files-put` → `docker cp` |
-| 容器 shell | **[需设计]** WebSocket terminal → `docker exec -it bash` |
-| 容器 stop/restart | broker action: `container-lifecycle` → `docker stop/restart` |
-| 容器资源监控 | broker action: `container-stats` → `docker stats` |
-
-### 5.7 Broker 管理（P1）
+### 6.7 Skills 管理（P1）
 
 ```
 ┌──────────────────────────────────────────┐
-│  Broker Actions                           │
+│ Skills — task-runner                      │
 │                                           │
-│  Recent:                                  │
-│  ✅ gateway_health      12:30  0.2s      │
-│  ✅ container-list      12:25  0.5s      │
-│  ⏳ snapshot-create     12:20  pending   │
-│  ❌ config-deploy       11:45  rejected  │
+│ Installed (11):                           │
+│ ├── autoresearch        v1.0  ● active   │
+│ ├── coding              v1.0  ● active   │
+│ ├── data-analysis       v1.0  ● active   │
+│ ├── experiment-loop     v1.0  ● active   │
+│ ├── task-state          v1.0  ● active   │
+│ └── ...                                   │
 │                                           │
-│  [New Action ▾]  [Pending Approvals (1)] │
-│                                           │
-│  ── Pending ──                            │
-│  snapshot-create: "pre-model-switch"      │
-│  Requested by: main agent                 │
-│  [Approve] [Reject] [Details]            │
+│ [Install from ClawHub]  [Update All]     │
 └──────────────────────────────────────────┘
 ```
 
-**API 方案**：Broker 走 Unix socket (`/run/openclaw-broker.sock`)，前端无法直接访问。
+数据源：`skills.status` (per agent) + `skills.bins` + `skills.install/update`
 
-方案选择：
-| 方案 | 实现 | 复杂度 |
-|------|------|--------|
-| A: Gateway plugin（推荐） | 在 gateway 内加载 broker-proxy plugin，将 broker API 暴露为 RPC method | 中 |
-| B: HTTP proxy sidecar | 独立进程监听 HTTP，转发到 Unix socket | 低 |
-| C: 直接改 broker 加 HTTP 端口 | broker 同时监听 Unix socket 和 TCP | 中 |
+### 6.8 Tools 目录（P1）
 
-推荐方案 A：broker-proxy plugin 最自然地融入 gateway 的 RPC 体系，前端统一用一个 WebSocket 连接。
+显示每个 agent 可用的工具列表，按 profile 分组：
 
-### 5.8 模型/地址/Key 管理（P1）
+数据源：`tools.catalog` (agentId, includePlugins=true)
 
-```
-┌──────────────────────────────────────────┐
-│  Provider Configuration                   │
-│                                           │
-│  ── Providers ──                          │
-│  motchat-claude-4-6                       │
-│    Base URL: [https://new.motchat.com/v1]│
-│    API Key:  [••••••••••] [Show] [Test]  │
-│    API:      [openai-completions ▾]      │
-│    Models:   opus-4-6, sonnet-4-6, ...   │
-│                                           │
-│  custom-api-deepseek-com                  │
-│    Base URL: [https://api.deepseek.com/v1]│
-│    API Key:  [••••••••••] [Show] [Test]  │
-│                                           │
-│  ── Agent Models ──                       │
-│  main:                 [opus-4-6 ▾]      │
-│  research-coordinator: [opus-4-6 ▾]      │
-│  task-runner:          [(default) ▾]     │
-│  auditor:              [opus-4-6 ▾]      │
-│                                           │
-│  [Save & Restart]  [Test All Providers]  │
-└──────────────────────────────────────────┘
-```
+### 6.9 文件浏览器（P1）
+
+Workspace 文件 + 容器内文件双视图。
 
 数据源：
-- `config.get` → 读取当前 models.providers + agents 配置 ✅
-- `config.patch` → 修改 provider baseUrl/apiKey/models ✅
-- `config.schema` → 获取字段验证规则 ✅
-- `models.list` → 列出可用模型 ✅
+- Workspace: `agents.files.list/get/set` ✅
+- 容器: broker `container-files-*` actions（需开发）
 
-**安全注意**：
-- API Key 显示时默认遮蔽，点击 Show 才显示
-- "Test" 按钮发送一个简单请求验证 endpoint/key 可用
-- "Save & Restart" 需要确认对话框（config 变更会重启 gateway）
+### 6.10 模型/Provider/Key 管理（P1）
 
-## 6. 项目结构
+数据源：`config.get/patch` + `config.schema` + `models.list`
+
+### 6.11 Docker 容器管理（P1 — 需 broker 支持）
+
+数据源：broker `container-*` actions
+
+### 6.12 Broker 管理（P1 — 需 broker-proxy）
+
+数据源：broker-proxy gateway plugin
+
+### 6.13 Agent 配置管理（P1）
+
+编辑 agent 的 model、tools profile、sandbox scope、workspace 等。
+
+数据源：`agents.update` + `config.patch` + `config.schema.lookup`
+
+### 6.14 Heartbeat 配置（P2）
+
+全局开关 + per-agent heartbeat 间隔。
+
+数据源：`set-heartbeats` + `last-heartbeat` + `config.patch` (agents.list[].heartbeat)
+
+### 6.15 设备配对（P2）
+
+数据源：`device.pair.list/approve/reject/remove` + `device.token.rotate`
+
+### 6.16 渠道管理（P2）
+
+飞书等渠道的连接状态和配置。
+
+数据源：`channels.status` + `config.patch` (channels.*)
+
+---
+
+## 7. 项目结构
 
 ```
 openclaw-gui/
 ├── src/
 │   ├── api/
-│   │   ├── rpc-client.ts       # WebSocket JSON-RPC 客户端
+│   │   ├── rpc-client.ts       # WebSocket JSON-RPC 客户端 + 事件订阅
 │   │   ├── types.ts            # Gateway RPC 类型定义
-│   │   └── hooks.ts            # React hooks (useAgent, useSession, etc.)
+│   │   └── hooks/              # React hooks
+│   │       ├── useAgents.ts
+│   │       ├── useSessions.ts
+│   │       ├── useCron.ts
+│   │       ├── useHealth.ts
+│   │       └── ...
 │   ├── components/
-│   │   ├── topology/           # Agent 拓扑图
+│   │   ├── topology/           # Agent 拓扑图 (React Flow)
 │   │   ├── sessions/           # Session 列表 + 对话查看器
-│   │   ├── chat/               # 直接对话组件
+│   │   ├── chat/               # 直接对话组件 (streaming)
+│   │   ├── dashboard/          # 监控仪表盘 (Recharts)
+│   │   ├── logs/               # Gateway 日志查看器
+│   │   ├── cron/               # Cron 任务管理
+│   │   ├── skills/             # Skills 管理
+│   │   ├── tools/              # Tools 目录
 │   │   ├── files/              # 文件浏览器 (workspace + container)
 │   │   ├── docker/             # Docker 容器管理
 │   │   ├── broker/             # Broker action 管理
-│   │   ├── config/             # 模型/Provider/Key 管理
-│   │   └── dashboard/          # 监控仪表盘
+│   │   ├── config/             # 模型/Provider/Key/Agent 配置
+│   │   └── devices/            # 设备配对管理
+│   ├── layouts/
+│   │   └── MainLayout.tsx      # 侧边导航 + 顶栏
 │   ├── App.tsx
 │   └── main.tsx
 ├── package.json
 ├── vite.config.ts
-└── nginx.conf                  # 部署配置
+├── tailwind.config.ts
+└── nginx.conf
 ```
 
-## 7. 实施路线图
+## 8. 导航结构
 
-| 阶段 | 交付 | 依赖 | 预估工作量 |
-|------|------|------|-----------|
-| 0: 搭建 | Vite + React + Shadcn + WebSocket RPC 客户端 | 无 | 基础 |
-| 1: 拓扑 | Agent 拓扑可视化 + 实时状态 | Gateway API 已有 | 中等 |
-| 2: 对话 | 直接对话 + Session 查看器 + 实时消息 | Gateway API 已有 | 中等 |
-| 3: 配置 | 模型/Provider/Key 管理 UI | Gateway config API 已有 | 中等 |
-| 4: 监控 | Token 用量图表 + 健康状态 | Gateway API 已有 | 较少 |
-| 5: 文件 | Workspace 文件浏览器 | Gateway API 已有 | 较少 |
-| 6: Docker | 容器管理 + 容器内文件浏览 | **需要 broker action 新增** | 较多 |
-| 7: Broker | Broker action 管理 + 审批队列 | **需要 broker-proxy plugin** | 较多 |
+```
+┌────────────┐
+│ 🏠 Overview │  ← 拓扑图 + 健康状态 + 活跃 session 概览
+│ 💬 Chat     │  ← 直接对话
+│ 📋 Sessions │  ← Session 列表 + 对话查看
+│ 📊 Monitor  │  ← Token 用量 + 健康 + Presence
+│ 📜 Logs     │  ← Gateway 日志
+│ ⏰ Cron     │  ← 定时任务管理
+│ 🔧 Skills   │  ← Skills + Tools 目录
+│ 📁 Files    │  ← 文件浏览器
+│ 🐳 Docker   │  ← 容器管理
+│ ⚡ Broker   │  ← Broker action 管理
+│ ⚙️ Settings │  ← 模型/Provider/Agent/Channel 配置
+└────────────┘
+```
 
-### 前置工作（阶段 6-7 依赖）
+## 9. 实施路线图
 
-实施阶段 6-7 前需要：
-1. **broker 新增 container-* actions** — 封装 `docker ps/exec/cp/stats`
-2. **broker-proxy gateway plugin** — 将 broker Unix socket API 暴露为 gateway RPC
-3. 或者用方案 B（HTTP proxy sidecar），复杂度更低但需要额外进程
+| 阶段 | 交付 | 依赖 | 工作量 |
+|------|------|------|--------|
+| 0 | 搭建：Vite+React+Shadcn+WS RPC 客户端+主布局 | 无 | 基础 |
+| 1 | Overview：拓扑图 + 健康 + 活跃概览 | Gateway API 已有 | 中等 |
+| 2 | Chat + Sessions：对话 + session 管理 + streaming | Gateway API 已有 | 较多 |
+| 3 | Monitor：Token 图表 + 健康仪表盘 + Presence | Gateway API 已有 | 中等 |
+| 4 | Logs + Cron：日志查看器 + 定时任务管理 | Gateway API 已有 | 中等 |
+| 5 | Skills + Tools + Files：技能管理 + 工具目录 + 文件浏览 | Gateway API 已有 | 中等 |
+| 6 | Settings：模型/Provider/Key/Agent/Channel 管理 | Gateway API 已有 | 中等 |
+| 7 | Docker + Broker：容器管理 + Broker UI | **需先实现 broker actions + proxy plugin** | 较多 |
+| 8 | 设备 + 增强：配对管理 + Heartbeat 配置 + 用量成本 | Gateway API 已有 | 较少 |
 
-## 8. Gateway API 交互示例
+## 10. Gateway API 交互示例
 
 ### 连接
 
 ```typescript
 const ws = new WebSocket("ws://127.0.0.1:17777");
-// 认证
 ws.send(JSON.stringify({
-  jsonrpc: "2.0",
-  method: "auth",
-  params: { token: GATEWAY_TOKEN },
-  id: 1
+  jsonrpc: "2.0", method: "auth",
+  params: { token: GATEWAY_TOKEN }, id: 1
 }));
 ```
 
-### 获取 Agent 列表
+### 订阅实时事件
 
 ```typescript
+// 订阅所有 session 元数据变更
+ws.send(JSON.stringify({ jsonrpc: "2.0", method: "sessions.subscribe", id: 2 }));
+
+// 订阅指定 session 消息流
 ws.send(JSON.stringify({
-  jsonrpc: "2.0",
-  method: "agents.list",
-  params: {},
-  id: 2
+  jsonrpc: "2.0", method: "sessions.messages.subscribe",
+  params: { key: "agent:main:subagent:abc123" }, id: 3
 }));
-// Response: { jsonrpc: "2.0", result: { agents: [...] }, id: 2 }
+
+// Server pushes:
+// { jsonrpc: "2.0", method: "sessions.changed", params: { sessionKey, ... } }
+// { jsonrpc: "2.0", method: "sessions.messages", params: { ... } }
+// { jsonrpc: "2.0", method: "health", params: { ts, health, stateVersion } }
+// { jsonrpc: "2.0", method: "presence", params: { presence: [...] } }
+// { jsonrpc: "2.0", method: "cron", params: { ... } }
 ```
 
-### 订阅 Session 消息
+### 查看日志
 
 ```typescript
 ws.send(JSON.stringify({
-  jsonrpc: "2.0",
-  method: "sessions.messages.subscribe",
-  params: { key: "session-abc123" },
-  id: 3
+  jsonrpc: "2.0", method: "logs.tail",
+  params: { limit: 500, maxBytes: 250000 }, id: 4
 }));
-// Server pushes: { jsonrpc: "2.0", method: "sessions.messages", params: { ... } }
+// Response: { file, cursor, size, lines[], truncated, reset }
+// 下次用 cursor 获取增量
+```
+
+### Cron 管理
+
+```typescript
+// 创建定时任务
+ws.send(JSON.stringify({
+  jsonrpc: "2.0", method: "cron.add",
+  params: {
+    name: "daily-health-check",
+    schedule: { cron: "0 9 * * *" },
+    sessionTarget: { agent: "main" },
+    wakeMode: "idle",
+    payload: { kind: "message", message: "Run daily health check" }
+  }, id: 5
+}));
+
+// 查看执行历史
+ws.send(JSON.stringify({
+  jsonrpc: "2.0", method: "cron.runs",
+  params: { scope: "all", limit: 20, sortDir: "desc" }, id: 6
+}));
 ```
