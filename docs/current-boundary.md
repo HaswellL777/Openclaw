@@ -118,18 +118,25 @@
 
 ## 待解决
 
-- **workspace-task-runner 无 publish 脚本**：只有 `scripts/publish-workspace-main.sh`，没有 task-runner 版本。task-runner 的 AGENTS.md/TOOLS.md/skills 模板更新后需手动 `sudo cp` 到 `/var/lib/openclaw/.openclaw/workspace-task-runner/`。这些文件是 OpenClaw 注入到 subagent session 的唯一策略面——如果过时，task-runner 不知道自己有 Scrapling、knowledge repos 等能力。应创建 `scripts/publish-workspace-task-runner.sh`。
-- **GPU 透传**: ✅ 已解决（2026-03-26）— Docker daemon default-runtime=nvidia, 容器内 GPU 可用
-- **日志文件大小**: `log file size cap reached`，需要轮转 `/var/log/openclaw/openclaw.log`
+- **workspace-task-runner 无 publish 脚本**：需手动 rsync + 精确 chown（避免 knowledge/ ro mount）
+- **sessions.visibility 未配置**：auditor 的 agentToAgent 已启用，但 sessions 可见性仍受限，需要 `tools.sessions.visibility` 或等效配置
+- **main agent 模型不足**：deepseek-chat 无法可靠执行多阶段编排模式，需切换到 claude-opus 级模型
+- **research-coordinator 自 spawn 自己**：deepseek-chat 不理解 AGENTS.md 约束，应只 spawn task-runner
+- **容器输出结构扁平**：所有 agent 输出到同一个 `/workspace/outputs/`，无 per-task 隔离
+- **容器生命周期未设计**：缺少一次性/中期/长期容器的隔离策略
+- **MotChat 中转站待替换**：需要新的 API endpoint + key 管理方案
+- **前端 GUI 需求**：Feishu 机器人不足以管理多 agent 系统，需要独立管理前端
+- **日志文件大小**: `log file size cap reached`，需轮转 `/var/log/openclaw/openclaw.log`
 - **Vault sync**: 维护窗口后的 vault sync 尚未执行
 
 ## 当前下一步
 
-1. 执行上述 5 项验证
-2. Vault sync
-3. 飞书官方插件 SDK 解析问题研究
-4. GPU 透传替代方案
-5. 日志轮转
+1. 部署 sessions.visibility 配置修复
+2. 切换 main agent 模型 + 替换 MotChat 中转站
+3. 设计容器隔离方案（per-task 目录 + 生命周期）
+4. 启动前端 GUI 独立工程
+5. 重新验证多阶段研究任务编排
+6. Vault sync + 日志轮转
 
 ## 已知非阻塞观察项
 
