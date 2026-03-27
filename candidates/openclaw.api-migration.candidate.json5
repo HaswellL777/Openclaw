@@ -1,0 +1,88 @@
+// openclaw.json candidate: API migration + model switch
+// Target: /etc/openclaw/openclaw.json
+// Date: 2026-03-27
+// Apply via: sudo python3 scripts/apply-api-migration.py
+//
+// ESCALATION: This changes /etc/openclaw/openclaw.json.
+// Changes:
+//   1. tools.sessions.visibility = "all" (Phase A)
+//   2. agents.defaults.sandbox.sessionToolsVisibility = "all" (Phase A — sandbox cap lift)
+//   3. Updates models.providers baseUrl if endpoint changes (Phase B)
+//   4. Adds per-agent model.primary for main → claude-opus-4-6 (Phase C)
+//   5. Updates research-coordinator model → claude-opus-4-6 (Phase C)
+//
+// Operator must provide: NEW_BASE_URL, NEW_API_KEY in openclaw.env
+// before applying if endpoint is changing.
+//
+// === SCHEMA EVIDENCE ===
+// AgentEntrySchema: zod-schema.agent-runtime-Dtg4Jy6G.js:502-551
+//   model: { primary: string, fallbacks: string[] }.strict().optional()
+// ToolsSchema: zod-schema.agent-runtime-Dtg4Jy6G.js:558-563
+//   sessions: { visibility: enum("self","tree","agent","all") }.strict().optional()
+// AgentSandboxSchema: zod-schema.agent-runtime-Dtg4Jy6G.js:364
+//   sessionToolsVisibility: union("spawned", "all").optional()
+// ModelProviderSchema: zod-schema.core-BuVz8Rk7.js:157-171
+//   baseUrl: string (required), apiKey: SecretInputSchema
+//
+// === DELTA ===
+{
+  // ── Phase A: sessions.visibility fix ──
+  tools: {
+    sessions: {
+      visibility: "all"
+      // "all" = any agent can read any other agent's session history
+      // (still gated by agentToAgent.allow for cross-agent access)
+    }
+    // agentToAgent already deployed — no change needed
+  },
+
+  agents: {
+    defaults: {
+      sandbox: {
+        // Phase A (cont): lift sandbox visibility cap
+        // Without this, sandboxed agents (scope: "shared") get capped to "tree"
+        // even when tools.sessions.visibility = "all"
+        // Source: pi-embedded-CbCYZxIb.js:80954-80958
+        sessionToolsVisibility: "all"  // was "spawned" (default)
+      }
+    },
+
+    // ── Phase C: model switch ──
+    list: [
+      // CHANGED: main agent — add per-agent model override
+      // Currently uses agents.defaults.model.primary (gpt-5.4)
+      // Switching to Claude Opus for stronger orchestration
+      {
+        id: "main",
+        model: {
+          primary: "motchat-claude-4-6/claude-opus-4-6"
+        }
+      },
+
+      // CHANGED: research-coordinator — switch from deepseek-chat
+      // Root cause: deepseek-chat can't follow AGENTS.md constraints,
+      // self-spawns instead of spawning task-runner
+      {
+        id: "research-coordinator",
+        model: {
+          primary: "motchat-claude-4-6/claude-opus-4-6"
+        }
+      }
+    ]
+  }
+
+  // ── Phase B: API endpoint migration ──
+  // Provider baseUrl updates (if endpoint changes).
+  // Use apply script with --base-url flag, or edit openclaw.env.
+  //
+  // apiKey continues to use ${VAR} references — no change.
+  // Actual key values live in /etc/openclaw/openclaw.env.
+  //
+  // If switching from MotChat to direct Anthropic:
+  //   motchat-claude-4-6.baseUrl → "https://api.anthropic.com/v1"
+  //   motchat-claude-4-6.api → "anthropic-messages" (was "openai-completions")
+  //   motchat-gpt-max → would need a separate OpenAI provider (or remove)
+  //
+  // If switching to a different proxy:
+  //   Update baseUrl values only, keep api as "openai-completions"
+}

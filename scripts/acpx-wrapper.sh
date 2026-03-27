@@ -16,11 +16,12 @@ set -euo pipefail
 # ═══════════════════════════════════════════════════════════════
 # 1. API Proxy / Authentication
 # ═══════════════════════════════════════════════════════════════
-# MotChat 中转 — 修改这里切换 proxy 或直连 Anthropic
-export ANTHROPIC_BASE_URL="${ANTHROPIC_BASE_URL:-https://new.motchat.com}"
-export ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY:-}"
-# 如果 gateway 进程的 env 中已有这些变量（从 openclaw.env），
-# 上面的 ${VAR:-} 会保留已有值。只有当 gateway env 中被 strip 时才需要硬编码。
+# 从 gateway 进程 env 继承（由 /etc/openclaw/openclaw.env 设置）。
+# 改 endpoint 或 key 只需编辑 openclaw.env，不需要改这个文件。
+# acpx 插件会 strip 内置 binary 的 provider env vars，
+# 但因为本 wrapper 是 custom command（≠ bundled path），变量不会被 strip。
+export ANTHROPIC_BASE_URL="${ANTHROPIC_BASE_URL:?ANTHROPIC_BASE_URL not set in environment}"
+export ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY:?ANTHROPIC_API_KEY not set in environment}"
 
 # ═══════════════════════════════════════════════════════════════
 # 2. Model / Thinking

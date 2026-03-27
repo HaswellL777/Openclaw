@@ -1,0 +1,81 @@
+// openclaw.json candidate: sessions.visibility fix
+// Target: /etc/openclaw/openclaw.json
+// Date: 2026-03-27
+// Apply via: sudo python3 scripts/apply-sessions-visibility.py
+//
+// ESCALATION: This changes /etc/openclaw/openclaw.json.
+// Changes: adds tools.sessions.visibility = "all"
+//          adds agents.defaults.sandbox.sessionToolsVisibility = "all"
+//
+// === PROBLEM ===
+// auditor agent calls sessions_history → gets:
+//   "Session history visibility is restricted. Set tools.sessions.visibility=all
+//    to allow cross-agent access."
+//
+// Root cause: tools.sessions.visibility is not configured → defaults to "tree"
+// (pi-embedded-CbCYZxIb.js:80948-80952). "tree" only allows access to sessions
+// within the same spawn tree. auditor is NOT in main's spawn tree, so cross-agent
+// access is denied.
+//
+// === VISIBILITY RESOLUTION CHAIN ===
+// Source: pi-embedded-CbCYZxIb.js:81036-81072 (createSessionVisibilityGuard)
+//
+// Step 1: visibility = resolveSessionToolsVisibility(cfg)
+//   → reads cfg.tools?.sessions?.visibility
+//   → valid values: "self" | "tree" | "agent" | "all"
+//   → default: "tree"
+//
+// Step 1b: resolveEffectiveSessionToolsVisibility (pi-embedded:80954-80958)
+//   → CRITICAL: for sandboxed agents (scope: "shared"/"session"/"agent"):
+//   → if agents.defaults.sandbox.sessionToolsVisibility == "spawned" (default)
+//     AND visibility != "tree" → CAPPED to "tree"!
+//   → Must ALSO set agents.defaults.sandbox.sessionToolsVisibility = "all"
+//
+// Step 2: if target agent != requester agent:
+//   a) visibility != "all" → DENIED (crossVisibilityMessage)
+//   b) a2aPolicy.enabled == false → DENIED (a2aDisabledMessage)
+//   c) !a2aPolicy.isAllowed(requester, target) → DENIED (a2aDeniedMessage)
+//   d) all pass → ALLOWED
+//
+// THREE things required for cross-agent access:
+// 1. tools.sessions.visibility = "all"
+// 2. agents.defaults.sandbox.sessionToolsVisibility = "all" (for sandboxed agents)
+// 3. tools.agentToAgent.enabled = true + both agents in allow list
+// agentToAgent is already deployed. The other two are missing.
+//
+// === SCHEMA EVIDENCE ===
+// File: zod-schema.agent-runtime-Dtg4Jy6G.js:558-563
+//   sessions: z.object({ visibility: z.enum([
+//     "self", "tree", "agent", "all"
+//   ]).optional() }).strict().optional()
+//
+// File: zod-schema.agent-runtime-Dtg4Jy6G.js:364
+//   sessionToolsVisibility: z.union([z.literal("spawned"), z.literal("all")]).optional()
+//
+// This sits inside ToolsSchema (line 553), which is top-level `tools` in config.
+// .strict() means no extra fields allowed.
+//
+// === DELTA ===
+{
+  tools: {
+    // EXISTING: agentToAgent (already deployed)
+    // NEW: sessions block
+    sessions: {
+      visibility: "all"
+      // "all" = any agent can read any other agent's session history
+      // (still gated by agentToAgent.allow for cross-agent access)
+    }
+  },
+
+  agents: {
+    defaults: {
+      sandbox: {
+        // NEW: lift sandbox visibility cap
+        // Without this, sandboxed agents (scope: "shared") get capped to "tree"
+        // even when tools.sessions.visibility = "all"
+        // Source: pi-embedded-CbCYZxIb.js:80954-80958
+        sessionToolsVisibility: "all"
+      }
+    }
+  }
+}

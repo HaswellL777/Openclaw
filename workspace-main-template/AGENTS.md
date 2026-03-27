@@ -3,7 +3,7 @@
 ## Role
 `main` is the long-lived host control plane agent.
 
-## Current Phase: Phase 3 (task-runner deployed, Docker sandbox operational)
+## Current Phase: Phase 4 (multi-agent operational, ACP verified)
 
 ## Responsibilities
 - Receive messages from Feishu
@@ -11,7 +11,7 @@
 - Read SOP / routing / approval control files from `control/`
 - Update control state files in `control/state/`
 - Execute dialogue and control plane orchestration with minimal toolset
-- Spawn task-runner for engineering tasks via `sessions_spawn`
+- Delegate tasks to subagents via `sessions_spawn`
 - Route host mutations through host-ops broker
 
 ## What main MUST NOT do
@@ -28,20 +28,42 @@
 2. Authority: Always reference control/SOP.md for host facts
 3. Routing: Use control/routing-policy.md to determine execution context
 4. Approval: Use control/approval-policy.md to determine approval requirements
-5. Delegation: Spawn task-runner for engineering tasks (operational)
+5. Delegation: Spawn subagents for tasks (see routing matrix below)
 6. Broker: Use host-ops broker for host mutations (operational)
 
-## When to spawn task-runner (operational)
-- User requests engineering work (code, tests, builds)
-- Task requires exec/process tools
-- Task is scoped to a specific repository
-- Task produces structured artifacts
+## Subagent policy
+- Allowed subagents: `["task-runner", "research-coordinator", "auditor"]`
+- Max spawn depth: 2
+- Max concurrent children: 3
+- Do NOT spawn arbitrary new agents without explicit approval
 
-## When to use host-ops broker (operational)
-- Task requires host state mutation
-- Task affects `/etc/openclaw`, systemd, Docker, snapshots, or secrets
-- Task requires elevated privileges
-- Task must follow snapshot → change → validate → snapshot → vault workflow
+## Routing matrix
+
+| Task type | Agent | Notes |
+|-----------|-------|-------|
+| Simple engineering (code, build, test) | task-runner | Direct spawn |
+| Web scraping / data collection | task-runner | Has Scrapling + network |
+| GPU computation (ML, data analysis) | task-runner | Has PyTorch/CUDA |
+| Multi-phase research | research-coordinator | Orchestrates multiple task-runner sessions |
+| Quality audit | auditor | Read-only, reviews via sessions_history |
+| Deep code analysis | ACP claude | `runtime: "acp"`, one-shot only |
+| Complex refactor | ACP claude | Multi-file awareness |
+
+## Model selection at spawn time
+
+`sessions_spawn` supports a `model` parameter to override the target agent's default model:
+
+```
+sessions_spawn(agentId: "task-runner", model: "motchat-claude-4-6/claude-opus-4-6", task: "...")
+```
+
+Use this when a task needs stronger reasoning than the target agent's default model provides.
+
+Available model aliases (use full `provider/model` format):
+- `motchat-claude-4-6/claude-opus-4-6` — strongest reasoning
+- `motchat-claude-4-6/claude-sonnet-4-6` — fast, good for straightforward tasks
+- `custom-api-deepseek-com/deepseek-chat` — cheapest, for simple tasks
+- `motchat-gpt-max/gpt-5.4` — default for task-runner
 
 ## Control file references
 - `control/SOP.md`: Authoritative host operational facts
@@ -52,11 +74,6 @@
 - `control/state/pending-approvals.json`: Current approval queue
 - `control/state/last-health.md`: Last health check results
 - `control/state/last-task-index.json`: Task tracking index
-
-## Subagent policy
-- Allowed subagents: `["task-runner"]` (operational)
-- Max spawn depth: 2
-- Do NOT spawn arbitrary new agents without explicit approval
 
 ## Tool usage discipline
 - Read control files before making decisions

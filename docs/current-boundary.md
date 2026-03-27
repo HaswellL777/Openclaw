@@ -119,24 +119,27 @@
 ## 待解决
 
 - **workspace-task-runner 无 publish 脚本**：需手动 rsync + 精确 chown（避免 knowledge/ ro mount）
-- **sessions.visibility 未配置**：auditor 的 agentToAgent 已启用，但 sessions 可见性仍受限，需要 `tools.sessions.visibility` 或等效配置
-- **main agent 模型不足**：deepseek-chat 无法可靠执行多阶段编排模式，需切换到 claude-opus 级模型
-- **research-coordinator 自 spawn 自己**：deepseek-chat 不理解 AGENTS.md 约束，应只 spawn task-runner
-- **容器输出结构扁平**：所有 agent 输出到同一个 `/workspace/outputs/`，无 per-task 隔离
-- **容器生命周期未设计**：缺少一次性/中期/长期容器的隔离策略
-- **MotChat 中转站待替换**：需要新的 API endpoint + key 管理方案
-- **前端 GUI 需求**：Feishu 机器人不足以管理多 agent 系统，需要独立管理前端
+- **sessions.visibility 未配置**：候选配置 + apply 脚本已产出（`candidates/openclaw.sessions-visibility.candidate.json5`），待 operator 部署
+- **main agent 模型不足**：切换方案已产出（main + research-coordinator → claude-opus-4-6），合并到 API 迁移 apply 脚本
+- **research-coordinator 自 spawn 自己**：模型切换（→ claude-opus-4-6）应解决此问题，待部署后验证
+- **容器输出结构扁平**：设计文档已产出（`docs/planning/container-isolation-design.md`），推荐方案 A（shared + 软目录隔离）
+- **容器生命周期未设计**：同上，三档（一次性/中期/固化）通过目录 status 标记实现
+- **MotChat 中转站待替换**：管理方案 + apply 脚本已产出（`scripts/apply-api-migration.py`），待 operator 提供新 endpoint/key
+- **前端 GUI 需求**：需求规格 + 技术选型文档已产出（`docs/planning/frontend-gui-design.md`），作为独立工程启动输入
 - **日志文件大小**: `log file size cap reached`，需轮转 `/var/log/openclaw/openclaw.log`
 - **Vault sync**: 维护窗口后的 vault sync 尚未执行
 
 ## 当前下一步
 
-1. 部署 sessions.visibility 配置修复
-2. 切换 main agent 模型 + 替换 MotChat 中转站
-3. 设计容器隔离方案（per-task 目录 + 生命周期）
-4. 启动前端 GUI 独立工程
-5. 重新验证多阶段研究任务编排
-6. Vault sync + 日志轮转
+1. **Operator 部署**：合并 apply（sessions.visibility + 模型切换），一次 restart
+   - `scripts/apply-api-migration.py` — 包含阶段 A + C
+   - 如有新 endpoint：先更新 `openclaw.env`，加 `--base-url` 参数
+2. 发布更新的 `acpx-wrapper.sh`（移除硬编码 MotChat URL）
+3. 验证 auditor cross-agent session 读取
+4. 验证 main + research-coordinator 模型切换效果
+5. 实施容器软目录隔离（task-init skill）
+6. 启动前端 GUI 独立工程
+7. Vault sync + 日志轮转
 
 ## 已知非阻塞观察项
 

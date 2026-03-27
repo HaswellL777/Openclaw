@@ -30,8 +30,15 @@
 | `docs/planning/phase4-acp-claude-code-research.md` | Phase 4 ACP 研究报告（close-by: 2026-03-30）— ✅ ACP 已部署并验证 (2026-03-26) |
 | `docs/planning/acp-policy-fix-analysis.md` | ACP policy 错误根因分析 + 修复方案（close-by: 2026-03-27）— ✅ 修复已部署并验证 (2026-03-26) |
 | `docs/planning/labclaw-autoresearch-integration.md` | LabClaw + autoresearch 集成（close-by: 2026-03-28）— repos 已 clone，GPU 已验证 |
+| `docs/planning/api-migration-model-switch.md` | API endpoint/key 管理重构 + 模型切换（close-by: 2026-03-29）— 待 operator 部署 |
+| `docs/planning/container-isolation-design.md` | 容器隔离方案设计（close-by: 2026-04-01）— 推荐方案 A (shared + 软目录隔离) |
+| `docs/planning/frontend-gui-design.md` | 前端 GUI 需求规格 + 技术选型（close-by: 2026-04-05）— 独立工程启动输入 |
 | `candidates/openclaw.agents-expansion.candidate.json5` | Agent 扩展配置候选（research-coordinator + auditor）— ✅ 已部署 (2026-03-26) |
-| `scripts/acpx-wrapper.sh` | ACP 环境配置 wrapper（proxy, key, model, telemetry）— ✅ 已部署 |
+| `candidates/openclaw.sessions-visibility.candidate.json5` | sessions.visibility 修复候选 — 待部署 |
+| `candidates/openclaw.api-migration.candidate.json5` | API 迁移 + 模型切换候选 — 待部署 |
+| `scripts/acpx-wrapper.sh` | ACP 环境配置 wrapper — 已更新（env 继承模式） |
+| `scripts/apply-sessions-visibility.py` | sessions.visibility apply 脚本 |
+| `scripts/apply-api-migration.py` | API 迁移 + 模型切换 apply 脚本 |
 | `scripts/apply-agents-expansion.py` | Agent 扩展配置自动化 apply 脚本 |
 
 ## 已实施规划 `[implemented → archive pending]`
