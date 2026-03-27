@@ -1,221 +1,188 @@
 # OpenClaw 对话交接提示词
 
 > 生成日期：2026-03-27
-> 上一轮对话完成的工作：Phase 4 完成（ACP + GPU + Agent 扩展 + Skills），暴露多阶段编排结构性问题
+> 上一轮：Phase 4 完成（ACP + GPU + Agent 扩展），暴露多阶段编排结构性问题
 > 模型：Claude Opus 4.6 (1M context)
 
 ---
 
-你是 OpenClaw 宿主机开发仓库的工程执行者。你拥有 1M 上下文窗口。
+## 第一部分：工作纪律（长期规则，每轮都适用）
 
-## 工作纪律
-
-1. **先读后做**：开始工作前，必须读以下文档：
-   - `CLAUDE.md` — 项目规则、安全边界、anti-stall 规则
-   - `docs/current-boundary.md` — 当前系统真实状态（**唯一实时状态源**）
-   - `docs/map.md` — 文档地图
-   - `docs/design-v3.md` §0 结论先行、§5.3.2（ACP 修正）、§8.5（Phase 4 TODO）
-   - 然后**自行探索** workspace 模板、candidates、planning、scripts 等目录
-
-2. **不碰 live 除非有 escalation plan**：不执行 sudo、docker build、systemctl。只生成文件和 operator 命令。
-
-3. **不允许猜测**：遇到不确定的系统行为，必须从仓库文档、OpenClaw 源码（`/opt/openclaw/node_modules/openclaw/dist/`）、git 历史中找证据。不要靠推理"应该是这样"。
-
-4. **慎用 subagent**：可以使用 Opus 4.6 (1M) 模型的 agent。不要大量并行 spawn——每次最多 2-3 个，确保质量。
-
-5. **允许且鼓励优化 operator 的设想**：Operator 给出的方案是方向性的，不是最终设计。你应该：
-   - 基于源码和文档的事实，指出 operator 方案中不可行或有更优解的部分
-   - 提出具体的替代方案（附理由和证据），而不仅仅执行指令
-   - 补充 operator 没想到的边界情况、风险、依赖
-   - **但不要发散**：所有优化必须直接服务于当前任务目标，不要引入新的系统需求或跑题的架构讨论
-   - 格式："Operator 方案 X → 源码/文档显示 Y → 建议改为 Z，因为..."
+1. **先读后做**：`CLAUDE.md` → `docs/current-boundary.md` → `docs/map.md` → `docs/design-v3.md` §0/§5.3.2/§8.5 → 自行探索 workspace 模板、candidates、scripts
+2. **产出 > 分析**：纯文字分析不算完成。每个任务必须有可落盘的产物（文件、脚本、配置候选）。
+3. **不猜测**：不确定的系统行为，从源码 `/opt/openclaw/node_modules/openclaw/dist/`、仓库文档、git log 中找证据。找不到就标注 `[UNVERIFIED]` 并说明需要 operator 验证什么。
+4. **config 变更走 escalation**：pre-snapshot → backup（确定性文件名）→ apply 脚本 → verify → rollback plan。禁止 `sudo nano` 直接编辑。产出结构化 apply 脚本和 operator 命令块。
+5. **workspace 更新后提醒 publish**：task-runner/research-coordinator/auditor 无 publish 脚本，必须在 commit message 或输出中包含 rsync + 精确 chown 命令。`knowledge/` 是 ro mount，`chown -R` 会失败。
+6. **优化 operator 设想**：operator 方案是方向，不是最终设计。基于源码/文档事实提出更优解，但不发散——所有优化必须直接服务于当前任务。格式："方案 X → 源码显示 Y → 建议 Z，因为..."
+7. **慎用 subagent**：最多 2-3 个并行，用 Opus 4.6 (1M)，确保质量。
 
 ---
 
-## 当前系统状态（详见 docs/current-boundary.md）
+## 第二部分：本轮任务（严格按顺序执行）
 
-- **OpenClaw**: 2026.3.23-2
-- **Gateway**: active，port 17777
-- **Agents**: main (deepseek-chat), task-runner (shared scope, GPU image), research-coordinator (deepseek-chat), auditor (coding profile+deny), ACP claude (one-shot)
-- **GPU**: RTX 5060 Ti 16GB, nvidia default-runtime, container 内 torch.cuda=True
-- **ACP**: verified ✅ via acpx-wrapper.sh (one-shot mode only)
-- **agentToAgent**: enabled for ["main", "auditor"]
-- **maxSpawnDepth**: 2 (main → coordinator → task-runner)
+### 阶段 A：sessions.visibility 修复（阻塞后续所有 agent 交互验证）
 
----
+**目标**：让 auditor 能通过 `sessions_history` 读取其他 agent 的会话内容。
 
-## 关键陷阱（上两轮踩过的坑）
+**当前状态**：
+- `tools.agentToAgent: {enabled: true, allow: ["main", "auditor"]}` 已部署
+- 但 auditor 调用 `sessions_history` 时报 "Session send visibility is restricted. Set tools.sessions.visibility=all"
 
-### 配置文件保护
-- `/etc/openclaw/openclaw.json` 变更走 **escalation rule**：pre-snapshot → backup → apply → verify → rollback plan
-- 使用 `scripts/apply-agents-expansion.py` 式的结构化 apply 脚本，**禁止 `sudo nano` 直接编辑**
-- config schema 是 `.strict()`，未知字段会导致 gateway crash loop
-- `per-agent subagents.maxConcurrent` 不在 schema 中（只有 agents.defaults 级别有）
+**执行步骤**：
+1. 在源码中定位 `resolveEffectiveSessionToolsVisibility` 函数（`pi-embedded-CbCYZxIb.js`，grep 关键字）
+2. 在 config schema 中找 `sessions.visibility` 或等效字段（`io-y3Az_Onx.js`）
+3. 确定需要在 openclaw.json 中添加的确切配置
+4. 产出：配置候选文件 + apply 脚本 + operator 命令块
 
-### ACP
-- ACP dispatch = core，ACP backend = acpx plugin（仍需要 `plugins.allow` 包含 `"acpx"`）
-- acpx 默认 strip `ANTHROPIC_API_KEY`（`stripProviderAuthEnvVars=true` when command == bundled binary）
-- 绕过：`acpx-wrapper.sh` 作为 custom command → `stripProviderAuthEnvVars=false`
-- `queueOwnerTtlSeconds` 默认 0.1s（100ms），必须 override 到 300
-- `acp.runtime` schema 只接受 `ttlMinutes` + `installCommand`
+**完成标准**：
+- [ ] 候选配置文件已写入 `candidates/`
+- [ ] apply 脚本已写入 `scripts/`
+- [ ] operator 命令块已输出（snapshot → backup → apply → restart → verify）
+- [ ] 文档中标注了确切的 schema 来源（文件:行号）
 
-### Docker
-- `scope: "shared"` 时 per-agent docker 配置被忽略（源码 `void 0`），image 必须在 `agents.defaults.sandbox.docker` 设
-- 切换 image 后必须 `sudo docker rm -f openclaw-sbx-shared`，否则旧容器继续跑
-- `knowledge/` 是 read-only bind mount，`chown -R` 会失败
-
-### Tool Profiles（源码确认 tool-catalog-BjSY4C4F.js）
-- **minimal**: 只有 `session_status`（1 个工具！不要给任何需要工作的 agent 用）
-- **coding**: 包含 read/write/edit/exec/web_search/sessions_*/memory_*/image 等
-- **full**: 无限制
-
-### Session 生命周期（源码确认 pi-embedded）
-- `mode: "run"` = one-shot，完成一轮就 archive
-- `mode: "session"` = persistent，但 **必须 `thread: true`**，且需要 channel plugin 支持 `subagent_spawning` hook
-- `sessions_send` 工具可以向已有 session 发后续消息
-- 主 agent 系统提示说 "wait for auto-announced completions"——但**没有说收到后要继续 spawn 下一阶段**
+**卡住协议**：如果源码中找不到 `sessions.visibility` 的 schema 定义，输出你搜索过的所有文件和关键词，标注 `[BLOCKED: schema not found]`，建议 operator 检查 `openclaw doctor` 输出或升级版本。
 
 ---
 
-## 未完成任务（按优先级排列）
+### 阶段 B：API endpoint 和 key 管理重构（阻塞模型切换）
 
-### P0：sessions.visibility 配置修复
+**目标**：替换 MotChat 中转站，建立可维护的 API endpoint/key/model 管理方案。
 
-**问题**：auditor 有 `agentToAgent: {enabled: true, allow: ["main", "auditor"]}`，但实际调用 `sessions_history` 时报 "Session send visibility is restricted. Set tools.sessions.visibility=all"。
+**当前状态**：
+- MotChat: `ANTHROPIC_BASE_URL=https://new.motchat.com`, `ANTHROPIC_API_KEY=sk-iqC...`
+- 分散在：`/etc/openclaw/openclaw.env`、`acpx-wrapper.sh`、openclaw.json `models` 块、agent `model.primary` 字段
 
-**诊断方向**：
-1. 查源码 `pi-embedded-CbCYZxIb.js` 中 `resolveEffectiveSessionToolsVisibility` 函数
-2. 查 config schema `io-y3Az_Onx.js` 中 `sessions` 或 `visibility` 相关字段
-3. 确定需要在 `/etc/openclaw/openclaw.json` 中添加什么配置
-4. 生成 escalation-compliant 的配置补丁
+**执行步骤**：
+1. 查 openclaw.json 中 `models` 配置块的 schema（`io-y3Az_Onx.js` 中 `ModelsConfigSchema`）
+2. 查 agent `model.primary` 的 provider prefix 如何解析（`model-selection-BnFtDmP7.js` 或相关文件）
+3. 理清所有需要修改的位置（列清单，不要遗漏）
+4. 设计集中管理方案：理想情况下一处改 endpoint/key，所有 agent 和 ACP 自动生效
+5. 产出：
+   - 管理方案设计文档（放 `docs/planning/`，含 close-by）
+   - 配置候选（`candidates/openclaw.api-migration.candidate.json5`）
+   - apply 脚本
+   - `acpx-wrapper.sh` 的更新版
+   - operator 命令块
 
-**注意**：不要猜测配置键名。从源码中找到确切的 schema 定义。
+**完成标准**：
+- [ ] 所有涉及 API endpoint/key 的位置已列出（文件:行号）
+- [ ] 集中管理方案已设计（说明 operator 未来改 key 只需改一处）
+- [ ] 配置候选 + apply 脚本已产出
+- [ ] acpx-wrapper.sh 已更新（endpoint 改为从 openclaw.env 继承或新地址）
+- [ ] operator 命令块包含新 endpoint 和 key 的占位符（operator 填入实际值）
 
-### P0：替换 MotChat 中转站 + API key 管理
+**卡住协议**：如果 models schema 不支持集中的 provider 定义，输出 schema 的实际结构，提出"最近似集中管理"的方案（可能是 env 文件 + wrapper 脚本的组合）。
 
-**背景**：operator 决定全面弃用 motchat 中转站（`https://new.motchat.com`），需要新的 API endpoint 和 key。
+**Operator 需提供**：新的 API base URL 和 API key。在 apply 脚本中用 `${NEW_ANTHROPIC_BASE_URL}` 和 `${NEW_ANTHROPIC_API_KEY}` 占位。
 
-**涉及位置**（必须全部更新）：
-- `/etc/openclaw/openclaw.env` — `ANTHROPIC_BASE_URL` 和 `ANTHROPIC_API_KEY`
-- `/var/lib/openclaw/.openclaw/acpx-wrapper.sh` — ACP 环境变量
-- `agents.list` 中所有 agent 的 `model.primary` 字段（如 `motchat-claude-4-6/claude-opus-4-6` 等 provider prefix）
-- `/etc/openclaw/openclaw.json` 的 `models` 配置块
+---
 
-**设计要求**：
-- 找到一种方式让后续切换 API endpoint / key / model 更方便（集中管理点）
-- **不要击穿现有的权限和安全设计**——所有变更走 escalation rule
-- 参考 `docs/design-v3.md` 和 `docs/host-sop.md` 中关于 models 配置的部分
-- 查 OpenClaw 源码中 `models` schema 的确切定义
-- 产出：配置候选 + apply 脚本 + 回滚方案
+### 阶段 C：main agent 模型切换（依赖阶段 B）
 
-### P0：main agent 模型切换
+**目标**：将 main agent 从 deepseek-chat 切换到 claude-opus 级模型。
 
-**问题**：main agent 使用 `deepseek-chat`，无法可靠执行多阶段编排、正确解读 workspace skill 文档。
-**方向**：切换到 claude-opus 级别模型。需要先完成 MotChat 中转站替换。
+**执行步骤**：
+1. 基于阶段 B 的 models 理解，确定 main agent 的 `model.primary` 新值
+2. 同时评估 research-coordinator 是否也需要换模型（当前也是 deepseek-chat，orchestration 不可靠）
+3. 产出：更新到阶段 B 的 apply 脚本中（合并为一次部署）
 
-### P1：多阶段编排可靠性
+**完成标准**：
+- [ ] main agent model.primary 新值已确定（基于 schema 事实，不是猜测）
+- [ ] research-coordinator 模型建议已给出（附理由）
+- [ ] 合并到阶段 B 的候选配置中
 
-**问题本质**：`mode: "run"` 是 one-shot 设计。main 收到子 agent 完成事件后直接向用户汇报，不继续 spawn 后续阶段。
+---
 
-**已尝试的修复**（效果不足）：
-- `workspace-main-template/skills/task-delegation/SKILL.md` 添加了多阶段编排规则
-- `workspace-main-template/control/routing-policy.md` 添加了 "CRITICAL RULE" 不要提前汇报
-- **结果**：deepseek-chat 仍然不执行这些规则
+### 阶段 D：容器隔离方案设计（repo-side only，不部署）
 
-**需要进一步探索**：
-1. `mode: "session"` + `thread: true` 是否可以在 Feishu channel 上工作？查 feishu plugin 是否实现了 `subagent_spawning` hook
-2. `sessions_send` 是否可以在 main 端做循环（收到完成事件 → 用 sessions_send 发后续指令 → 等待下一个完成事件）
-3. 是否有 OpenClaw 内置的 "workflow" 或 "pipeline" 机制
-4. 换到更强的 main 模型后，文档指导是否能被正确执行
+**目标**：设计 per-task 目录结构 + 容器生命周期管理方案。
 
-### P1：容器隔离方案设计
+**Operator 设想**（允许优化，但保留核心意图）：
+- 不同大任务用独立容器，同一任务下的 agent 共享容器
+- 三档生命周期：一次性（单次任务）、中期（数天研究项目）、固化（大型项目，销毁需批准）
+- Per-task 目录：`/workspace/outputs/<task-id>/` 而不是扁平的 `/workspace/outputs/`
 
-**Operator 的设想**：
-- **一次性容器**：单次任务，拿了结果就走（适合简单工程任务）
-- **中期容器**：长期任务的工作环境，持续数天（适合研究项目）
-- **固化长期容器**：大型项目的完整工作目录，销毁需 operator 批准
+**执行步骤**：
+1. 查 OpenClaw `sandbox.scope` 完整选项（schema + 源码 `docker-Bhjg8g2t.js`）
+2. 查是否支持 per-task 或 per-label 的容器命名
+3. 评估 operator 的三档方案在 OpenClaw 中是否可实现，如果不能，提出最近似替代
+4. 设计目录结构规范（task-runner 和 coordinator 的 workspace skill 中强制执行）
+5. 产出：设计文档（`docs/planning/container-isolation-design.md`，含 close-by、3 个方案 + 推荐）
 
-**设计要求**：
-- 不同大任务使用独立容器（隔离输出目录）
-- 同一大任务下的 agent 共享容器（coordinator + task-runner 共享文件）
-- Per-task 目录结构（`/workspace/outputs/<task-id>/` 而不是扁平的 `/workspace/outputs/`）
-- 查 OpenClaw 的 `sandbox.scope` 是否支持 per-task scope，或者需要用 per-agent scope 模拟
+**完成标准**：
+- [ ] `sandbox.scope` 完整选项已列出（源码证据）
+- [ ] 设计文档已产出，含方案对比和推荐
+- [ ] 目录结构规范已写入 workspace skill 或 policy 文档
 
-**当前约束**：
-- `scope: "shared"` = 所有 session 共享一个容器（当前部署）
-- `scope: "session"` = 每个 session 一个容器（太短暂，session 结束就销毁）
-- `scope: "agent"` = 每个 agent 一个容器（可能是中间方案）
-- 查 schema 确认是否还有其他 scope 选项
+**卡住协议**：如果 OpenClaw 的 scope 选项无法满足三档需求，明确说明限制，提出基于现有 scope 的 workaround（如用 agent ID 模拟 task 隔离）。
 
-### P2：前端 GUI 独立工程
+---
 
-**Operator 需求**：
-1. Agent 拓扑可视化——清晰的名字（不要 UUID）、运行状态、关系图
-2. Session 内容实时查看——点击看完整对话，包括 agent 间消息流向
-3. 文件浏览器——容器内 + 宿主机 workspace 的文件，可直接查看/下载
+### 阶段 E：前端 GUI 需求规格（设计阶段，不实现）
+
+**目标**：产出前端 GUI 的需求规格和技术选型文档，作为独立工程的启动输入。
+
+**Operator 核心需求**：
+1. Agent 拓扑可视化——人类友好名字、运行状态、父子关系图
+2. Session 内容查看——点击进入完整对话，看到 agent 间消息内容和流向
+3. 文件浏览器——容器内 + 宿主机 workspace，可查看/下载
 4. 监控仪表盘——token 用量、耗时、错误率
-5. Gateway 管理层面的功能可以不做（使用内置 dashboard）
+5. Gateway 管理用内置 dashboard（17777 端口），不重复
 
-**技术方向**：
-- 独立 web 应用（React/Vue + OpenClaw gateway WebSocket API 17777）
-- 部署在同一台宿主机
-- 需要调研 OpenClaw gateway 的 API 能力——有哪些可用的 endpoint/method
-- 查 `docs/design-v3.md` 中是否有前端规划
-- 产出：需求规格 + 技术选型 + 原型设计
+**执行步骤**：
+1. 调研 OpenClaw gateway 的 WebSocket/HTTP API（查源码 `gateway-cli-Dsd9gHBa.js` 或相关文件，找可用 method）
+2. 评估内置 dashboard 已有的功能（避免重复造轮子）
+3. 设计前端架构（技术选型、部署方式、与 gateway API 的交互）
+4. 产出：`docs/planning/frontend-gui-design.md`（含 close-by、需求规格、技术选型、API 依赖清单、原型线框图描述）
 
-### P3：auditor agent 优化
+**完成标准**：
+- [ ] Gateway API 可用 method 已列出（从源码，不是猜测）
+- [ ] 设计文档已产出，含需求规格 + 技术选型 + 部署方案
+- [ ] 明确了哪些功能 gateway API 已支持、哪些需要额外开发
 
-**问题**：
-- auditor 不知道 session 内容（sessions.visibility 问题，P0 修复后重验证）
-- auditor 的 `profile: "coding" + deny` 已修复，但实际效果未验证
-- auditor 输出应有标准化格式（见 `workspace-auditor-template/skills/quality-audit/SKILL.md`）
-- auditor 应该能读取容器内文件（通过 `read` 工具 + shared scope）
-
-### P4：Vault sync + 日志轮转
+**卡住协议**：如果 gateway API 不够（例如没有 session transcript 的 API），标注 `[API GAP]`，提出替代方案（如直接读 session store 文件）。
 
 ---
 
-## 关键文件位置
+## 第三部分：技术参考（按需查阅，不用通读）
+
+### 关键陷阱速查
+
+| 陷阱 | 说明 |
+|------|------|
+| config schema `.strict()` | 未知字段导致 gateway crash loop（已发生过：`subagents.maxConcurrent` at agent level） |
+| `scope: "shared"` 忽略 per-agent docker | image 必须在 `agents.defaults.sandbox.docker` 设 |
+| 切换 image 后旧容器继续跑 | 必须 `docker rm -f openclaw-sbx-shared` |
+| `minimal` profile 只有 1 个工具 | 不要给需要工作的 agent 用 |
+| acpx 默认 strip API key | 用 wrapper 脚本绕过 |
+| `queueOwnerTtlSeconds` 默认 0.1s | 必须 override 到 300+ |
+| `mode: "run"` 是 one-shot | 完成一轮就 archive，不会自动继续 |
+
+### 源码关键位置
+
+| 功能 | 文件 | 位置 |
+|------|------|------|
+| Tool profiles | `dist/tool-catalog-BjSY4C4F.js:48-263` | `CORE_TOOL_DEFINITIONS` |
+| agentToAgent policy | `dist/pi-embedded-CbCYZxIb.js:80980` | `createAgentToAgentPolicy` |
+| Session visibility | `dist/pi-embedded-CbCYZxIb.js` | grep `resolveEffectiveSessionToolsVisibility` |
+| Spawn mode | `dist/pi-embedded-CbCYZxIb.js:114997` | `resolveSpawnMode` |
+| sessions_spawn | `dist/pi-embedded-CbCYZxIb.js:115040` | `spawnSubagentDirect` |
+| sessions_send | `dist/pi-embedded-CbCYZxIb.js:113618` | tool execute |
+| ACP env strip | `dist/extensions/acpx/index.js:300,426` | `stripProviderAuthEnvVars` |
+| Config schema | `dist/io-y3Az_Onx.js:5689-5715` | top-level schemas |
+| Agent schema | `dist/zod-schema.agent-runtime-Dtg4Jy6G.js:502-551` | `AgentEntrySchema` |
+| Docker scope | `dist/docker-Bhjg8g2t.js:343` | `resolveSandboxDockerConfig` |
+| Models schema | `dist/io-y3Az_Onx.js` | grep `ModelsConfigSchema` |
+
+### 文件位置速查
 
 | 用途 | 路径 |
 |------|------|
 | 实时状态 | `docs/current-boundary.md` |
 | 架构设计 | `docs/design-v3.md` |
 | 文档地图 | `docs/map.md` |
-| Host SOP | `docs/host-sop.md` |
-| ACP 分析 | `docs/planning/acp-policy-fix-analysis.md` |
 | Agent 扩展候选 | `candidates/openclaw.agents-expansion.candidate.json5` |
-| Agent apply 脚本 | `scripts/apply-agents-expansion.py` |
+| Apply 脚本 | `scripts/apply-agents-expansion.py` |
 | ACP wrapper | `scripts/acpx-wrapper.sh` |
-| workspace-main 模板 | `workspace-main-template/` |
-| workspace-task-runner 模板 | `workspace-task-runner-template/` |
-| workspace-research-coordinator 模板 | `workspace-research-coordinator-template/` |
-| workspace-auditor 模板 | `workspace-auditor-template/` |
-| Docker GPU 镜像 | `task-runner-container/Dockerfile.gpu` |
-| Live 配置（只读参考） | `/etc/openclaw/openclaw.json` |
+| Live 配置 | `/etc/openclaw/openclaw.json`（只读参考） |
 | OpenClaw 源码 | `/opt/openclaw/node_modules/openclaw/dist/` |
-
-## 源码关键位置（调试必看）
-
-| 功能 | 文件 | 行号/函数 |
-|------|------|-----------|
-| Tool profiles 定义 | `dist/tool-catalog-BjSY4C4F.js:48-263` | `CORE_TOOL_DEFINITIONS` |
-| agentToAgent policy | `dist/pi-embedded-CbCYZxIb.js:80980-81004` | `createAgentToAgentPolicy` |
-| Session visibility | `dist/pi-embedded-CbCYZxIb.js` | `resolveEffectiveSessionToolsVisibility` (需定位) |
-| Spawn mode 解析 | `dist/pi-embedded-CbCYZxIb.js:114997` | `resolveSpawnMode` |
-| sessions_spawn 实现 | `dist/pi-embedded-CbCYZxIb.js:115040` | `spawnSubagentDirect` |
-| sessions_send 实现 | `dist/pi-embedded-CbCYZxIb.js:113618` | `sessions_send` tool |
-| ACP spawn | `dist/pi-embedded-CbCYZxIb.js:114131` | `spawnAcpDirect` |
-| ACP env stripping | `dist/extensions/acpx/index.js:300,426` | `stripProviderAuthEnvVars` |
-| Config schema | `dist/io-y3Az_Onx.js:5689-5715` | ACP + top-level schemas |
-| Agent schema | `dist/zod-schema.agent-runtime-Dtg4Jy6G.js:502-551` | `AgentEntrySchema` |
-| Docker scope 处理 | `dist/docker-Bhjg8g2t.js:343` | `resolveSandboxDockerConfig` |
-
-## 纪律提醒
-
-- `docs/current-boundary.md` 是唯一实时状态文件——改了系统就更新它
-- Planning docs 有 close-by 日期，过期的归档到 `docs/archive/`
-- 不要只同步状态不做实施（anti-stall rule 4）
-- 涉及 `/etc/openclaw/openclaw.json` 变更走 escalation rule
-- **不允许猜测系统行为**——从源码、文档、日志中找证据
-- **workspace 模板更新后必须提醒 operator 手动 publish 到 live workspace**
