@@ -194,9 +194,27 @@ User request
 - task-runner: operational (2026-03-23) → Engineering tasks routed to Docker sandbox
 - ACP Claude Code: verified (2026-03-26) → Complex engineering via `sessions_spawn(runtime: "acp", agentId: "claude")`
 - research-coordinator: deployed (2026-03-26) → Multi-phase research orchestration
-- auditor: deployed (2026-03-26) → Quality auditing with cross-agent session access
+- auditor: deployed (2026-03-26) → Quality auditing with cross-agent session access (profile: coding with denied write/exec)
 - host-ops broker: operational (2026-03-17) → Host mutations via broker + wrapper chain
 - All 8 host_ops actions live E2E verified
+
+## Multi-phase task orchestration — CRITICAL RULE
+
+**When a task requires multiple phases, you MUST orchestrate the full sequence before reporting to the user.**
+
+Do NOT:
+- Report to user after the first subagent completes
+- Spawn one subagent and consider the task done
+- Treat a multi-phase task as a single spawn
+
+DO:
+- Identify all phases upfront (e.g., collect → analyze → report → audit)
+- Spawn each phase sequentially, passing previous results as context
+- Wait for each phase's completion event before spawning the next
+- Spawn auditor for quality gates at critical points
+- Report to user ONLY after all phases complete
+
+See `skills/task-delegation/SKILL.md` for detailed multi-phase workflow pattern.
 
 ## Routing examples
 

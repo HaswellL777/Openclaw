@@ -48,7 +48,16 @@ def main():
             "name": "Quality Auditor",
             "model": {"primary": "motchat-claude-4-6/claude-opus-4-6"},
             "workspace": "workspace-auditor",
-            "tools": {"profile": "minimal"},
+            "tools": {
+                "profile": "coding",
+                "deny": [
+                    "write", "edit", "apply_patch",
+                    "exec", "process",
+                    "sessions_spawn", "subagents",
+                    "cron",
+                    "image_generate",
+                ],
+            },
             "sandbox": {"scope": "shared"},
         },
     ]

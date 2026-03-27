@@ -50,7 +50,7 @@
       // NEW: auditor
       // Purpose: quality auditing of research outputs, code quality, fact-checking
       // Uses agentToAgent access to read other agents' session history
-      // Read-only: minimal tool profile, cannot spawn subagents
+      // Uses coding profile with denied write/exec tools for read-only behavior
       {
         id: "auditor",
         name: "Quality Auditor",
@@ -59,7 +59,14 @@
         },
         workspace: "workspace-auditor",
         tools: {
-          profile: "minimal",
+          profile: "coding",
+          deny: [
+            "write", "edit", "apply_patch",   // no file modification
+            "exec", "process",                 // no command execution
+            "sessions_spawn", "subagents",     // no spawning
+            "cron",                            // no scheduling
+            "image_generate",                  // no generation
+          ],
         },
         sandbox: {
           scope: "shared",  // can read files in shared container
