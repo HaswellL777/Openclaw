@@ -8,7 +8,7 @@
 
 ## 第一部分：工作纪律（长期规则，每轮都适用）
 
-1. **先读后做**：`CLAUDE.md` → `docs/current-boundary.md` → `docs/map.md` → `docs/design-v3.md` §0/§5.3.2/§8.5 → 自行探索 workspace 模板、candidates、scripts
+1. **先读后做**：`CLAUDE.md` → `docs/current-boundary.md` → `docs/map.md` → `docs/design-v3.md` §0/§5.3.2/§8.5 → 自行探索 workspace 模板、candidates、scripts。**这不是完整列表**——你必须根据任务需要主动搜索仓库中的其他文档（`docs/planning/`、`docs/host-sop.md`、`docs/specs/`、git log）和 OpenClaw 官方源码。遇到不确定的行为，先 grep 源码再动手。
 2. **产出 > 分析**：纯文字分析不算完成。每个任务必须有可落盘的产物（文件、脚本、配置候选）。
 3. **不猜测**：不确定的系统行为，从源码 `/opt/openclaw/node_modules/openclaw/dist/`、仓库文档、git log 中找证据。找不到就标注 `[UNVERIFIED]` 并说明需要 operator 验证什么。
 4. **config 变更走 escalation**：pre-snapshot → backup（确定性文件名）→ apply 脚本 → verify → rollback plan。禁止 `sudo nano` 直接编辑。产出结构化 apply 脚本和 operator 命令块。
@@ -40,7 +40,7 @@
 - [ ] operator 命令块已输出（snapshot → backup → apply → restart → verify）
 - [ ] 文档中标注了确切的 schema 来源（文件:行号）
 
-**卡住协议**：如果源码中找不到 `sessions.visibility` 的 schema 定义，输出你搜索过的所有文件和关键词，标注 `[BLOCKED: schema not found]`，建议 operator 检查 `openclaw doctor` 输出或升级版本。
+**卡住协议**：如果源码中找不到 `sessions.visibility` 的 schema 定义，输出你搜索过的所有文件和关键词，标注 `[BLOCKED: schema not found]`，建议 operator 在 OpenClaw 官方文档或 GitHub issues 中搜索，或检查更高版本是否支持该功能。不要运行 `openclaw doctor` 或任何 openclaw CLI 诊断命令（`CLAUDE.md` 安全边界禁止在 nick 用户下运行）。
 
 ---
 
