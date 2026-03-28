@@ -54,16 +54,15 @@
 `sessions_spawn` supports a `model` parameter to override the target agent's default model:
 
 ```
-sessions_spawn(agentId: "task-runner", model: "motchat-claude-4-6/claude-opus-4-6", task: "...")
+sessions_spawn(agentId: "task-runner", model: "duckcoding-claude/claude-opus-4-6", task: "...")
 ```
 
 Use this when a task needs stronger reasoning than the target agent's default model provides.
 
 Available model aliases (use full `provider/model` format):
-- `motchat-claude-4-6/claude-opus-4-6` — strongest reasoning
-- `motchat-claude-4-6/claude-sonnet-4-6` — fast, good for straightforward tasks
+- `duckcoding-claude/claude-opus-4-6` — strongest reasoning
 - `custom-api-deepseek-com/deepseek-chat` — cheapest, for simple tasks
-- `motchat-gpt-max/gpt-5.4` — default for task-runner
+- `duckcoding-gpt/gpt-5.4` — default for task-runner
 
 ## Control file references
 - `control/SOP.md`: Authoritative host operational facts

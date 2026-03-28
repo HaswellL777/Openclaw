@@ -215,8 +215,8 @@ Each step reads task-state.json to find previous step's outputs (file paths, sum
 
 Use `sessions_spawn(model: "provider/model")` to choose the right model per step:
 - **Data collection** → default model (no override)
-- **Algorithm implementation** → `motchat-claude-4-6/claude-opus-4-6`
-- **Analysis/reasoning** → `motchat-claude-4-6/claude-opus-4-6`
+- **Algorithm implementation** → `duckcoding-claude/claude-opus-4-6`
+- **Analysis/reasoning** → `duckcoding-claude/claude-opus-4-6`
 - **Simple formatting/scripting** → default model
 
 Do NOT:

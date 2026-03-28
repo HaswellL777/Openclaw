@@ -40,7 +40,7 @@ For multi-phase tasks, orchestrates sequential spawn cycles — **do NOT report 
 `sessions_spawn` accepts a `model` parameter. Use it when the default model is insufficient:
 
 ```
-sessions_spawn(agentId: "task-runner", model: "motchat-claude-4-6/claude-opus-4-6", task: "...")
+sessions_spawn(agentId: "task-runner", model: "duckcoding-claude/claude-opus-4-6", task: "...")
 ```
 
 Guidelines:

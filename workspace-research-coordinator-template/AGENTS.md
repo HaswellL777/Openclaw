@@ -14,7 +14,7 @@
 `sessions_spawn` supports a `model` parameter to override task-runner's default model:
 
 ```
-sessions_spawn(agentId: "task-runner", model: "motchat-claude-4-6/claude-opus-4-6", task: "...")
+sessions_spawn(agentId: "task-runner", model: "duckcoding-claude/claude-opus-4-6", task: "...")
 ```
 
 **Choose model based on task complexity:**
@@ -22,9 +22,9 @@ sessions_spawn(agentId: "task-runner", model: "motchat-claude-4-6/claude-opus-4-
 | Task type | Recommended model | Reason |
 |-----------|------------------|--------|
 | Data collection, scraping, git clone | (no override — use default) | Simple execution |
-| Algorithm implementation | `motchat-claude-4-6/claude-opus-4-6` | Needs strong coding |
-| Data analysis, visualization | (no override or `claude-sonnet-4-6`) | Moderate reasoning |
-| Report generation | `motchat-claude-4-6/claude-opus-4-6` | Needs synthesis ability |
+| Algorithm implementation | `duckcoding-claude/claude-opus-4-6` | Needs strong coding |
+| Data analysis, visualization | (no override or `claude-opus-4-6`) | Moderate reasoning |
+| Report generation | `duckcoding-claude/claude-opus-4-6` | Needs synthesis ability |
 | Simple file operations, formatting | (no override) | Routine tasks |
 
 ## Spawn depth

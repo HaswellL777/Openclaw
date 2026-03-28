@@ -117,5 +117,8 @@
       "Write(/mnt/vault/**)",
       "Edit(/mnt/vault/**)"
     ]
+  },
+  "enabledPlugins": {
+    "superpowers@claude-plugins-official": true
   }
 }

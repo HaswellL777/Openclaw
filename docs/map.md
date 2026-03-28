@@ -1,12 +1,10 @@
 # OpenClaw Dev Repo 文档地图
 
-> 更新日期：2026-03-26
+> 更新日期：2026-03-28
 
 ---
 
 ## 权威文档 `[authority]`
-
-修改必须谨慎。
 
 | 文件 | 描述 |
 |------|------|
@@ -27,125 +25,76 @@
 
 | 文件 | 描述 |
 |------|------|
-| `docs/planning/phase4-acp-claude-code-research.md` | Phase 4 ACP 研究报告（close-by: 2026-03-30）— ✅ ACP 已部署并验证 (2026-03-26) |
-| `docs/planning/acp-policy-fix-analysis.md` | ACP policy 错误根因分析 + 修复方案（close-by: 2026-03-27）— ✅ 修复已部署并验证 (2026-03-26) |
-| `docs/planning/labclaw-autoresearch-integration.md` | LabClaw + autoresearch 集成（close-by: 2026-03-28）— repos 已 clone，GPU 已验证 |
-| `docs/planning/api-migration-model-switch.md` | API endpoint/key 管理重构 + 模型切换（close-by: 2026-03-29）— 待 operator 部署 |
-| `docs/planning/container-isolation-design.md` | 容器隔离方案设计（close-by: 2026-04-01）— 推荐方案 A (shared + 软目录隔离) |
-| `docs/planning/frontend-gui-design.md` | 前端 GUI 需求规格 + 技术选型（close-by: 2026-04-05）— 独立工程启动输入 |
-| `candidates/openclaw.agents-expansion.candidate.json5` | Agent 扩展配置候选（research-coordinator + auditor）— ✅ 已部署 (2026-03-26) |
-| `candidates/openclaw.sessions-visibility.candidate.json5` | sessions.visibility 修复候选 — 待部署 |
-| `candidates/openclaw.api-migration.candidate.json5` | API 迁移 + 模型切换候选 — 待部署 |
-| `scripts/acpx-wrapper.sh` | ACP 环境配置 wrapper — 已更新（env 继承模式） |
-| `scripts/apply-sessions-visibility.py` | sessions.visibility apply 脚本 |
-| `scripts/apply-api-migration.py` | API 迁移 + 模型切换 apply 脚本 |
-| `scripts/apply-agents-expansion.py` | Agent 扩展配置自动化 apply 脚本 |
+| `docs/planning/api-migration-model-switch.md` | API 管理方案（close-by: 2026-03-29）— ✅ DuckCoding 迁移已完成 |
+| `docs/planning/container-isolation-design.md` | 容器隔离方案设计（close-by: 2026-04-01）— 推荐方案 A |
+| `docs/planning/frontend-gui-design.md` | 前端 GUI 需求规格 v2（close-by: 2026-04-05）— 基础功能已实现 |
 
-## 已实施规划 `[implemented → archive pending]`
+## GUI 前端 `[active]`
 
-| 文件 | 描述 | 状态 |
-|------|------|------|
-| `docs/planning/openclaw-upgrade-3.23-evaluation.md` | 升级评估 | ✅ 升级已完成 (2026-03-25) |
-| `docs/planning/skills-extension-design.md` | Skills 扩展设计 | ✅ 模板已发布 (2026-03-25) |
-| `docs/planning/long-running-tasks-design.md` | 长期任务设计 | ✅ 配置已部署 (2026-03-25) |
+| 目录 | 描述 |
+|------|------|
+| `gui/` | React + TypeScript + Vite 管理前端（11 页面） |
+| `gui/src/api/` | RPC 客户端 + 类型 + Hooks |
+| `gui/src/pages/` | 页面组件 |
+| `gui/src/components/` | 共享 UI 组件 |
 
-## 架构决策记录 `[active]`
+## 部署脚本 `[active]`
 
 | 文件 | 描述 |
 |------|------|
-| `docs/adr/adr-scrapling-placement.md` | Scrapling 系统定位决策 |
+| `scripts/apply-api-migration.py` | API 迁移 apply 脚本（Phase 5B） |
+| `scripts/apply-sessions-visibility.py` | sessions.visibility apply 脚本（Phase 5A） |
+| `scripts/apply-agents-expansion.py` | Agent 扩展 apply 脚本（Phase 4） |
+| `scripts/apply-provider-cleanup.py` | Provider 清理脚本（motchat→duckcoding） |
+| `scripts/apply-duckcoding-migration.py` | DuckCoding 迁移脚本 |
+| `scripts/acpx-wrapper.sh` | ACP 环境配置 wrapper |
+| `scripts/publish-workspace-main.sh` | main workspace publish 脚本 |
+
+## 活跃候选 `[active]`
+
+| 文件 | 描述 |
+|------|------|
+| `candidates/openclaw.duckcoding-claude-backup.candidate.json5` | 备用 Claude provider |
+
+## 交接文档 `[handoff]`
+
+| 文件 | 描述 |
+|------|------|
+| `.claude/handoff/handoff-2026-03-28-gui-development.md` | Phase 5 + GUI 开发交接 |
+| `.claude/handoff/handoff-2026-03-27-phase4-completion.md` | Phase 4 完成交接 |
+
+## Workspace 模板 `[active]`
+
+| 目录 | 描述 |
+|------|------|
+| `workspace-main-template/` | main agent workspace（含 control/、skills/） |
+| `workspace-task-runner-template/` | task-runner workspace（11 skills，含 task-state） |
+| `workspace-research-coordinator-template/` | research-coordinator workspace |
+| `workspace-auditor-template/` | auditor workspace |
 
 ## 冻结规格 `[frozen]`
-
-Phase 2 交付的协议/契约规格，处于冻结状态。
 
 | 文件 | 描述 |
 |------|------|
 | `docs/specs/host-ops-broker-protocol-v1.md` | broker 协议规格 v1 |
 | `docs/specs/error-taxonomy-v1.md` | 错误分类与错误码 |
 | `docs/specs/contract-matrix-v1.md` | 跨层契约矩阵 |
-| `docs/specs/phase2-repo-prep-gate.md` | Phase 2 prep 退出标准 |
-| `docs/specs/phase2-broker-deployment-layout.md` | Phase 2 部署文件系统布局 |
-
-## 证据库 `[evidence]`
-
-| 目录 | 描述 |
-|------|------|
-| `docs/records/` | Phase 1B–2 + upgrade + probe 的执行证据记录 |
-| `docs/checklists/` | 操作清单 |
-
-### 活跃 checklists
-
-| 文件 | 描述 |
-|------|------|
-| `docs/checklists/deploy-candidate-route-c-checklist.md` | Route C deploy 操作清单 |
-| `docs/checklists/openclaw-upgrade-focused-regression-2026.3.13.md` | 2026.3.13 升级 focused regression checklist |
-| `docs/checklists/post-upgrade-capability-probe-matrix-2026.3.13.md` | 升级后 capability probe matrix |
-
-## Runbook `[active]`
-
-| 文件 | 描述 |
-|------|------|
-| `docs/runbooks/runbook-post-upgrade-capability-probe-2026.3.13.md` | 升级后 capability probe runbook — 下一步使用 |
-
-## 已用 Runbook `[archived]`
-
-| 文件 | 描述 |
-|------|------|
-| `docs/runbooks/runbook-openclaw-upgrade-2026.3.13.md` | 2026.3.13 升级 runbook（已完成） |
-| `docs/runbooks/runbook-first-live-publish.md` | Phase 1B live publish runbook |
-| `docs/runbooks/runbook-phase2-broker-deployment.md` | Phase 2 broker 部署 runbook |
-
-## 执行包 `[active/archived]`
-
-| 文件 | 描述 | 状态 |
-|------|------|------|
-| `docs/execution-packs/execution-pack-phase4-maintenance.md` | Phase 4 维护窗口执行包（升级+vLLM+ACP+飞书+镜像） | **完成 (2026-03-26)** |
-| `docs/execution-packs/execution-pack-first-live-publish.md` | Phase 1B 执行包 | archived |
-| `docs/execution-packs/execution-pack-phase2-broker-deployment.md` | Phase 2 执行包 | archived |
-
-## 参考文档 `[active]`
-
-| 文件 | 描述 |
-|------|------|
-| `docs/when-to-snapshot.md` | 快照时机指南 |
-| `docs/acceptance-tests.md` | 验收测试 |
-| `docs/runtime-allowlist-backup-draft.md` | Phase 6 输入：运行态备份 allowlist 设计 |
-| `.codex/config.toml` | repo-local Codex 配置层（当前主执行者为 Claude Code） |
-
-## 历史里程碑 `[archived]`
-
-| 文件 | 描述 |
-|------|------|
-| `docs/milestones/phase0-baseline.md` | Phase 0 基线记录 |
-
-## Workspace 模板 `[active]`
-
-| 目录 | 描述 |
-|------|------|
-| `workspace-main-template/` | main agent 控制面 workspace 模板 |
-| `workspace-task-runner-template/` | task-runner 工程执行 workspace 模板（10 skills） |
-| `workspace-research-coordinator-template/` | research-coordinator 研究编排 workspace 模板 |
-| `workspace-auditor-template/` | auditor 质量审计 workspace 模板 |
-
-## 文档模板 `[reference]`
-
-| 文件 | 描述 |
-|------|------|
-| `docs/templates/post-upgrade-capability-probe-record-template.md` | capability probe record 模板 |
-| `docs/templates/first-live-publish-record-template.md` | Phase 1B live publish 记录模板 |
-| `docs/templates/phase1b-live-publish-syncback-template.md` | Phase 1B syncback 模板 |
-| `docs/templates/phase2-broker-deployment-record-template.md` | Phase 2 部署记录模板 |
-| `docs/templates/phase2-broker-deployment-syncback-template.md` | Phase 2 syncback 模板 |
 
 ## 已归档 `[archived]`
 
 | 目录 | 描述 |
 |------|------|
-| `docs/archive/planning/phase2/` | Phase 2 slice 设计（8 个文件） |
-| `docs/archive/planning/phase3-upgrade/` | Phase 3 upgrade/probe 设计（4 个文件） |
-| `docs/archive/planning/phase3-stall/` | Phase 3 stall-period 文档（5 个文件，Mar 19-23 proxy 路线探索产物） |
-| `docs/archive/checklists/` | 已归档 checklists（3 个文件） |
-| `docs/archive/runbooks/` | 已归档 runbooks（1 个文件） |
-| `docs/archive/execution-packs/` | 已归档 execution packs（2 个文件） |
-| `docs/archive/records/phase3-stall/` | Phase 3 stall-period 执行记录（3 个文件） |
+| `docs/archive/planning/phase2/` | Phase 2 设计（8 个文件） |
+| `docs/archive/planning/phase3-upgrade/` | Phase 3 upgrade/probe 设计 |
+| `docs/archive/planning/phase3-stall/` | Phase 3 stall-period 文档 |
+| `docs/archive/planning/phase4-acp/` | Phase 4 ACP 研究 + 策略修复 + LabClaw 集成 |
+| `docs/archive/planning/phase5/` | Phase 5 升级评估 + Skills 扩展 + 长期任务设计 |
+| `candidates/archive/` | 已部署/已过期的配置候选（13 个文件） |
+
+## 参考文档 `[reference]`
+
+| 文件 | 描述 |
+|------|------|
+| `docs/when-to-snapshot.md` | 快照时机指南 |
+| `docs/acceptance-tests.md` | 验收测试 |
+| `docs/adr/adr-scrapling-placement.md` | Scrapling 系统定位决策 |

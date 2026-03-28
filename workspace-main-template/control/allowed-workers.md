@@ -33,7 +33,7 @@ This file defines which subagents main is allowed to spawn.
   - Full Claude Code toolset (Read, Write, Edit, Bash, Glob, Grep, Agent, etc.)
   - Can work on code repositories, refactor, analyze, generate complex artifacts
   - Access to `/var/lib/openclaw/task-workspaces/` as working directory
-  - Uses MotChat proxy for Anthropic API
+  - Uses DuckCoding proxy for Anthropic API
 - **Spawn conditions**:
   - User explicitly requests Claude Code / ACP session
   - Task requires deep code analysis, complex refactoring, or multi-file engineering

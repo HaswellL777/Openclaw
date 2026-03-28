@@ -64,7 +64,7 @@ Every step reads and updates this file. It is the primary mechanism for passing 
       "name": "implement-algorithms",
       "status": "completed",
       "agent": "task-runner",
-      "model": "motchat-claude-4-6/claude-opus-4-6",
+      "model": "duckcoding-claude/claude-opus-4-6",
       "outputs": {
         "files": ["src/rule_based.py", "src/llm_judge.py", "src/embedding_router.py", "src/cascade.py"],
         "summary": "4 algorithms implemented with common interface"

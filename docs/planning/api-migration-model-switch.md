@@ -13,10 +13,10 @@
 | # | 位置 | 内容 | 作用 |
 |---|------|------|------|
 | 1 | `/etc/openclaw/openclaw.json` → `models.providers.custom-api-deepseek-com` | baseUrl: `https://api.deepseek.com/v1`, apiKey: `${DEEPSEEK_API_KEY}` | DeepSeek 模型的 endpoint |
-| 2 | `/etc/openclaw/openclaw.json` → `models.providers.motchat-claude-4-6` | baseUrl: `https://new.motchat.com/v1`, apiKey: `${MOTCHAT_API_KEY}` | Claude 模型（MotChat 中转） |
-| 3 | `/etc/openclaw/openclaw.json` → `models.providers.motchat-gpt-max` | baseUrl: `https://new.motchat.com/v1`, apiKey: `${MOTCHAT_API_KEY}` | GPT 模型（MotChat 中转） |
-| 4 | `/etc/openclaw/openclaw.env` | `ANTHROPIC_BASE_URL=https://new.motchat.com`, `ANTHROPIC_API_KEY=<key>` | ACP (Claude Code) 环境变量 |
-| 5 | `scripts/acpx-wrapper.sh` (部署到 `/var/lib/openclaw/.openclaw/acpx-wrapper.sh`) | `ANTHROPIC_BASE_URL=${ANTHROPIC_BASE_URL:-https://new.motchat.com}` | ACP wrapper fallback |
+| 2 | `/etc/openclaw/openclaw.json` → `models.providers.duckcoding-claude` | baseUrl: `https://api.duckcoding.ai/v1`, apiKey: `${MOTCHAT_API_KEY}` | Claude 模型（DuckCoding） |
+| 3 | `/etc/openclaw/openclaw.json` → `models.providers.duckcoding-gpt` | baseUrl: `https://api.duckcoding.ai/v1`, apiKey: `${MOTCHAT_API_KEY}` | GPT 模型（DuckCoding） |
+| 4 | `/etc/openclaw/openclaw.env` | `ANTHROPIC_BASE_URL=https://api.duckcoding.ai`, `ANTHROPIC_API_KEY=<key>` | ACP (Claude Code) 环境变量 |
+| 5 | `scripts/acpx-wrapper.sh` (部署到 `/var/lib/openclaw/.openclaw/acpx-wrapper.sh`) | `ANTHROPIC_BASE_URL=${ANTHROPIC_BASE_URL:-https://api.duckcoding.ai}` | ACP wrapper fallback |
 
 ### 关键观察
 
@@ -56,7 +56,7 @@
 ANTHROPIC_BASE_URL=https://${NEW_ENDPOINT}
 ANTHROPIC_API_KEY=${NEW_ANTHROPIC_API_KEY}
 
-# MotChat 中转（Gateway models.providers 用）
+# DuckCoding（Gateway models.providers 用）
 MOTCHAT_API_KEY=${NEW_MOTCHAT_API_KEY}
 
 # DeepSeek（Gateway models.providers 用）
@@ -69,7 +69,7 @@ DEEPSEEK_API_KEY=${NEW_DEEPSEEK_API_KEY}
 ```json
 "models": {
   "providers": {
-    "motchat-claude-4-6": {
+    "duckcoding-claude": {
       "baseUrl": "https://NEW_ENDPOINT/v1",
       "apiKey": "${MOTCHAT_API_KEY}",
       ...
@@ -94,7 +94,7 @@ OpenClaw 支持 `secrets.providers` 配置（env/file/exec），但当前的 `"$
 
 ---
 
-## 3. 迁移操作：替换 MotChat 中转
+## 3. 迁移操作：替换 DuckCoding
 
 ### 当 operator 获得新 endpoint 和 key 后
 
@@ -116,14 +116,14 @@ OpenClaw 支持 `secrets.providers` 配置（env/file/exec），但当前的 `"$
 
 | 字段 | 当前值 | 新值 | 理由 |
 |------|--------|------|------|
-| 默认模型 (agents.defaults.model.primary) | `motchat-gpt-max/gpt-5.4` | **保持不变** | defaults 影响所有 agent |
-| main agent model.primary | (使用 defaults) | **添加 per-agent override: `motchat-claude-4-6/claude-opus-4-6`** | deepseek-chat 不可靠编排；main 需要强 orchestration |
+| 默认模型 (agents.defaults.model.primary) | `duckcoding-gpt/gpt-5.4` | **保持不变** | defaults 影响所有 agent |
+| main agent model.primary | (使用 defaults) | **添加 per-agent override: `duckcoding-claude/claude-opus-4-6`** | deepseek-chat 不可靠编排；main 需要强 orchestration |
 
-实际上，回顾 live 配置：main agent 在 `agents.list` 中没有 `model` 字段，使用的是 `agents.defaults.model.primary = motchat-gpt-max/gpt-5.4`。handoff 文档说 main 是 deepseek-chat，但 live 配置显示 default 是 gpt-5.4。
+实际上，回顾 live 配置：main agent 在 `agents.list` 中没有 `model` 字段，使用的是 `agents.defaults.model.primary = duckcoding-gpt/gpt-5.4`。handoff 文档说 main 是 deepseek-chat，但 live 配置显示 default 是 gpt-5.4。
 
-**确认方式**：检查 agents.list 中 main 条目是否有 per-agent model override。从 `openclaw.live.json` 看，main 条目没有 model 字段 → 使用 defaults → `motchat-gpt-max/gpt-5.4`。
+**确认方式**：检查 agents.list 中 main 条目是否有 per-agent model override。从 `openclaw.live.json` 看，main 条目没有 model 字段 → 使用 defaults → `duckcoding-gpt/gpt-5.4`。
 
-**建议**：给 main 添加 per-agent model override 为 `motchat-claude-4-6/claude-opus-4-6`，这样：
+**建议**：给 main 添加 per-agent model override 为 `duckcoding-claude/claude-opus-4-6`，这样：
 - main 用 Claude Opus（强 orchestration）
 - 其他 agent 继续用各自的 model 设置
 - defaults 保持 gpt-5.4（对没有 per-agent override 的 agent 生效）
@@ -132,7 +132,7 @@ OpenClaw 支持 `secrets.providers` 配置（env/file/exec），但当前的 `"$
 
 | 字段 | 当前值 | 新值 | 理由 |
 |------|--------|------|------|
-| model.primary | `custom-api-deepseek-com/deepseek-chat` | **`motchat-claude-4-6/claude-opus-4-6`** | deepseek-chat 无法理解 AGENTS.md 约束，会自 spawn 自己；需要强模型 |
+| model.primary | `custom-api-deepseek-com/deepseek-chat` | **`duckcoding-claude/claude-opus-4-6`** | deepseek-chat 无法理解 AGENTS.md 约束，会自 spawn 自己；需要强模型 |
 
 ### Agent model schema 事实
 

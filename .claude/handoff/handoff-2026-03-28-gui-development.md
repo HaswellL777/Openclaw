@@ -1,19 +1,55 @@
 # OpenClaw 对话交接提示词
 
 > 生成日期：2026-03-28
-> 上一轮：Phase 5 完成 + GUI 前端开发 + DuckCoding API 迁移
+> 上一轮：Phase 5 完成 + GUI 前端开发 + DuckCoding API 迁移 + 全量文档更新
 > 模型：Claude Opus 4.6 (1M context)
+
+---
+
+## 第零部分：必读文档（开始工作前必须读完）
+
+**按此顺序读取，不可跳过**：
+1. `CLAUDE.md` — 安全边界、escalation 规则、anti-stall 规则
+2. `docs/current-boundary.md` — 唯一实时状态文件（刚更新到 2026-03-28）
+3. `docs/map.md` — 文档总地图（刚更新到 2026-03-28）
+4. `docs/design-v3.md` §0/§5.3.2/§8.5 — 架构设计核心章节
+5. `docs/planning/frontend-gui-design.md` — GUI 需求规格 v2（含 MCP、会话增强需求）
+6. `.claude/handoff/handoff-2026-03-28-gui-development.md` — 本文件
+
+**然后自行探索**：
+- `docs/planning/` 目录下的活跃规划文档
+- `gui/src/` 前端源码（特别是 `api/rpc-client.ts` 理解 Gateway 协议）
+- `workspace-*-template/` agent workspace 模板
+- `docs/host-sop.md` 宿主机运行态事实
+- OpenClaw 源码 `/opt/openclaw/node_modules/openclaw/dist/` — 不确定的行为从这里找证据
 
 ---
 
 ## 第一部分：工作纪律（长期规则，每轮都适用）
 
-1. **先读后做**：`CLAUDE.md` → `docs/current-boundary.md` → `docs/map.md` → `docs/design-v3.md` → 自行探索
-2. **产出 > 分析**：每个任务有可落盘产物
-3. **不猜测**：从源码 `/opt/openclaw/node_modules/openclaw/dist/` 找证据
-4. **config 变更走 escalation**：snapshot → backup → apply → verify → rollback
-5. **workspace 更新后提醒 publish**
-6. **自行测试**：所有 RPC 调用先用 `/tmp/test-*.mjs` 验证参数格式，不让用户当测试员
+1. **先读后做**：按第零部分顺序读文档。**这不是完整列表**——必须根据任务需要主动搜索仓库。
+2. **产出 > 分析**：每个任务有可落盘产物（文件、脚本、配置候选）。
+3. **不猜测**：不确定的系统行为，从源码和文档找证据。找不到标注 `[UNVERIFIED]`。
+4. **config 变更走 escalation**：pre-snapshot → backup → apply 脚本 → verify → rollback plan。
+5. **workspace 更新后提醒 publish**：task-runner/research-coordinator/auditor 无 publish 脚本，必须手动 rsync + 精确 chown（`knowledge/` 是 ro mount，`chown -R` 会失败）。
+6. **自行测试**：所有 RPC 调用先用 Node.js WebSocket 脚本验证参数格式，不让用户当测试员。示例：`/tmp/test-all-params.mjs`。
+7. **使用 Opus 4.6 subagent**：复杂任务用 `model: "opus"` 的 subagent 并行执行，最多 2-3 个，确保质量。
+8. **使用 frontend-design skill**：前端 UI 改进时调用 `Skill` tool 使用 `frontend-design:frontend-design`。
+
+### 踩过的坑（必须牢记）
+
+| 坑 | 教训 |
+|-----|------|
+| Gateway 响应数据在 `msg.payload` 不是 `msg.result` | 所有 RPC 都用 OpenClaw 协议不是 JSON-RPC |
+| `chat.history` 用 `sessionKey` 不是 `key` | sessions.abort/reset/delete 用 `key`，chat.* 用 `sessionKey` |
+| `chat.send` 需要 `idempotencyKey` | 用 `crypto.randomUUID()` 生成 |
+| `sessions.list` 筛选用 `agentId` 不是 `agent` | 参数名严格，多一个字段会被 schema 拒绝 |
+| Health channels 的 `running` 可能 false 但 `probe.ok` 为 true | 判断健康状态要 `ch.running \|\| ch.probe?.ok` |
+| `config.set/patch` 返回 EROFS | Gateway 进程无 config 文件写权限 |
+| `openclaw-control-ui` client 触发 origin 检查 | 需要 Vite proxy 重写 Origin header 到 localhost |
+| `allowInsecureAuth` + token + localhost = 完整 scopes | 四个条件缺一不可 |
+| skill 安装后需要 `/reload-plugins` 才生效 | 不要声称 skill 可用而不验证 |
+| `scope: "shared"` 时 per-agent docker 配置被忽略 | image 必须在 defaults 级别设 |
 
 ---
 
@@ -21,142 +57,90 @@
 
 ### 配置部署（全部已验证 ✅）
 - sessions.visibility = "all" + sandbox.sessionToolsVisibility = "all"
-- main model → duckcoding-gpt/gpt-5.4
-- research-coordinator/auditor/claude-engineer → duckcoding-claude/claude-opus-4-6
-- task-runner → defaults (deepseek-chat)
+- main → duckcoding-gpt/gpt-5.4, RC/auditor/claude-engineer → duckcoding-claude/claude-opus-4-6
 - API 迁移：MotChat → DuckCoding (api.duckcoding.ai)
 - Provider 清理：只保留 gpt-5.4, claude-opus-4-6, deepseek-chat
-- Provider ID 重命名：motchat-* → duckcoding-*
+- Provider ID：duckcoding-claude, duckcoding-gpt, duckcoding-claude-backup, custom-api-deepseek-com
 - Auditor cross-agent 验证通过
 
 ### 前端 GUI（gui/ 目录）
-- 框架：React + TypeScript + Vite + Tailwind + React Flow + Recharts
-- 连接：WebSocket 通过 Vite proxy → Gateway loopback，OpenClaw 协议握手 + token auth
-- 11 个页面，8 个有实际功能，3 个占位（Docker/Broker/File）
-- 共享组件：PageHeader, Card, StatusDot, Spinner, ErrorBox, Badge, EmptyState
-- 代码审查完成（/simplify 三 agent 审查 + 修复）
+- 11 个页面，8 个有实际功能
+- Gateway WebSocket 协议完整实现（connect challenge + token auth + scopes）
+- 代码审查完成（/simplify 三 agent + 两轮修复）
 
-### Workspace 模板
-- main AGENTS.md + task-delegation skill：完整 agent 拓扑 + 多阶段编排
-- research-coordinator：模型选择 + per-task 目录 + task-state.json
-- task-runner：task-state skill
-- auditor：per-task 目录感知
-
-### 设计文档
-- `docs/planning/frontend-gui-design.md`：完整 GUI 需求规格 v2（含 MCP）
-- `docs/planning/api-migration-model-switch.md`
-- `docs/planning/container-isolation-design.md`
+### 文档
+- `docs/current-boundary.md` 全量更新到 2026-03-28
+- `docs/map.md` 全量更新
+- `docs/planning/README.md` 全量更新
+- 6 个过期 planning docs 已归档
+- 13 个已部署 candidates 已归档
+- Workspace 模板 motchat→duckcoding 全量替换
+- `.tmp/` 已清理
 
 ---
 
-## 第三部分：本轮待修复问题（按优先级）
+## 第三部分：本轮待修复问题（严格按优先级）
 
 ### P0 — 必须修复
 
-#### 1. Settings 页面 — config 写入不可用
-**现状**：Gateway 进程（openclaw 用户）对 `/etc/openclaw/openclaw.json` 没有写权限（EROFS）。
-`config.set` 和 `config.patch` 都返回 `EROFS` 错误。
-
-**影响**：前端无法修改任何配置（模型、provider、agent 设置等）。
-
-**解决方案**：
-- Settings 页面改为**只读展示**（当前配置一览）
-- 如果需要支持前端写 config，需要通过 broker action 代理（broker 以 root 运行可以写文件）
-- 或者给 openclaw 用户赋予 config 文件写权限（`chown openclaw /etc/openclaw/openclaw.json`）
-
-#### 2. Sessions Reset 行为不符合预期
-**现状**：`sessions.reset` 清空了 session 的全部对话历史。
-**用户预期**：应该像飞书的 `/reset` 一样，新开一个 session，旧记录保留。
-**解决方案**：
-- 移除或重命名 Reset 按钮
-- 改为"New Session"（创建新 session，旧的不删）
-- 或者在 reset 前弹确认对话框，明确说明"将清除此 session 的全部对话历史"
-
-#### 3. Chat 页面 — 无法继续已有 session
-**现状**：只能 New Session，不能选择一个已有 session 继续对话。
-**解决方案**：
-- 在 Chat 页面添加 session 列表侧栏（类似 Sessions 页面的左栏）
-- 或者在 Sessions 页面的对话视图底部加消息输入框
-- 点击 session → 加载历史 → 底部输入框直接发消息
-
-#### 4. chat.send 参数格式
-**确认**：需要 `{ sessionKey, idempotencyKey, text }` — 已在代码中修复但未实际验证是否能发消息
-**需要验证**：用 test script 实际发一条消息到 session 看返回格式
+1. **Chat 续接已有 session**：当前只能 new session。应在 Chat 页面加 session 列表或在 Sessions 页面加输入框。
+2. **Sessions Reset 行为**：`sessions.reset` 清空历史。用户预期是新建 session 保留旧记录。改按钮标注或改为 "New Session"。
+3. **Settings 只读展示**：Gateway 无写权限。改为只读配置一览，提示"修改需通过命令行"。
 
 ### P1 — 重要改进
 
-#### 5. Session 生命周期理解
-**现状**：显示 100+ "active" sessions，用户认为太多。
-**需要研究**：
-- 从源码中找 session 的状态定义（active/idle/archived/deleted）
-- 理解 `archiveAfterMinutes`（当前 1440 = 24h）的行为
-- 理解 heartbeat session 是否计入
-- 确定哪些 session 应该在 overview/topology 中显示
-
-#### 6. Session 关系可视化（spawn chain）
-**用户需求**：以 task 为视角看完整拓扑——main spawn research-coordinator spawn task-runner 的链路，信息流向，关联的 Docker 文件
-**实现方向**：
-- sessions.list 返回 `childSessions` 字段可以构建 spawn tree
-- session key 格式 `agent:AGENT_ID:subagent:UUID` 可以解析父子关系
-- 需要新组件 SpawnTreeView
-
-#### 7. 使用 frontend-design skill 美化 UI
-**现状**：skill 已安装（`frontend-design:frontend-design`），但之前没有正确使用。
-**需要**：用 `Skill` tool 调用 `frontend-design:frontend-design` 来改进 UI 设计质量。
-
-#### 8. 消息渲染增强
-- Tool call 展开/折叠（MessageRenderer 已创建但未验证）
-- 代码块语法高亮 + 复制按钮
-- Agent badge 来源/目标 + 点击跳转
-- sessions_spawn 显示为特殊卡片
+4. **Session 生命周期**：100+ "active" sessions 需要理解。从源码找 session 状态机（active/idle/archived）和 `archiveAfterMinutes` 行为。
+5. **Session spawn chain 可视化**：以 task 为视角——main→RC→task-runner 链路，信息流向，Docker 文件关联。用 `childSessions` 字段和 session key 解析构建。
+6. **UI 美化**：用 `frontend-design:frontend-design` skill。
+7. **消息渲染增强**：tool call 展开（MessageRenderer 已创建待验证）、代码块语法高亮+复制、agent badge+跳转、sessions_spawn 特殊卡片。
 
 ### P2 — 后续
 
-#### 9. Docker/Broker/File 实际功能
-需要实现 broker actions（container-list, container-files-*, broker-proxy plugin）
-
-#### 10. Heartbeat 管理 UI
-`set-heartbeats` + `last-heartbeat` API 已确认可用
-
-#### 11. MCP 管理 UI
-设计文档已写，config 中加 mcp.servers 块（需要通过 broker 或 sudo）
-
-#### 12. 安全加固
-IPv6 only 绑定 + 登录鉴权（开发完成后实施）
+8. Docker/Broker/File 实际功能（需 broker actions）
+9. Heartbeat 管理 UI
+10. MCP 管理 UI（设计文档在 `frontend-gui-design.md`）
+11. 安全加固（IPv6 + auth）
+12. 日志轮转 + Vault sync
 
 ---
 
 ## 第四部分：技术参考
 
 ### Gateway WebSocket 协议
-- 握手：server 发 `connect.challenge` → client 发 `connect` 请求（需 client.id, mode, platform, scopes, auth.token）
-- 响应格式：`{ type: "res", id, ok, payload }` — 数据在 `payload` 不是 `result`
-- 事件格式：`{ type: "event", event: "name", payload: {...} }`
-- Client ID 必须是 `GATEWAY_CLIENT_IDS` 中的值（control-ui, cli, gateway-client 等）
-- Scopes: `operator.read`, `operator.write`, `operator.admin`
-- `openclaw-control-ui` + token + localhost + `allowInsecureAuth` = 完整 scopes
+```
+Server → { type: "event", event: "connect.challenge", payload: { nonce, ts } }
+Client → { type: "req", method: "connect", id: "1", params: { client: { id: "openclaw-control-ui", mode: "ui", platform: "...", version: "0.1.0" }, minProtocol: 3, maxProtocol: 3, role: "operator", scopes: ["operator.read","operator.write","operator.admin"], auth: { token: "..." } } }
+Server → { type: "res", id: "1", ok: true, payload: { type: "hello-ok", ... } }
+Client → { type: "req", method: "agents.list", id: "2", params: {} }
+Server → { type: "res", id: "2", ok: true, payload: { agents: [...] } }
+Server → { type: "event", event: "health", payload: { ok: true, ts: ..., channels: {...} } }
+```
 
-### API 参数速查（已验证）
-| Method | 关键参数 |
-|--------|---------|
-| sessions.list | `agentId`（不是 agent）, limit, includeLastMessage |
-| chat.history | `sessionKey`（不是 key） |
-| chat.send | `sessionKey`, `idempotencyKey`, text |
-| sessions.abort/reset/delete | `key` |
-| sessions.create | agentId, label → 返回 `{ key, sessionId }` |
-| config.get | 无参数 → 返回 `{ raw(string), parsed, resolved, hash }` |
-| config.set | `raw`(string), `baseHash` — Gateway 无写权限（EROFS） |
-| health channels | `ch.running` 可能 false 但 `ch.probe.ok` 为 true |
+### API 参数速查
+| Method | 参数 | 注意 |
+|--------|------|------|
+| sessions.list | `agentId`, limit, includeLastMessage | 不是 `agent` |
+| chat.history | `sessionKey` | 不是 `key` |
+| chat.send | `sessionKey`, `idempotencyKey`, text | idempotencyKey 必需 |
+| sessions.abort/reset/delete | `key` | 不是 `sessionKey` |
+| sessions.create | agentId, label → `{ key, sessionId }` | |
+| config.get | → `{ raw, parsed, resolved, hash }` | raw 是字符串 |
+| config.set | raw(string), baseHash | Gateway 无写权限! |
 
-### 关键文件位置
+### 关键文件
 | 文件 | 用途 |
 |------|------|
-| `gui/src/api/rpc-client.ts` | WebSocket RPC 客户端 |
-| `gui/src/api/hooks.ts` | React hooks + Zustand store |
-| `gui/src/api/types.ts` | TypeScript 类型定义 |
-| `gui/src/components/shared.tsx` | 共享 UI 组件 |
-| `gui/src/components/MessageRenderer.tsx` | 消息渲染器 |
-| `gui/.env` | Gateway token（gitignored） |
-| `/tmp/test-all-params.mjs` | API 参数测试脚本 |
-| `scripts/apply-provider-cleanup.py` | Provider 清理脚本 |
-| `scripts/apply-duckcoding-migration.py` | DuckCoding 迁移脚本 |
+| `gui/.env` | VITE_GATEWAY_TOKEN（gitignored） |
+| `gui/src/api/rpc-client.ts` | OpenClaw WS 协议实现 |
+| `gui/src/components/MessageRenderer.tsx` | 消息渲染器（待验证） |
+| `/tmp/test-all-params.mjs` | API 参数测试脚本模板 |
+
+### 陷阱速查（继承自上一轮）
+| 陷阱 | 说明 |
+|------|------|
+| config schema `.strict()` | 未知字段导致 gateway crash loop |
+| `scope: "shared"` 忽略 per-agent docker | image 必须在 defaults 设 |
+| 切换 image 后旧容器继续跑 | 必须 `docker rm -f openclaw-sbx-shared` |
+| `minimal` profile 只有 1 个工具 | 不给需要工作的 agent 用 |
+| acpx 默认 strip API key | 用 wrapper 脚本绕过 |
+| `queueOwnerTtlSeconds` 默认 0.1s | 必须 override 到 300+ |
