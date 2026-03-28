@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useAgents, useSkillsStatus, useToolsCatalog } from "@/api/hooks";
-import type { ToolGroup } from "@/api/types";
+import type { Skill, ToolGroup } from "@/api/types";
 
 // ---------------------------------------------------------------------------
 // Shared helpers
@@ -13,7 +13,7 @@ function Spinner() {
         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
       </svg>
-      Loading…
+      Loading...
     </div>
   );
 }
@@ -101,7 +101,7 @@ function TabBar({ active, onChange }: { active: TabId; onChange: (tab: TabId) =>
 
 function StatusDot({ status }: { status: string }) {
   const color =
-    status === "active" || status === "installed" || status === "enabled"
+    status === "active" || status === "installed" || status === "enabled" || status === "eligible"
       ? "bg-emerald-500"
       : status === "error" || status === "failed"
         ? "bg-red-500"
@@ -116,15 +116,12 @@ function SkillsTab({ agentId }: { agentId: string }) {
   const { data, isLoading, error, refetch } = useSkillsStatus(agentId || undefined);
   const [updating, setUpdating] = useState(false);
 
-  const installed = useMemo(() => {
-    if (!data?.installed) return [];
-    return data.installed as { name?: string; id?: string; status?: string; version?: string; [k: string]: unknown }[];
+  const skills: Skill[] = useMemo(() => {
+    return data?.skills ?? [];
   }, [data]);
 
   const handleUpdateAll = async () => {
     setUpdating(true);
-    // Trigger refetch as a proxy for "update" — the gateway handles skill updates
-    // In a real implementation this would call skills.updateAll RPC
     try {
       await refetch();
     } finally {
@@ -139,39 +136,59 @@ function SkillsTab({ agentId }: { agentId: string }) {
     <div>
       <div className="flex items-center justify-between mb-4">
         <p className="text-sm text-zinc-400">
-          {installed.length} skill{installed.length !== 1 ? "s" : ""} installed
+          {skills.length} skill{skills.length !== 1 ? "s" : ""} found
         </p>
         <button
           onClick={handleUpdateAll}
-          disabled={updating || installed.length === 0}
+          disabled={updating || skills.length === 0}
           className="rounded px-3 py-1.5 text-xs font-medium transition-colors
             bg-zinc-700 hover:bg-zinc-600 text-zinc-200
             disabled:bg-zinc-800 disabled:text-zinc-600 disabled:cursor-not-allowed"
         >
-          {updating ? "Updating…" : "Update All"}
+          {updating ? "Updating..." : "Refresh"}
         </button>
       </div>
 
-      {installed.length === 0 ? (
-        <EmptyState message="No skills installed for this agent." />
+      {skills.length === 0 ? (
+        <EmptyState message="No skills found for this agent." />
       ) : (
         <div className="space-y-1">
-          {installed.map((skill, i) => {
-            const name = skill.name ?? skill.id ?? `skill-${i}`;
-            const status = (typeof skill.status === "string" ? skill.status : "installed").toLowerCase();
+          {skills.map((skill) => {
+            const eligible = skill.eligible ?? true;
+            const statusText = skill.bundled
+              ? "bundled"
+              : eligible
+                ? "eligible"
+                : "ineligible";
 
             return (
               <div
-                key={name}
+                key={skill.name}
                 className="flex items-center gap-3 rounded-lg border border-zinc-800 bg-zinc-900 px-4 py-3"
               >
-                <StatusDot status={status} />
+                <StatusDot status={eligible ? "eligible" : "ineligible"} />
                 <div className="flex-1 min-w-0">
-                  <span className="text-sm font-medium text-zinc-100 truncate block">{name}</span>
+                  <span className="text-sm font-medium text-zinc-100 truncate block">
+                    {skill.name}
+                  </span>
+                  {skill.description && (
+                    <span className="text-xs text-zinc-500 truncate block mt-0.5">
+                      {skill.description}
+                    </span>
+                  )}
                 </div>
-                <span className="text-xs text-zinc-500 capitalize">{status}</span>
-                {skill.version && (
-                  <span className="text-xs text-zinc-600 font-mono">{skill.version}</span>
+                <div className="flex items-center gap-2">
+                  {skill.bundled && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-medium">
+                      bundled
+                    </span>
+                  )}
+                  <span className="text-xs text-zinc-500 capitalize">{statusText}</span>
+                </div>
+                {skill.source && (
+                  <span className="text-xs text-zinc-600 font-mono truncate max-w-[120px]" title={skill.source}>
+                    {skill.source}
+                  </span>
                 )}
               </div>
             );

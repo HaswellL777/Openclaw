@@ -1,14 +1,5 @@
 import { useMemo } from "react";
 import {
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
-import {
   useSessionUsage,
   useHealth,
   useSessions,
@@ -17,141 +8,137 @@ import {
   useConnectionState,
   useChannelsStatus,
 } from "@/api/hooks";
-import type { PresenceEntry } from "@/api/types";
+import type { PresenceEntry, HealthSnapshot } from "@/api/types";
+import { agentFromKey } from "@/api/types";
 
 // ---------------------------------------------------------------------------
-// Token usage chart
+// Token usage panel (uses totals/aggregates, not daily buckets)
 // ---------------------------------------------------------------------------
 
 function TokenUsagePanel() {
-  const { data, isLoading, error } = useSessionUsage({ days: 7 });
-
-  const chartData = useMemo(() => {
-    if (!data?.entries) return [];
-    return data.entries.map((e) => ({
-      date: e.date,
-      input: e.inputTokens,
-      output: e.outputTokens,
-      cache: e.cacheReadTokens ?? 0,
-      total: e.totalTokens,
-      cost: e.cost ?? 0,
-    }));
-  }, [data]);
+  const { data, isLoading, error } = useSessionUsage();
 
   return (
     <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-4">
       <h3 className="text-sm font-semibold text-zinc-300 mb-3">
-        Token Usage (7 days)
+        Token Usage
       </h3>
       {isLoading ? (
         <div className="h-48 flex items-center justify-center text-zinc-500 text-sm">
-          Loading…
+          Loading...
         </div>
       ) : error ? (
         <div className="h-48 flex items-center justify-center text-red-400 text-sm">
           Failed to load usage data
         </div>
-      ) : chartData.length === 0 ? (
+      ) : !data?.totals ? (
         <div className="h-48 flex items-center justify-center text-zinc-500 text-sm">
           No usage data available
         </div>
       ) : (
-        <div className="h-48">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart
-              data={chartData}
-              margin={{ top: 4, right: 4, bottom: 0, left: 0 }}
-            >
-              <defs>
-                <linearGradient id="gradInput" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#818cf8" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#818cf8" stopOpacity={0} />
-                </linearGradient>
-                <linearGradient id="gradOutput" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#34d399" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#34d399" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
-              <XAxis
-                dataKey="date"
-                tick={{ fill: "#71717a", fontSize: 11 }}
-                axisLine={{ stroke: "#3f3f46" }}
-                tickLine={false}
-              />
-              <YAxis
-                tick={{ fill: "#71717a", fontSize: 11 }}
-                axisLine={{ stroke: "#3f3f46" }}
-                tickLine={false}
-                tickFormatter={(v: number) =>
-                  v >= 1_000_000
-                    ? `${(v / 1_000_000).toFixed(1)}M`
-                    : v >= 1_000
-                      ? `${(v / 1_000).toFixed(0)}k`
-                      : `${v}`
-                }
-              />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "#18181b",
-                  border: "1px solid #3f3f46",
-                  borderRadius: 8,
-                  fontSize: 12,
-                }}
-                labelStyle={{ color: "#a1a1aa" }}
-                itemStyle={{ color: "#e4e4e7" }}
-                formatter={(value: number, name: string) => [
-                  value.toLocaleString(),
-                  name,
-                ]}
-              />
-              <Area
-                type="monotone"
-                dataKey="input"
-                name="Input"
-                stroke="#818cf8"
-                fill="url(#gradInput)"
-                strokeWidth={2}
-              />
-              <Area
-                type="monotone"
-                dataKey="output"
-                name="Output"
-                stroke="#34d399"
-                fill="url(#gradOutput)"
-                strokeWidth={2}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
-      )}
-      {/* Summary row */}
-      {chartData.length > 0 && (
-        <div className="flex gap-4 mt-3 text-xs text-zinc-400">
-          <span>
-            Total:{" "}
-            <span className="text-zinc-200 font-medium">
-              {chartData
-                .reduce((s, d) => s + d.total, 0)
-                .toLocaleString()}{" "}
-              tokens
-            </span>
-          </span>
-          {chartData.some((d) => d.cost > 0) && (
-            <span>
+        <>
+          {/* Date range */}
+          {data.startDate && data.endDate && (
+            <div className="text-xs text-zinc-500 mb-3">
+              {data.startDate} to {data.endDate}
+            </div>
+          )}
+
+          {/* Token totals */}
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            <div className="rounded bg-zinc-800 px-3 py-2.5">
+              <div className="text-[10px] uppercase tracking-wider text-zinc-500 mb-1">Input</div>
+              <div className="text-lg font-semibold text-indigo-400">
+                {formatTokens(data.totals.input)}
+              </div>
+            </div>
+            <div className="rounded bg-zinc-800 px-3 py-2.5">
+              <div className="text-[10px] uppercase tracking-wider text-zinc-500 mb-1">Output</div>
+              <div className="text-lg font-semibold text-emerald-400">
+                {formatTokens(data.totals.output)}
+              </div>
+            </div>
+            <div className="rounded bg-zinc-800 px-3 py-2.5">
+              <div className="text-[10px] uppercase tracking-wider text-zinc-500 mb-1">Cache Read</div>
+              <div className="text-lg font-semibold text-amber-400">
+                {formatTokens(data.totals.cacheRead)}
+              </div>
+            </div>
+            <div className="rounded bg-zinc-800 px-3 py-2.5">
+              <div className="text-[10px] uppercase tracking-wider text-zinc-500 mb-1">Total</div>
+              <div className="text-lg font-semibold text-zinc-200">
+                {formatTokens(data.totals.totalTokens)}
+              </div>
+            </div>
+          </div>
+
+          {/* Message aggregates */}
+          {data.aggregates && (
+            <>
+              <div className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold mb-2">
+                Messages
+              </div>
+              <div className="grid grid-cols-3 gap-2 mb-3">
+                <div className="text-xs">
+                  <span className="text-zinc-500">Total: </span>
+                  <span className="text-zinc-200 font-medium">
+                    {data.aggregates.messages.total.toLocaleString()}
+                  </span>
+                </div>
+                <div className="text-xs">
+                  <span className="text-zinc-500">User: </span>
+                  <span className="text-zinc-200 font-medium">
+                    {data.aggregates.messages.user.toLocaleString()}
+                  </span>
+                </div>
+                <div className="text-xs">
+                  <span className="text-zinc-500">Assistant: </span>
+                  <span className="text-zinc-200 font-medium">
+                    {data.aggregates.messages.assistant.toLocaleString()}
+                  </span>
+                </div>
+                <div className="text-xs">
+                  <span className="text-zinc-500">Tool Calls: </span>
+                  <span className="text-zinc-200 font-medium">
+                    {data.aggregates.messages.toolCalls.toLocaleString()}
+                  </span>
+                </div>
+                <div className="text-xs">
+                  <span className="text-zinc-500">Errors: </span>
+                  <span className={`font-medium ${data.aggregates.messages.errors > 0 ? "text-red-400" : "text-zinc-200"}`}>
+                    {data.aggregates.messages.errors}
+                  </span>
+                </div>
+                <div className="text-xs">
+                  <span className="text-zinc-500">Unique Tools: </span>
+                  <span className="text-zinc-200 font-medium">
+                    {data.aggregates.tools.uniqueTools}
+                  </span>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Cost */}
+          {data.totals.totalCost > 0 && (
+            <div className="text-xs text-zinc-400 border-t border-zinc-800 pt-2">
               Est. cost:{" "}
               <span className="text-zinc-200 font-medium">
-                $
-                {chartData
-                  .reduce((s, d) => s + d.cost, 0)
-                  .toFixed(2)}
+                ${data.totals.totalCost.toFixed(2)}
               </span>
-            </span>
+            </div>
           )}
-        </div>
+        </>
       )}
     </div>
   );
+}
+
+function formatTokens(n: number): string {
+  if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(1)}B`;
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
+  return String(n);
 }
 
 // ---------------------------------------------------------------------------
@@ -162,80 +149,126 @@ function HealthPanel() {
   const health = useHealth();
   const { data: channelsData } = useChannelsStatus();
 
-  const healthEntries = health
-    ? Object.entries(health.health)
-    : [];
-  const channels = channelsData?.channels ?? [];
-
   return (
     <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-4">
       <h3 className="text-sm font-semibold text-zinc-300 mb-3">
         System Health
       </h3>
-      {/* Health entries */}
-      <div className="space-y-1.5 mb-3">
-        {healthEntries.length === 0 ? (
-          <p className="text-xs text-zinc-500">
-            Waiting for health snapshot…
-          </p>
-        ) : (
-          healthEntries.map(([key, val]) => (
-            <div
-              key={key}
-              className="flex items-center justify-between text-xs"
-            >
-              <span className="text-zinc-400">{key}</span>
-              <span className="flex items-center gap-1.5">
-                <span
-                  className={`h-2 w-2 rounded-full ${
-                    val.healthy ? "bg-emerald-500" : "bg-red-500"
-                  }`}
-                />
-                <span
-                  className={
-                    val.healthy ? "text-emerald-400" : "text-red-400"
-                  }
-                >
-                  {val.healthy ? "OK" : val.reason ?? "unhealthy"}
-                </span>
-              </span>
-            </div>
-          ))
-        )}
-      </div>
-      {/* Channels */}
-      {channels.length > 0 && (
+
+      {!health ? (
+        <p className="text-xs text-zinc-500">
+          Waiting for health snapshot...
+        </p>
+      ) : (
         <>
-          <div className="text-xs font-medium text-zinc-400 mb-1.5 mt-3 uppercase tracking-wider">
-            Channels
+          {/* Overall status */}
+          <div className="flex items-center justify-between text-xs mb-3 pb-2 border-b border-zinc-800">
+            <span className="text-zinc-400">Overall</span>
+            <span className="flex items-center gap-1.5">
+              <span
+                className={`h-2 w-2 rounded-full ${
+                  health.ok ? "bg-emerald-500" : "bg-red-500"
+                }`}
+              />
+              <span className={health.ok ? "text-emerald-400" : "text-red-400"}>
+                {health.ok ? "OK" : "unhealthy"}
+              </span>
+            </span>
+          </div>
+
+          {/* Health channels from health snapshot */}
+          {health.channels && Object.keys(health.channels).length > 0 && (
+            <div className="space-y-1.5 mb-3">
+              <div className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">
+                Channels (health)
+              </div>
+              {Object.entries(health.channels).map(([id, ch]) => (
+                <div
+                  key={id}
+                  className="flex items-center justify-between text-xs"
+                >
+                  <span className="text-zinc-400">{id}</span>
+                  <span className="flex items-center gap-1.5">
+                    <span
+                      className={`h-2 w-2 rounded-full ${
+                        ch.running ? "bg-emerald-500" : "bg-red-500"
+                      }`}
+                    />
+                    <span
+                      className={ch.running ? "text-emerald-400" : "text-red-400"}
+                    >
+                      {ch.running
+                        ? ch.probe?.ok
+                          ? "running (probe OK)"
+                          : "running"
+                        : "stopped"}
+                    </span>
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Health agents */}
+          {health.agents && health.agents.length > 0 && (
+            <div className="space-y-1.5 mb-3">
+              <div className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">
+                Agents
+              </div>
+              {health.agents.map((ag) => (
+                <div
+                  key={ag.agentId}
+                  className="flex items-center justify-between text-xs"
+                >
+                  <span className="text-zinc-400">
+                    {ag.agentId}
+                    {ag.isDefault ? " (default)" : ""}
+                  </span>
+                  <span className="text-emerald-400">active</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Health session count */}
+          {health.sessions && (
+            <div className="text-xs text-zinc-500">
+              {health.sessions.count} active session{health.sessions.count !== 1 ? "s" : ""}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Channels from channels.status RPC */}
+      {channelsData?.channels && Object.keys(channelsData.channels).length > 0 && (
+        <>
+          <div className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold mb-1.5 mt-3">
+            Channel Status
           </div>
           <div className="space-y-1.5">
-            {channels.map((ch) => (
-              <div
-                key={ch.id}
-                className="flex items-center justify-between text-xs"
-              >
-                <span className="text-zinc-400">{ch.id}</span>
-                <span className="flex items-center gap-1.5">
-                  <span
-                    className={`h-2 w-2 rounded-full ${
-                      ch.healthy ? "bg-emerald-500" : "bg-red-500"
-                    }`}
-                  />
-                  <span
-                    className={
-                      ch.healthy ? "text-emerald-400" : "text-red-400"
-                    }
-                  >
-                    {ch.healthy
-                      ? ch.connected
-                        ? "connected"
-                        : "OK"
-                      : ch.reason ?? "unhealthy"}
+            {Object.entries(channelsData.channels).map(([id, ch]) => {
+              const label = channelsData.channelLabels?.[id] ?? id;
+              return (
+                <div
+                  key={id}
+                  className="flex items-center justify-between text-xs"
+                >
+                  <span className="text-zinc-400">{label}</span>
+                  <span className="flex items-center gap-1.5">
+                    <span
+                      className={`h-2 w-2 rounded-full ${
+                        ch.running ? "bg-emerald-500" : "bg-red-500"
+                      }`}
+                    />
+                    <span
+                      className={ch.running ? "text-emerald-400" : "text-red-400"}
+                    >
+                      {ch.running ? (ch.configured ? "running" : "unconfigured") : "stopped"}
+                    </span>
                   </span>
-                </span>
-              </div>
-            ))}
+                </div>
+              );
+            })}
           </div>
         </>
       )}
@@ -257,7 +290,7 @@ function SessionsPanel() {
   const countsByAgent = useMemo(() => {
     const map = new Map<string, number>();
     for (const s of sessions) {
-      const aid = s.agent ?? "unknown";
+      const aid = agentFromKey(s.key);
       map.set(aid, (map.get(aid) ?? 0) + 1);
     }
     return map;
@@ -266,10 +299,10 @@ function SessionsPanel() {
   return (
     <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-4">
       <h3 className="text-sm font-semibold text-zinc-300 mb-3">
-        Active Sessions ({sessions.length})
+        Active Sessions ({sessionData?.count ?? sessions.length})
       </h3>
       {isLoading ? (
-        <div className="text-xs text-zinc-500">Loading…</div>
+        <div className="text-xs text-zinc-500">Loading...</div>
       ) : sessions.length === 0 ? (
         <div className="text-xs text-zinc-500">No active sessions</div>
       ) : (
@@ -282,7 +315,7 @@ function SessionsPanel() {
             return (
               <div key={a.id}>
                 <div className="flex items-center justify-between text-xs mb-0.5">
-                  <span className="text-zinc-300 font-medium">{a.id}</span>
+                  <span className="text-zinc-300 font-medium">{a.name ?? a.id}</span>
                   <span className="text-zinc-500">{count}</span>
                 </div>
                 <div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden">
@@ -294,17 +327,17 @@ function SessionsPanel() {
               </div>
             );
           })}
-          {/* Show unknown agent sessions */}
-          {countsByAgent.has("unknown") && (
-            <div>
-              <div className="flex items-center justify-between text-xs mb-0.5">
-                <span className="text-zinc-400 italic">unknown</span>
-                <span className="text-zinc-500">
-                  {countsByAgent.get("unknown")}
-                </span>
+          {/* Show agents in sessions but not in agent list */}
+          {Array.from(countsByAgent.entries())
+            .filter(([aid]) => !agents.some((a) => a.id === aid))
+            .map(([aid, count]) => (
+              <div key={aid}>
+                <div className="flex items-center justify-between text-xs mb-0.5">
+                  <span className="text-zinc-400 italic">{aid}</span>
+                  <span className="text-zinc-500">{count}</span>
+                </div>
               </div>
-            </div>
-          )}
+            ))}
         </div>
       )}
     </div>
@@ -319,17 +352,17 @@ function SystemInfoPanel() {
   const presence = usePresence();
   const connState = useConnectionState();
 
-  function renderPresenceRow(p: PresenceEntry) {
+  function renderPresenceRow(p: PresenceEntry, i: number) {
     return (
-      <div key={p.deviceId} className="text-xs space-y-0.5">
+      <div key={p.host ?? `presence-${i}`} className="text-xs space-y-0.5">
         <div className="flex items-center justify-between">
           <span className="text-zinc-300 font-medium">
-            {p.host ?? p.deviceId}
+            {p.host ?? "unknown"}
           </span>
-          <span className="text-zinc-500">{p.mode ?? "—"}</span>
+          <span className="text-zinc-500">{p.mode ?? "--"}</span>
         </div>
         <div className="text-zinc-500">
-          {p.version ?? "—"} · {p.platform ?? "—"} · {p.ip ?? "—"}
+          {p.version ?? "--"} · {p.platform ?? "--"} · {p.ip ?? "--"}
           {p.roles?.length ? ` · ${p.roles.join(", ")}` : ""}
         </div>
       </div>

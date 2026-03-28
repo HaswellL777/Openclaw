@@ -13,7 +13,7 @@ function Spinner() {
         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
       </svg>
-      Loading…
+      Loading...
     </div>
   );
 }
@@ -45,8 +45,8 @@ function Badge({ children, variant = "default" }: { children: React.ReactNode; v
 
 function SaveFeedback({ status }: { status: "idle" | "saving" | "saved" | "error" }) {
   if (status === "idle") return null;
-  if (status === "saving") return <span className="text-xs text-amber-400">Saving…</span>;
-  if (status === "saved") return <span className="text-xs text-emerald-400">Saved ✓</span>;
+  if (status === "saving") return <span className="text-xs text-amber-400">Saving...</span>;
+  if (status === "saved") return <span className="text-xs text-emerald-400">Saved</span>;
   return <span className="text-xs text-red-400">Save failed</span>;
 }
 
@@ -75,8 +75,8 @@ function ProviderRow({ id, provider, onSave }: ProviderRowProps) {
   const maskedKey = useMemo(() => {
     const key = provider.apiKey ?? "";
     if (!key) return "(not set)";
-    if (key.length <= 8) return "••••••••";
-    return key.slice(0, 4) + "••••" + key.slice(-4);
+    if (key.length <= 8) return "********";
+    return key.slice(0, 4) + "****" + key.slice(-4);
   }, [provider.apiKey]);
 
   const dirty = baseUrl !== (provider.baseUrl ?? "");
@@ -200,15 +200,16 @@ function ProvidersSection({ config }: { config: Record<string, unknown> }) {
 
 interface AgentModelRowProps {
   agent: Agent;
+  isDefault: boolean;
   models: Model[];
+  currentModelId: string;
   onSave: (agentId: string, modelId: string) => Promise<void>;
 }
 
-function AgentModelRow({ agent, models, onSave }: AgentModelRowProps) {
-  const currentModel = agent.model?.primary ?? "";
-  const [selected, setSelected] = useState(currentModel);
+function AgentModelRow({ agent, isDefault, models, currentModelId, onSave }: AgentModelRowProps) {
+  const [selected, setSelected] = useState(currentModelId);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
-  const dirty = selected !== currentModel;
+  const dirty = selected !== currentModelId;
 
   const handleSave = useCallback(async () => {
     if (!dirty) return;
@@ -227,7 +228,7 @@ function AgentModelRow({ agent, models, onSave }: AgentModelRowProps) {
     <div className="flex items-center gap-4 rounded-lg border border-zinc-800 bg-zinc-900 px-4 py-3">
       <div className="min-w-[140px]">
         <span className="text-sm font-medium text-zinc-100">{agent.name ?? agent.id}</span>
-        {agent.default && (
+        {isDefault && (
           <span className="ml-2 text-[10px] uppercase tracking-wider text-emerald-500 font-semibold">default</span>
         )}
       </div>
@@ -239,12 +240,12 @@ function AgentModelRow({ agent, models, onSave }: AgentModelRowProps) {
           focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500"
       >
         {/* Keep the current value as an option even if not in the models list */}
-        {currentModel && !models.some((m) => m.id === currentModel) && (
-          <option value={currentModel}>{currentModel}</option>
+        {currentModelId && !models.some((m) => m.id === currentModelId) && (
+          <option value={currentModelId}>{currentModelId}</option>
         )}
         {models.map((m) => (
           <option key={m.id} value={m.id}>
-            {m.name} ({m.provider}){m.reasoning ? " · reasoning" : ""}
+            {m.name} ({m.provider}){m.reasoning ? " -- reasoning" : ""}
           </option>
         ))}
       </select>
@@ -268,10 +269,19 @@ function AgentModelRow({ agent, models, onSave }: AgentModelRowProps) {
 function AgentModelsSection() {
   const { data: agentData, isLoading: agentsLoading } = useAgents();
   const { data: modelsData, isLoading: modelsLoading } = useModels();
+  const { data: configData } = useConfig();
   const client = useGatewayStore((s) => s.client);
 
   const agents = agentData?.agents ?? [];
+  const defaultId = agentData?.defaultId ?? "";
   const models = modelsData?.models ?? [];
+
+  // Extract agent model assignments from the config
+  const agentConfigs = useMemo(() => {
+    const parsed = configData?.parsed ?? configData?.raw ?? {};
+    const agentsCfg = parsed.agents as Record<string, Record<string, unknown>> | undefined;
+    return agentsCfg ?? {};
+  }, [configData]);
 
   const handleSave = useCallback(async (agentId: string, modelId: string) => {
     if (!client) throw new Error("Not connected");
@@ -289,14 +299,23 @@ function AgentModelsSection() {
         <p className="text-sm text-zinc-500">No agents configured.</p>
       ) : (
         <div className="space-y-2">
-          {agents.map((agent) => (
-            <AgentModelRow
-              key={agent.id}
-              agent={agent}
-              models={models}
-              onSave={handleSave}
-            />
-          ))}
+          {agents.map((agent) => {
+            // Try to get model from config
+            const agentCfg = agentConfigs[agent.id] as Record<string, unknown> | undefined;
+            const modelCfg = agentCfg?.model as Record<string, unknown> | undefined;
+            const currentModel = (modelCfg?.primary as string) ?? "";
+
+            return (
+              <AgentModelRow
+                key={agent.id}
+                agent={agent}
+                isDefault={agent.id === defaultId}
+                models={models}
+                currentModelId={currentModel}
+                onSave={handleSave}
+              />
+            );
+          })}
         </div>
       )}
     </section>
@@ -311,7 +330,7 @@ function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex items-baseline justify-between py-2 border-b border-zinc-800/50 last:border-b-0">
       <span className="text-sm text-zinc-400">{label}</span>
-      <span className="text-sm text-zinc-200 font-mono">{value ?? <span className="text-zinc-600">—</span>}</span>
+      <span className="text-sm text-zinc-200 font-mono">{value ?? <span className="text-zinc-600">--</span>}</span>
     </div>
   );
 }
@@ -326,19 +345,19 @@ function GeneralInfoSection({ config }: { config: Record<string, unknown> }) {
       <SectionHeading>General Info</SectionHeading>
       <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-4">
         <h3 className="text-xs uppercase tracking-wider text-zinc-500 font-semibold mb-2">Gateway</h3>
-        <InfoRow label="Port" value={String(gateway?.port ?? gateway?.wsPort ?? "—")} />
+        <InfoRow label="Port" value={String(gateway?.port ?? gateway?.wsPort ?? "--")} />
         <InfoRow label="Host" value={String(gateway?.host ?? "0.0.0.0")} />
 
         <h3 className="text-xs uppercase tracking-wider text-zinc-500 font-semibold mt-4 mb-2">Logging</h3>
         <InfoRow label="Level" value={String(logging?.level ?? "info")} />
-        <InfoRow label="File" value={String(logging?.file ?? "—")} />
+        <InfoRow label="File" value={String(logging?.file ?? "--")} />
 
         <h3 className="text-xs uppercase tracking-wider text-zinc-500 font-semibold mt-4 mb-2">Sandbox</h3>
         {sandbox ? (
           <>
-            <InfoRow label="Scope" value={String((sandbox as Record<string, unknown>).scope ?? "—")} />
-            <InfoRow label="Image" value={String((sandbox.docker as Record<string, unknown> | undefined)?.image ?? "—")} />
-            <InfoRow label="Network" value={String((sandbox.docker as Record<string, unknown> | undefined)?.network ?? "—")} />
+            <InfoRow label="Scope" value={String((sandbox as Record<string, unknown>).scope ?? "--")} />
+            <InfoRow label="Image" value={String((sandbox.docker as Record<string, unknown> | undefined)?.image ?? "--")} />
+            <InfoRow label="Network" value={String((sandbox.docker as Record<string, unknown> | undefined)?.network ?? "--")} />
           </>
         ) : (
           <p className="text-sm text-zinc-500">No sandbox configured.</p>
@@ -355,19 +374,30 @@ function GeneralInfoSection({ config }: { config: Record<string, unknown> }) {
 export default function SettingsPage() {
   const { data, isLoading, error } = useConfig();
 
+  // Use 'parsed' for full config, fall back to 'raw' or 'config' (redacted)
+  const configObj = useMemo(() => {
+    if (!data) return null;
+    return (data.parsed ?? data.raw ?? data.config ?? null) as Record<string, unknown> | null;
+  }, [data]);
+
   return (
     <div className="p-6 max-w-4xl">
       <h1 className="text-2xl font-semibold text-zinc-100 mb-1">Settings</h1>
-      <p className="text-sm text-zinc-500 mb-6">Configuration management</p>
+      <p className="text-sm text-zinc-500 mb-6">
+        Configuration management
+        {data?.path && (
+          <span className="ml-2 text-zinc-600 font-mono text-xs">({data.path})</span>
+        )}
+      </p>
 
       {isLoading && <Spinner />}
       {error && <ErrorBox message={error instanceof Error ? error.message : "Failed to load config"} />}
 
-      {data?.config && (
+      {configObj && (
         <>
-          <ProvidersSection config={data.config} />
+          <ProvidersSection config={configObj} />
           <AgentModelsSection />
-          <GeneralInfoSection config={data.config} />
+          <GeneralInfoSection config={configObj} />
         </>
       )}
     </div>

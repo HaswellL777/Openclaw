@@ -70,15 +70,20 @@ export default function ChatPage() {
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const agents = agentData?.agents ?? [];
+  const defaultAgentId = agentData?.defaultId ?? "";
   const models = modelData?.models ?? [];
 
   // Set defaults
   useEffect(() => {
     if (!agentId && agents.length > 0) {
-      const def = agents.find((a) => a.default) ?? agents[0];
+      // Use defaultId from the API response
+      const defaultAgent = defaultAgentId
+        ? agents.find((a) => a.id === defaultAgentId)
+        : undefined;
+      const def = defaultAgent ?? agents[0];
       setAgentId(def.id);
     }
-  }, [agents, agentId]);
+  }, [agents, agentId, defaultAgentId]);
 
   useEffect(() => {
     if (!modelId && models.length > 0) {
@@ -90,7 +95,7 @@ export default function ChatPage() {
   useEffect(() => {
     if (!client || !sessionKey) return;
     const offMsg = client.on("chat.message", (params: any) => {
-      if (params?.sessionKey !== sessionKey) return;
+      if (params?.key !== sessionKey && params?.sessionKey !== sessionKey) return;
       if (params?.message) {
         setMessages((prev) => [...prev, params.message]);
         setStreaming(false);
@@ -98,7 +103,7 @@ export default function ChatPage() {
       }
     });
     const offChunk = client.on("chat.chunk", (params: any) => {
-      if (params?.sessionKey !== sessionKey) return;
+      if (params?.key !== sessionKey && params?.sessionKey !== sessionKey) return;
       setStreaming(true);
       setStreamBuf((prev) => prev + (params?.text ?? ""));
     });
@@ -120,14 +125,16 @@ export default function ChatPage() {
     if (!client) return;
     setError(null);
     try {
-      const res = await client.call<{ sessionKey: string }>(
+      // Response may use 'key' or 'sessionKey'
+      const res = await client.call<{ key?: string; sessionKey?: string }>(
         "sessions.create",
         {
           agent: agentId || undefined,
           model: modelId || undefined,
         },
       );
-      setSessionKey(res.sessionKey);
+      const newKey = res.key ?? res.sessionKey ?? null;
+      setSessionKey(newKey);
       setMessages([]);
       setStreamBuf("");
     } catch (err: any) {
@@ -151,7 +158,7 @@ export default function ChatPage() {
 
     try {
       const res = await client.call<{ message?: ChatMessage }>("chat.send", {
-        sessionKey,
+        key: sessionKey,
         text: userMsg.content,
       });
       // If the response includes a direct message (non-streaming), add it
@@ -187,8 +194,8 @@ export default function ChatPage() {
           >
             {agents.map((a) => (
               <option key={a.id} value={a.id}>
-                {a.id}
-                {a.default ? " (default)" : ""}
+                {a.name ?? a.id}
+                {a.id === defaultAgentId ? " (default)" : ""}
               </option>
             ))}
           </select>
@@ -213,7 +220,7 @@ export default function ChatPage() {
           </button>
           {sessionKey && (
             <span className="text-xs text-zinc-500 font-mono">
-              {sessionKey.slice(0, 16)}…
+              {sessionKey.slice(0, 24)}...
             </span>
           )}
         </div>
@@ -272,10 +279,10 @@ export default function ChatPage() {
             disabled={!sessionKey || sending}
             placeholder={
               !sessionKey
-                ? "Create a session first…"
+                ? "Create a session first..."
                 : sending
-                  ? "Waiting for response…"
-                  : "Type a message… (Shift+Enter for newline)"
+                  ? "Waiting for response..."
+                  : "Type a message... (Shift+Enter for newline)"
             }
             rows={2}
             className="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-200 placeholder:text-zinc-500 resize-none focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:opacity-50"

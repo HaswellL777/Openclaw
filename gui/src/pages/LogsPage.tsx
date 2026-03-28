@@ -1,23 +1,53 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useGatewayStore } from "@/api/hooks";
-import type { LogsResult } from "@/api/types";
+import type { LogsResult, ParsedLogLine } from "@/api/types";
 
 // ---------------------------------------------------------------------------
-// Color coding
+// Log line parsing and color coding
 // ---------------------------------------------------------------------------
 
 type LogLevel = "info" | "warn" | "error" | "debug" | "trace";
 
-function detectLevel(line: string): LogLevel {
+function parseLogLine(raw: string): ParsedLogLine {
+  try {
+    const obj = JSON.parse(raw);
+    return {
+      time: obj.time ?? obj.timestamp ?? obj.ts,
+      level: (obj.level ?? "info").toLowerCase(),
+      subsystem: obj.subsystem ?? obj.component ?? obj.module,
+      message: obj.message ?? obj.msg,
+      raw,
+      ...obj,
+    };
+  } catch {
+    // Not JSON, fall back to raw string detection
+    return {
+      level: detectLevelFromRaw(raw),
+      message: raw,
+      raw,
+    };
+  }
+}
+
+function detectLevelFromRaw(line: string): string {
   const lower = line.toLowerCase();
-  if (lower.includes(" error ") || lower.includes("[error]") || lower.includes('"level":"error"'))
+  if (lower.includes('"level":"error"') || lower.includes(" error ") || lower.includes("[error]"))
     return "error";
-  if (lower.includes(" warn") || lower.includes("[warn]") || lower.includes('"level":"warn"'))
+  if (lower.includes('"level":"warn"') || lower.includes(" warn") || lower.includes("[warn]"))
     return "warn";
-  if (lower.includes(" debug ") || lower.includes("[debug]") || lower.includes('"level":"debug"'))
+  if (lower.includes('"level":"debug"') || lower.includes(" debug ") || lower.includes("[debug]"))
     return "debug";
-  if (lower.includes(" trace ") || lower.includes("[trace]") || lower.includes('"level":"trace"'))
+  if (lower.includes('"level":"trace"') || lower.includes(" trace ") || lower.includes("[trace]"))
     return "trace";
+  return "info";
+}
+
+function normalizeLevel(level?: string): LogLevel {
+  const l = (level ?? "info").toLowerCase();
+  if (l === "error" || l === "fatal") return "error";
+  if (l === "warn" || l === "warning") return "warn";
+  if (l === "debug") return "debug";
+  if (l === "trace") return "trace";
   return "info";
 }
 
@@ -29,6 +59,24 @@ const levelColors: Record<LogLevel, string> = {
   trace: "text-zinc-500",
 };
 
+const levelBadgeColors: Record<LogLevel, string> = {
+  info: "bg-emerald-900/40 text-emerald-400",
+  warn: "bg-amber-900/40 text-amber-400",
+  error: "bg-red-900/40 text-red-400",
+  debug: "bg-blue-900/40 text-blue-400",
+  trace: "bg-zinc-800 text-zinc-500",
+};
+
+function formatLogTime(time?: string): string {
+  if (!time) return "";
+  try {
+    const d = new Date(time);
+    return d.toLocaleTimeString(undefined, { hour12: false, fractionalSecondDigits: 3 });
+  } catch {
+    return time;
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Page
 // ---------------------------------------------------------------------------
@@ -39,26 +87,28 @@ export default function LogsPage() {
 
   const [lines, setLines] = useState<string[]>([]);
   const MAX_LINES = 10_000;
-  const [cursor, setCursor] = useState<string | undefined>(undefined);
+  const [cursor, setCursor] = useState<number | undefined>(undefined);
   const [filter, setFilter] = useState("");
+  const [levelFilter, setLevelFilter] = useState<LogLevel | "">("");
   const [autoScroll, setAutoScroll] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
+  const [viewMode, setViewMode] = useState<"structured" | "raw">("structured");
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Fetch logs
   const fetchLogs = useCallback(
-    async (cursorVal?: string) => {
+    async (cursorVal?: number) => {
       if (!client || !connected) return;
       setLoading(true);
       setError(null);
       try {
         const res = await client.call<LogsResult>(
           "logs.tail",
-          cursorVal ? { cursor: cursorVal } : undefined,
+          cursorVal != null ? { cursor: cursorVal } : undefined,
         );
         if (res.reset) {
           setLines(res.lines);
@@ -90,7 +140,7 @@ export default function LogsPage() {
   useEffect(() => {
     if (!connected || !client) return;
     pollRef.current = setInterval(() => {
-      if (cursor) {
+      if (cursor != null) {
         fetchLogs(cursor);
       }
     }, 5000);
@@ -108,7 +158,7 @@ export default function LogsPage() {
           const next = [...prev, ...params.lines];
           return next.length > MAX_LINES ? next.slice(next.length - MAX_LINES) : next;
         });
-        if (params.cursor) setCursor(params.cursor);
+        if (params.cursor != null) setCursor(params.cursor);
       }
     });
     return off;
@@ -131,18 +181,31 @@ export default function LogsPage() {
     }
   }, [autoScroll]);
 
-  // Filtered + level-detected lines (memoized for performance)
+  // Parse and filter lines (memoized for performance)
   const processedLines = useMemo(() => {
-    const source = filter
-      ? lines.filter((l) => l.toLowerCase().includes(filter.toLowerCase()))
-      : lines;
-    return source.map((line) => ({ line, level: detectLevel(line) }));
-  }, [lines, filter]);
-  const filteredLines = processedLines;
+    return lines.map((raw) => parseLogLine(raw));
+  }, [lines]);
+
+  const filteredLines = useMemo(() => {
+    return processedLines.filter((parsed) => {
+      // Level filter
+      if (levelFilter) {
+        const lvl = normalizeLevel(parsed.level);
+        if (lvl !== levelFilter) return false;
+      }
+      // Text filter
+      if (filter) {
+        const q = filter.toLowerCase();
+        const searchText = `${parsed.message ?? ""} ${parsed.subsystem ?? ""} ${parsed.raw}`.toLowerCase();
+        if (!searchText.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [processedLines, filter, levelFilter]);
 
   // Load older
   const handleLoadOlder = () => {
-    if (cursor && hasMore) fetchLogs(cursor);
+    if (cursor != null && hasMore) fetchLogs(cursor);
   };
 
   return (
@@ -152,11 +215,31 @@ export default function LogsPage() {
         <h1 className="text-lg font-semibold text-zinc-100">Logs</h1>
         <input
           type="text"
-          placeholder="Filter…"
+          placeholder="Filter..."
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
-          className="bg-zinc-800 border border-zinc-700 rounded px-2.5 py-1.5 text-sm text-zinc-200 placeholder:text-zinc-500 w-64 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          className="bg-zinc-800 border border-zinc-700 rounded px-2.5 py-1.5 text-sm text-zinc-200 placeholder:text-zinc-500 w-52 focus:outline-none focus:ring-1 focus:ring-indigo-500"
         />
+        {/* Level filter */}
+        <select
+          value={levelFilter}
+          onChange={(e) => setLevelFilter(e.target.value as LogLevel | "")}
+          className="bg-zinc-800 border border-zinc-700 rounded px-2 py-1.5 text-sm text-zinc-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+        >
+          <option value="">All levels</option>
+          <option value="error">error</option>
+          <option value="warn">warn</option>
+          <option value="info">info</option>
+          <option value="debug">debug</option>
+          <option value="trace">trace</option>
+        </select>
+        {/* View mode */}
+        <button
+          onClick={() => setViewMode((v) => (v === "structured" ? "raw" : "structured"))}
+          className="px-2.5 py-1.5 text-xs bg-zinc-800 text-zinc-400 border border-zinc-700 rounded hover:bg-zinc-700 transition-colors"
+        >
+          {viewMode === "structured" ? "Raw" : "Structured"}
+        </button>
         <button
           onClick={() => setAutoScroll((v) => !v)}
           className={`px-2.5 py-1.5 text-xs rounded transition-colors ${
@@ -179,7 +262,7 @@ export default function LogsPage() {
         </button>
         <span className="text-xs text-zinc-500 ml-auto">
           {filteredLines.length} line{filteredLines.length !== 1 ? "s" : ""}
-          {filter && ` (filtered from ${lines.length})`}
+          {(filter || levelFilter) && ` (filtered from ${lines.length})`}
         </span>
       </div>
 
@@ -197,7 +280,7 @@ export default function LogsPage() {
 
         {loading && lines.length === 0 && (
           <div className="px-4 py-8 text-zinc-500 text-center">
-            Loading logs…
+            Loading logs...
           </div>
         )}
 
@@ -213,21 +296,56 @@ export default function LogsPage() {
             className="w-full py-1.5 text-xs text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900 transition-colors"
             disabled={loading}
           >
-            {loading ? "Loading…" : "Load older"}
+            {loading ? "Loading..." : "Load older"}
           </button>
         )}
 
-        {filteredLines.map(({ line, level }, i) => (
-            <div
-              key={i}
-              className={`px-4 py-px hover:bg-zinc-900 ${levelColors[level]}`}
-            >
-              <span className="text-zinc-600 select-none mr-3 inline-block w-10 text-right">
-                {i + 1}
-              </span>
-              {line}
-            </div>
-        ))}
+        {viewMode === "structured"
+          ? filteredLines.map((parsed, i) => {
+              const level = normalizeLevel(parsed.level);
+              return (
+                <div
+                  key={i}
+                  className="px-4 py-0.5 hover:bg-zinc-900 flex items-start gap-2"
+                >
+                  <span className="text-zinc-600 select-none shrink-0 w-10 text-right">
+                    {i + 1}
+                  </span>
+                  {parsed.time && (
+                    <span className="text-zinc-600 shrink-0 w-[90px]">
+                      {formatLogTime(parsed.time)}
+                    </span>
+                  )}
+                  <span
+                    className={`shrink-0 w-[44px] text-center rounded px-1 py-px text-[10px] font-semibold uppercase ${levelBadgeColors[level]}`}
+                  >
+                    {level}
+                  </span>
+                  {parsed.subsystem && (
+                    <span className="text-zinc-500 shrink-0 max-w-[120px] truncate">
+                      [{parsed.subsystem}]
+                    </span>
+                  )}
+                  <span className={`flex-1 break-all ${levelColors[level]}`}>
+                    {parsed.message ?? parsed.raw}
+                  </span>
+                </div>
+              );
+            })
+          : filteredLines.map((parsed, i) => {
+              const level = normalizeLevel(parsed.level);
+              return (
+                <div
+                  key={i}
+                  className={`px-4 py-px hover:bg-zinc-900 ${levelColors[level]}`}
+                >
+                  <span className="text-zinc-600 select-none mr-3 inline-block w-10 text-right">
+                    {i + 1}
+                  </span>
+                  {parsed.raw}
+                </div>
+              );
+            })}
       </div>
 
       {/* Sticky bottom bar when auto-scroll is off */}
@@ -242,7 +360,7 @@ export default function LogsPage() {
             }}
             className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
           >
-            ↓ Scroll to bottom & resume auto-scroll
+            Scroll to bottom and resume auto-scroll
           </button>
         </div>
       )}

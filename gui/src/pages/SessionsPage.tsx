@@ -6,15 +6,15 @@ import {
   useGatewayStore,
 } from "@/api/hooks";
 import type { Session, ChatMessage, ChatHistoryResult } from "@/api/types";
+import { agentFromKey } from "@/api/types";
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-function timeAgo(ts?: number | string): string {
-  if (!ts) return "—";
-  const ms = typeof ts === "string" ? Date.parse(ts) : ts;
-  const diff = Date.now() - ms;
+function timeAgo(ts?: number): string {
+  if (!ts) return "--";
+  const diff = Date.now() - ts;
   if (diff < 60_000) return "just now";
   if (diff < 3_600_000) return `${Math.floor(diff / 60_000)}m ago`;
   if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)}h ago`;
@@ -49,7 +49,7 @@ function ToolCallBlock({ content }: { content: string }) {
         className="w-full text-left px-3 py-1.5 text-xs flex items-center gap-2 hover:bg-zinc-800 transition-colors"
       >
         <span className={`transition-transform ${open ? "rotate-90" : ""}`}>
-          ▶
+          &#9654;
         </span>
         <span className="font-mono text-amber-400">{label}</span>
       </button>
@@ -150,6 +150,8 @@ function SessionRow({
   active: boolean;
   onClick: () => void;
 }) {
+  const agentId = agentFromKey(session.key);
+
   return (
     <button
       onClick={onClick}
@@ -159,7 +161,7 @@ function SessionRow({
     >
       <div className="flex items-center justify-between">
         <span className="text-sm font-medium text-zinc-200 truncate">
-          {session.label || session.sessionKey.slice(0, 12)}
+          {session.displayName || session.key.slice(0, 20)}
         </span>
         <span className="text-[10px] text-zinc-500 shrink-0 ml-2">
           {timeAgo(session.updatedAt)}
@@ -167,15 +169,20 @@ function SessionRow({
       </div>
       <div className="text-xs text-zinc-500 mt-0.5 flex items-center gap-1.5">
         <span className="bg-zinc-700 text-zinc-300 px-1.5 py-0.5 rounded text-[10px]">
-          {session.agent ?? "—"}
+          {agentId}
         </span>
+        {session.status && (
+          <span className={`${session.status === "idle" ? "text-zinc-500" : "text-amber-400"}`}>
+            {session.status}
+          </span>
+        )}
         {session.model && (
           <span className="truncate">{session.model}</span>
         )}
       </div>
-      {session.lastMessage?.text && (
+      {session.lastMessagePreview && (
         <p className="text-xs text-zinc-500 mt-1 truncate">
-          {session.lastMessage.text}
+          {session.lastMessagePreview}
         </p>
       )}
     </button>
@@ -198,7 +205,9 @@ export default function SessionsPage() {
   const client = useGatewayStore((s) => s.client);
 
   const { data: sessionData, isLoading, refetch } = useSessions(
-    agentFilter ? { agent: agentFilter } : undefined,
+    agentFilter
+      ? { agent: agentFilter, includeLastMessage: true }
+      : { includeLastMessage: true },
   );
 
   const sessions = sessionData?.sessions ?? [];
@@ -208,15 +217,16 @@ export default function SessionsPage() {
   const filtered = useMemo(() => sessions.filter((s) => {
     if (!search) return true;
     const q = search.toLowerCase();
+    const agentId = agentFromKey(s.key);
     return (
-      s.sessionKey.toLowerCase().includes(q) ||
-      (s.label ?? "").toLowerCase().includes(q) ||
-      (s.agent ?? "").toLowerCase().includes(q)
+      s.key.toLowerCase().includes(q) ||
+      (s.displayName ?? "").toLowerCase().includes(q) ||
+      agentId.toLowerCase().includes(q)
     );
   }), [sessions, search]);
 
   const selectedSession = useMemo(
-    () => filtered.find((s) => s.sessionKey === selectedKey),
+    () => filtered.find((s) => s.key === selectedKey),
     [filtered, selectedKey],
   );
 
@@ -229,9 +239,9 @@ export default function SessionsPage() {
     setHistoryLoading(true);
     setHistoryError(null);
     client
-      .call<ChatHistoryResult>("chat.history", { sessionKey: selectedKey })
+      .call<ChatHistoryResult>("chat.history", { key: selectedKey })
       .then((res) => {
-        setMessages(res.messages ?? []);
+        setMessages(res?.messages ?? []);
       })
       .catch((err) => {
         setHistoryError(err?.message ?? "Failed to load history");
@@ -244,7 +254,7 @@ export default function SessionsPage() {
   useEffect(() => {
     if (!client || !selectedKey) return;
     const off = client.on("sessions.messages", (params: any) => {
-      if (params?.sessionKey === selectedKey && params?.messages) {
+      if (params?.key === selectedKey && params?.messages) {
         setMessages((prev) => [...prev, ...params.messages]);
       }
     });
@@ -263,7 +273,7 @@ export default function SessionsPage() {
     async (action: "abort" | "reset" | "delete") => {
       if (!client || !selectedKey) return;
       try {
-        await client.call(`sessions.${action}`, { sessionKey: selectedKey });
+        await client.call(`sessions.${action}`, { key: selectedKey });
         if (action === "delete") {
           setSelectedKey(null);
           setMessages([]);
@@ -291,32 +301,38 @@ export default function SessionsPage() {
             <option value="">All agents</option>
             {agents.map((a) => (
               <option key={a.id} value={a.id}>
-                {a.id}
+                {a.name ?? a.id}
               </option>
             ))}
           </select>
           {/* Search */}
           <input
             type="text"
-            placeholder="Search sessions…"
+            placeholder="Search sessions..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full bg-zinc-800 border border-zinc-700 rounded px-2 py-1.5 text-sm text-zinc-200 placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
           />
+          {/* Count */}
+          {sessionData && (
+            <div className="text-xs text-zinc-500">
+              {sessionData.count} total session{sessionData.count !== 1 ? "s" : ""}
+            </div>
+          )}
         </div>
 
         <div className="flex-1 overflow-y-auto">
           {isLoading ? (
-            <div className="p-4 text-sm text-zinc-500">Loading…</div>
+            <div className="p-4 text-sm text-zinc-500">Loading...</div>
           ) : filtered.length === 0 ? (
             <div className="p-4 text-sm text-zinc-500">No sessions found</div>
           ) : (
             filtered.map((s) => (
               <SessionRow
-                key={s.sessionKey}
+                key={s.key}
                 session={s}
-                active={s.sessionKey === selectedKey}
-                onClick={() => setSelectedKey(s.sessionKey)}
+                active={s.key === selectedKey}
+                onClick={() => setSelectedKey(s.key)}
               />
             ))
           )}
@@ -335,13 +351,15 @@ export default function SessionsPage() {
             <div className="px-4 py-3 border-b border-zinc-800 bg-zinc-900 flex items-center justify-between">
               <div>
                 <div className="text-sm font-semibold text-zinc-100">
-                  {selectedSession?.label ||
-                    selectedKey.slice(0, 16)}
+                  {selectedSession?.displayName ||
+                    selectedKey.slice(0, 24)}
                 </div>
                 <div className="text-xs text-zinc-500 mt-0.5">
-                  {selectedSession?.agent ??
-                    "—"}{" "}
+                  {selectedSession
+                    ? agentFromKey(selectedSession.key)
+                    : "--"}{" "}
                   · {messages.length} messages
+                  {selectedSession?.status && ` · ${selectedSession.status}`}
                 </div>
               </div>
               <div className="flex gap-2">
@@ -370,7 +388,7 @@ export default function SessionsPage() {
             <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3">
               {historyLoading ? (
                 <div className="text-center text-zinc-500 text-sm py-8">
-                  Loading history…
+                  Loading history...
                 </div>
               ) : historyError ? (
                 <div className="text-center text-red-400 text-sm py-8">

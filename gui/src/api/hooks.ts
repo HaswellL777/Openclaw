@@ -12,7 +12,7 @@ import type {
   HealthSnapshot,
   PresenceEntry,
   LogsResult,
-  SkillStatus,
+  SkillsStatusResult,
   ToolsCatalogResult,
   ConfigResult,
   ChannelsStatusResult,
@@ -50,19 +50,37 @@ export const useGatewayStore = create<GatewayStore>((set, get) => ({
       set({ connectionState: state });
     });
 
-    client.on("health.snapshot", (params: HealthSnapshot) => {
-      const current = get().health;
-      if (current?.ts !== params?.ts) {
-        set({ health: params });
+    // Health event: the full health snapshot is the payload
+    client.on("health", (params: any) => {
+      if (params && typeof params === "object" && "ts" in params) {
+        const current = get().health;
+        if (current?.ts !== params.ts) {
+          set({ health: params as HealthSnapshot });
+        }
       }
     });
 
-    client.on("presence.update", (params: { entries: PresenceEntry[] }) => {
-      if (params?.entries) {
-        const cur = get().presence;
-        const inc = params.entries;
-        if (cur.length === inc.length && cur.every((e, i) => e.deviceId === inc[i]?.deviceId && e.ts === inc[i]?.ts)) return;
-        set({ presence: inc });
+    // Also listen for the legacy event name in case gateway uses it
+    client.on("health.snapshot", (params: any) => {
+      if (params && typeof params === "object" && "ts" in params) {
+        const current = get().health;
+        if (current?.ts !== params.ts) {
+          set({ health: params as HealthSnapshot });
+        }
+      }
+    });
+
+    // Presence: comes as array of presence objects from system-presence / connect response
+    client.on("presence.update", (params: any) => {
+      if (!params) return;
+      // params may be an array directly or { entries: [...] }
+      const entries: PresenceEntry[] = Array.isArray(params)
+        ? params
+        : Array.isArray(params.entries)
+          ? params.entries
+          : [];
+      if (entries.length > 0 || get().presence.length > 0) {
+        set({ presence: entries });
       }
     });
 
@@ -109,7 +127,7 @@ function useRpcCall<T>(
 }
 
 // ---------------------------------------------------------------------------
-// React hooks — RPC queries
+// React hooks -- RPC queries
 // ---------------------------------------------------------------------------
 
 export function useAgents() {
@@ -118,7 +136,7 @@ export function useAgents() {
   });
 }
 
-export function useSessions(params?: { agent?: string; limit?: number }) {
+export function useSessions(params?: { agent?: string; limit?: number; includeLastMessage?: boolean }) {
   return useRpcCall<SessionListResult>(
     ["sessions.list", params],
     "sessions.list",
@@ -127,7 +145,7 @@ export function useSessions(params?: { agent?: string; limit?: number }) {
   );
 }
 
-export function useSessionUsage(params?: { agent?: string; days?: number }) {
+export function useSessionUsage(params?: { agent?: string; startDate?: string; endDate?: string }) {
   return useRpcCall<SessionUsageResult>(
     ["sessions.usage", params],
     "sessions.usage",
@@ -157,17 +175,17 @@ export function useModels() {
   });
 }
 
-export function useLogs(cursor?: string) {
+export function useLogs(cursor?: number) {
   return useRpcCall<LogsResult>(
     ["logs.tail", cursor],
     "logs.tail",
-    cursor ? { cursor } : undefined,
+    cursor != null ? { cursor } : undefined,
     { staleTime: 2_000, refetchInterval: 5_000 },
   );
 }
 
 export function useSkillsStatus(agentId?: string) {
-  return useRpcCall<SkillStatus>(
+  return useRpcCall<SkillsStatusResult>(
     ["skills.status", agentId],
     "skills.status",
     agentId ? { agentId } : undefined,
@@ -200,7 +218,7 @@ export function useChannelsStatus() {
 }
 
 // ---------------------------------------------------------------------------
-// React hooks — store-derived (real-time via events)
+// React hooks -- store-derived (real-time via events)
 // ---------------------------------------------------------------------------
 
 export function useHealth() {

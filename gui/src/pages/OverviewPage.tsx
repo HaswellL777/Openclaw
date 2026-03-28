@@ -17,7 +17,8 @@ import {
   usePresence,
   useConnectionState,
 } from "@/api/hooks";
-import type { Agent, Session, PresenceEntry } from "@/api/types";
+import type { Agent, Session, PresenceEntry, HealthSnapshot } from "@/api/types";
+import { agentFromKey } from "@/api/types";
 
 // ---------------------------------------------------------------------------
 // Custom node
@@ -25,7 +26,7 @@ import type { Agent, Session, PresenceEntry } from "@/api/types";
 
 type AgentNodeData = {
   agentId: string;
-  model: string;
+  label: string;
   isActive: boolean;
   sessionCount: number;
   isDefault: boolean;
@@ -47,7 +48,7 @@ function AgentNode({ data }: NodeProps<Node<AgentNodeData>>) {
           }`}
         />
         <span className="text-sm font-semibold text-zinc-100 truncate">
-          {d.agentId}
+          {d.label}
         </span>
         {d.isDefault && (
           <span className="text-[10px] px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-medium">
@@ -55,7 +56,6 @@ function AgentNode({ data }: NodeProps<Node<AgentNodeData>>) {
           </span>
         )}
       </div>
-      <div className="text-xs text-zinc-500 truncate">{d.model || "—"}</div>
       <div className="text-xs text-zinc-500 mt-1">
         {d.sessionCount} session{d.sessionCount !== 1 ? "s" : ""}
       </div>
@@ -76,104 +76,45 @@ const nodeTypes = { agent: AgentNode };
 
 function buildTopology(
   agents: Agent[],
+  defaultId: string,
   sessions: Session[],
 ): { nodes: Node<AgentNodeData>[]; edges: Edge[] } {
   const sessionCountByAgent = new Map<string, number>();
-  const spawnerOf = new Map<string, string>(); // child -> parent
 
   for (const s of sessions) {
-    const aid = s.agent ?? "unknown";
+    const aid = agentFromKey(s.key);
     sessionCountByAgent.set(aid, (sessionCountByAgent.get(aid) ?? 0) + 1);
-    if (s.spawnedBy) {
-      spawnerOf.set(aid, s.spawnedBy);
-    }
   }
 
   // Active = has at least one session
-  const activeAgents = new Set(sessions.map((s) => s.agent ?? "unknown"));
+  const activeAgents = new Set(sessions.map((s) => agentFromKey(s.key)));
 
-  // Build parent→children adjacency
-  const children = new Map<string, string[]>();
-  const hasParent = new Set<string>();
-  for (const [child, parent] of spawnerOf) {
-    if (!children.has(parent)) children.set(parent, []);
-    children.get(parent)!.push(child);
-    hasParent.add(child);
-  }
-
-  // Roots = agents not spawned by anything
-  const roots = agents
-    .map((a) => a.id)
-    .filter((id) => !hasParent.has(id));
-
-  // BFS to assign positions
+  // Simple layout: lay out all agents in a grid
   const COL_W = 240;
   const ROW_H = 120;
+  const COLS = 4;
   const nodes: Node<AgentNodeData>[] = [];
   const edges: Edge[] = [];
-  const placed = new Set<string>();
 
-  let rowIdx = 0;
-  let queue = [...roots];
-  while (queue.length > 0) {
-    const next: string[] = [];
-    const totalW = queue.length * COL_W;
+  for (let i = 0; i < agents.length; i++) {
+    const a = agents[i];
+    const row = Math.floor(i / COLS);
+    const col = i % COLS;
+    const totalW = Math.min(agents.length, COLS) * COL_W;
     const startX = -totalW / 2 + COL_W / 2;
 
-    for (let i = 0; i < queue.length; i++) {
-      const id = queue[i];
-      if (placed.has(id)) continue;
-      placed.add(id);
-
-      const agent = agents.find((a) => a.id === id);
-      nodes.push({
-        id,
-        type: "agent",
-        position: { x: startX + i * COL_W, y: rowIdx * ROW_H },
-        data: {
-          agentId: id,
-          model: agent?.model?.primary ?? "—",
-          isActive: activeAgents.has(id),
-          sessionCount: sessionCountByAgent.get(id) ?? 0,
-          isDefault: agent?.default ?? false,
-        },
-      });
-
-      // Edges from parent
-      if (spawnerOf.has(id)) {
-        edges.push({
-          id: `e-${spawnerOf.get(id)}-${id}`,
-          source: spawnerOf.get(id)!,
-          target: id,
-          animated: activeAgents.has(id),
-          style: { stroke: "#52525b" },
-        });
-      }
-
-      const kids = children.get(id) ?? [];
-      next.push(...kids);
-    }
-    queue = next;
-    rowIdx++;
-  }
-
-  // Add any agents not reached (orphans)
-  for (const a of agents) {
-    if (!placed.has(a.id)) {
-      nodes.push({
-        id: a.id,
-        type: "agent",
-        position: { x: (placed.size % 4) * COL_W, y: rowIdx * ROW_H },
-        data: {
-          agentId: a.id,
-          model: a.model?.primary ?? "—",
-          isActive: activeAgents.has(a.id),
-          sessionCount: sessionCountByAgent.get(a.id) ?? 0,
-          isDefault: a.default ?? false,
-        },
-      });
-      placed.add(a.id);
-    }
+    nodes.push({
+      id: a.id,
+      type: "agent",
+      position: { x: startX + col * COL_W, y: row * ROW_H },
+      data: {
+        agentId: a.id,
+        label: a.name ?? a.id,
+        isActive: activeAgents.has(a.id),
+        sessionCount: sessionCountByAgent.get(a.id) ?? 0,
+        isDefault: a.id === defaultId,
+      },
+    });
   }
 
   return { nodes, edges };
@@ -183,40 +124,84 @@ function buildTopology(
 // Sub-panels
 // ---------------------------------------------------------------------------
 
-function HealthPanel({ health }: { health: ReturnType<typeof useHealth> }) {
+function HealthPanel({ health }: { health: HealthSnapshot | null }) {
   if (!health) {
     return (
       <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-4">
         <h3 className="text-sm font-semibold text-zinc-300 mb-2">Health</h3>
-        <p className="text-xs text-zinc-500">Waiting for health snapshot…</p>
+        <p className="text-xs text-zinc-500">Waiting for health snapshot...</p>
       </div>
     );
   }
 
-  const entries = Object.entries(health.health);
+  const overallOk = health.ok;
+  const channelEntries = Object.entries(health.channels ?? {});
+  const agentEntries = health.agents ?? [];
+
   return (
     <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-4">
       <h3 className="text-sm font-semibold text-zinc-300 mb-3">Health</h3>
-      <div className="space-y-2">
-        {entries.map(([key, val]) => (
-          <div key={key} className="flex items-center justify-between text-xs">
-            <span className="text-zinc-400">{key}</span>
-            <span className="flex items-center gap-1.5">
-              <span
-                className={`inline-block h-2 w-2 rounded-full ${
-                  val.healthy ? "bg-emerald-500" : "bg-red-500"
-                }`}
-              />
-              <span className={val.healthy ? "text-emerald-400" : "text-red-400"}>
-                {val.healthy ? "healthy" : val.reason ?? "unhealthy"}
-              </span>
-            </span>
-          </div>
-        ))}
-        {entries.length === 0 && (
-          <p className="text-xs text-zinc-500">No health entries</p>
-        )}
+
+      {/* Overall status */}
+      <div className="flex items-center justify-between text-xs mb-3">
+        <span className="text-zinc-400">Overall</span>
+        <span className="flex items-center gap-1.5">
+          <span
+            className={`inline-block h-2 w-2 rounded-full ${
+              overallOk ? "bg-emerald-500" : "bg-red-500"
+            }`}
+          />
+          <span className={overallOk ? "text-emerald-400" : "text-red-400"}>
+            {overallOk ? "healthy" : "unhealthy"}
+          </span>
+        </span>
       </div>
+
+      {/* Channels */}
+      {channelEntries.length > 0 && (
+        <div className="space-y-1.5 mb-2">
+          <div className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">
+            Channels
+          </div>
+          {channelEntries.map(([id, ch]) => (
+            <div key={id} className="flex items-center justify-between text-xs">
+              <span className="text-zinc-400">{id}</span>
+              <span className="flex items-center gap-1.5">
+                <span
+                  className={`inline-block h-2 w-2 rounded-full ${
+                    ch.running ? "bg-emerald-500" : "bg-red-500"
+                  }`}
+                />
+                <span className={ch.running ? "text-emerald-400" : "text-red-400"}>
+                  {ch.running ? "running" : "stopped"}
+                </span>
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Agents */}
+      {agentEntries.length > 0 && (
+        <div className="space-y-1.5">
+          <div className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">
+            Agents
+          </div>
+          {agentEntries.map((ag) => (
+            <div key={ag.agentId} className="flex items-center justify-between text-xs">
+              <span className="text-zinc-400">
+                {ag.agentId}
+                {ag.isDefault ? " (default)" : ""}
+              </span>
+              <span className="text-emerald-400">active</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {channelEntries.length === 0 && agentEntries.length === 0 && (
+        <p className="text-xs text-zinc-500">No health entries</p>
+      )}
     </div>
   );
 }
@@ -231,21 +216,21 @@ function PresencePanel({ presence }: { presence: PresenceEntry[] }) {
         <p className="text-xs text-zinc-500">No active devices</p>
       ) : (
         <div className="space-y-2">
-          {presence.map((p) => (
+          {presence.map((p, i) => (
             <div
-              key={p.deviceId}
+              key={p.host ?? `presence-${i}`}
               className="rounded bg-zinc-800 px-3 py-2 text-xs"
             >
               <div className="flex items-center justify-between">
                 <span className="font-medium text-zinc-200">
-                  {p.host ?? p.deviceId}
+                  {p.host ?? "unknown"}
                 </span>
                 <span className="text-zinc-500">
-                  {p.mode ?? "—"} · {p.platform ?? "?"}
+                  {p.mode ?? "--"} · {p.platform ?? "?"}
                 </span>
               </div>
               <div className="text-zinc-500 mt-0.5">
-                {p.version ?? "—"} · {p.ip ?? "—"}
+                {p.version ?? "--"} · {p.ip ?? "--"}
                 {p.roles?.length ? ` · ${p.roles.join(", ")}` : ""}
               </div>
             </div>
@@ -269,7 +254,11 @@ export default function OverviewPage() {
 
   const { nodes, edges } = useMemo(() => {
     if (!agentData?.agents) return { nodes: [], edges: [] };
-    return buildTopology(agentData.agents, sessionData?.sessions ?? []);
+    return buildTopology(
+      agentData.agents,
+      agentData.defaultId ?? "",
+      sessionData?.sessions ?? [],
+    );
   }, [agentData, sessionData]);
 
   const loading = agentsLoading || sessionsLoading;
@@ -293,7 +282,7 @@ export default function OverviewPage() {
             Disconnected
           </div>
           <p className="text-zinc-500 text-sm">
-            Waiting for gateway connection…
+            Waiting for gateway connection...
           </p>
         </div>
       </div>
@@ -308,7 +297,7 @@ export default function OverviewPage() {
       <div className="rounded-lg border border-zinc-800 bg-zinc-900 flex-1 min-h-[320px] relative overflow-hidden">
         {loading ? (
           <div className="absolute inset-0 flex items-center justify-center text-zinc-500 text-sm">
-            Loading agents…
+            Loading agents...
           </div>
         ) : nodes.length === 0 ? (
           <div className="absolute inset-0 flex items-center justify-center text-zinc-500 text-sm">

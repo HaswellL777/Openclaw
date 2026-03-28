@@ -1,32 +1,63 @@
+// -------------------------------------------------------------------------
 // Agent
+// -------------------------------------------------------------------------
+
 export interface Agent {
   id: string;
   name?: string;
-  default?: boolean;
-  model?: { primary?: string };
-  workspace?: string;
-  sandbox?: { scope?: string };
-  tools?: any;
 }
 
 export interface AgentListResult {
+  defaultId: string;
+  mainKey: string;
+  scope: string;
   agents: Agent[];
 }
 
+// -------------------------------------------------------------------------
 // Session
-export interface Session {
-  sessionKey: string;
-  agent?: string;
+// -------------------------------------------------------------------------
+
+export interface SessionOrigin {
   label?: string;
+  provider?: string;
+  from?: string;
+  to?: string;
+}
+
+export interface Session {
+  key: string;
+  kind?: string;
+  displayName?: string;
+  chatType?: string;
+  origin?: SessionOrigin;
+  updatedAt?: number;       // epoch ms
+  sessionId?: string;
+  status?: string;
+  modelProvider?: string;
   model?: string;
-  spawnedBy?: string;
-  createdAt?: string;
-  updatedAt?: string;
-  lastMessage?: { text?: string; ts?: number };
-  metadata?: Record<string, any>;
+  inputTokens?: number;
+  outputTokens?: number;
+  totalTokens?: number;
+  childSessions?: string[];
+  lastMessagePreview?: string;
+}
+
+/** Extract agent ID from a session key like "agent:main:main" or "agent:task-runner:subagent:uuid". */
+export function agentFromKey(key: string): string {
+  const parts = key.split(":");
+  return parts.length >= 2 ? parts[1] : "unknown";
 }
 
 export interface SessionListResult {
+  ts: number;
+  path?: string;
+  count: number;
+  defaults?: {
+    modelProvider?: string;
+    model?: string;
+    contextTokens?: number;
+  };
   sessions: Session[];
 }
 
@@ -41,19 +72,41 @@ export interface SessionPreviewResult {
   previews: SessionPreview[];
 }
 
+// -------------------------------------------------------------------------
+// Session Usage
+// -------------------------------------------------------------------------
+
 export interface SessionUsageResult {
-  entries: {
-    date: string;
-    inputTokens: number;
-    outputTokens: number;
-    cacheReadTokens?: number;
+  updatedAt: number;
+  startDate: string;
+  endDate: string;
+  sessions?: Session[];
+  totals: {
+    input: number;
+    output: number;
+    cacheRead: number;
     totalTokens: number;
-    sessions?: number;
-    cost?: number;
-  }[];
+    totalCost: number;
+  };
+  aggregates: {
+    messages: {
+      total: number;
+      user: number;
+      assistant: number;
+      toolCalls: number;
+      errors: number;
+    };
+    tools: {
+      totalCalls: number;
+      uniqueTools: number;
+    };
+  };
 }
 
+// -------------------------------------------------------------------------
 // Chat
+// -------------------------------------------------------------------------
+
 export interface ChatMessage {
   role: "user" | "assistant" | "tool";
   content: string | any[];
@@ -65,26 +118,53 @@ export interface ChatHistoryResult {
   messages: ChatMessage[];
 }
 
+// -------------------------------------------------------------------------
 // Health
-export interface HealthSnapshot {
-  ts: number;
-  health: Record<string, { healthy: boolean; reason?: string }>;
-  stateVersion?: { presence: number; health: number };
+// -------------------------------------------------------------------------
+
+export interface HealthChannelInfo {
+  configured: boolean;
+  port?: number | null;
+  running: boolean;
+  lastStartAt?: number;
+  probe?: { ok: boolean };
 }
 
+export interface HealthAgentEntry {
+  agentId: string;
+  isDefault?: boolean;
+  heartbeat?: Record<string, unknown>;
+  sessions?: Record<string, unknown>;
+}
+
+export interface HealthSnapshot {
+  ok: boolean;
+  ts: number;
+  durationMs?: number;
+  channels: Record<string, HealthChannelInfo>;
+  agents: HealthAgentEntry[];
+  sessions?: { count: number; recent: unknown[] };
+  heartbeatSeconds?: number;
+}
+
+// -------------------------------------------------------------------------
 // Presence
+// -------------------------------------------------------------------------
+
 export interface PresenceEntry {
-  deviceId: string;
   host?: string;
   ip?: string;
   version?: string;
-  mode?: string;
   platform?: string;
-  ts: number;
+  mode?: string;
+  ts?: number;
   roles?: string[];
 }
 
+// -------------------------------------------------------------------------
 // Cron
+// -------------------------------------------------------------------------
+
 export interface CronJob {
   id: string;
   name: string;
@@ -101,7 +181,10 @@ export interface CronJob {
 
 export interface CronListResult {
   jobs: CronJob[];
-  total?: number;
+  total: number;
+  offset?: number;
+  limit?: number;
+  hasMore?: boolean;
 }
 
 export interface CronRun {
@@ -120,13 +203,29 @@ export interface CronRunsResult {
   total?: number;
 }
 
+// -------------------------------------------------------------------------
 // Skills
-export interface SkillStatus {
-  installed: any[];
-  available?: any[];
+// -------------------------------------------------------------------------
+
+export interface Skill {
+  name: string;
+  description?: string;
+  source?: string;
+  bundled?: boolean;
+  eligible?: boolean;
+  [key: string]: unknown;
 }
 
+export interface SkillsStatusResult {
+  workspaceDir?: string;
+  managedSkillsDir?: string;
+  skills: Skill[];
+}
+
+// -------------------------------------------------------------------------
 // Tools
+// -------------------------------------------------------------------------
+
 export interface ToolGroup {
   label: string;
   tools: { id: string; label: string }[];
@@ -138,12 +237,25 @@ export interface ToolsCatalogResult {
   groups: ToolGroup[];
 }
 
+// -------------------------------------------------------------------------
 // Config
+// -------------------------------------------------------------------------
+
 export interface ConfigResult {
-  config: any;
+  path: string;
+  exists: boolean;
+  raw: Record<string, unknown>;
+  parsed: Record<string, unknown>;
+  resolved: Record<string, unknown>;
+  valid: boolean;
+  config: Record<string, unknown>;  // redacted version
+  hash?: string;
 }
 
+// -------------------------------------------------------------------------
 // Models
+// -------------------------------------------------------------------------
+
 export interface Model {
   id: string;
   name: string;
@@ -151,30 +263,57 @@ export interface Model {
   reasoning?: boolean;
   contextWindow?: number;
   maxTokens?: number;
+  input?: string[];
 }
 
 export interface ModelsListResult {
   models: Model[];
 }
 
+// -------------------------------------------------------------------------
 // Logs
+// -------------------------------------------------------------------------
+
 export interface LogsResult {
   file: string;
-  cursor: string;
+  cursor: number;
   size: number;
   lines: string[];
   truncated: boolean;
   reset?: boolean;
 }
 
+/** Parsed representation of a single JSON log line. */
+export interface ParsedLogLine {
+  time?: string;
+  level?: string;
+  subsystem?: string;
+  message?: string;
+  raw: string;
+  [key: string]: unknown;
+}
+
+// -------------------------------------------------------------------------
 // Channels
-export interface ChannelStatus {
+// -------------------------------------------------------------------------
+
+export interface ChannelInfo {
+  configured: boolean;
+  running: boolean;
+  port?: number | null;
+  lastStartAt?: number;
+  probe?: { ok: boolean };
+  [key: string]: unknown;
+}
+
+export interface ChannelMeta {
   id: string;
-  healthy: boolean;
-  connected?: boolean;
-  reason?: string;
+  label: string;
 }
 
 export interface ChannelsStatusResult {
-  channels: ChannelStatus[];
+  ts: number;
+  channels: Record<string, ChannelInfo>;
+  channelLabels?: Record<string, string>;
+  channelMeta?: ChannelMeta[];
 }
