@@ -136,7 +136,7 @@ export function useAgents() {
   });
 }
 
-export function useSessions(params?: { agent?: string; limit?: number; includeLastMessage?: boolean }) {
+export function useSessions(params?: { agentId?: string; limit?: number; includeLastMessage?: boolean }) {
   return useRpcCall<SessionListResult>(
     ["sessions.list", params],
     "sessions.list",

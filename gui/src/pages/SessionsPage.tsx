@@ -125,7 +125,7 @@ export default function SessionsPage() {
     refetch,
   } = useSessions(
     agentFilter
-      ? { agent: agentFilter, includeLastMessage: true }
+      ? { agentId: agentFilter, includeLastMessage: true }
       : { includeLastMessage: true },
   );
 
