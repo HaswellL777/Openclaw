@@ -236,7 +236,6 @@ export class RpcClient {
     if (!this.ws) return;
 
     const connectId = String(this.nextId++);
-    // Don't add to pending — we handle connect response specially in handleMessage
 
     const frame = {
       type: "req",
@@ -244,10 +243,11 @@ export class RpcClient {
       id: connectId,
       params: {
         client: {
-          id: "openclaw-gui",
+          id: "openclaw-control-ui",
           displayName: "OpenClaw GUI",
-          mode: "operator",
+          mode: "ui",
           version: "0.1.0",
+          platform: typeof navigator !== "undefined" ? navigator.platform : "web",
         },
         minProtocol: 3,
         maxProtocol: 3,
