@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useGatewayStore } from "@/api/hooks";
 import type { LogsResult } from "@/api/types";
 
@@ -38,6 +38,7 @@ export default function LogsPage() {
   const connected = useGatewayStore((s) => s.connectionState === "connected");
 
   const [lines, setLines] = useState<string[]>([]);
+  const MAX_LINES = 10_000;
   const [cursor, setCursor] = useState<string | undefined>(undefined);
   const [filter, setFilter] = useState("");
   const [autoScroll, setAutoScroll] = useState(true);
@@ -62,7 +63,10 @@ export default function LogsPage() {
         if (res.reset) {
           setLines(res.lines);
         } else {
-          setLines((prev) => [...prev, ...res.lines]);
+          setLines((prev) => {
+            const next = [...prev, ...res.lines];
+            return next.length > MAX_LINES ? next.slice(next.length - MAX_LINES) : next;
+          });
         }
         setCursor(res.cursor);
         setHasMore(!res.truncated || res.lines.length > 0);
@@ -100,7 +104,10 @@ export default function LogsPage() {
     if (!client) return;
     const off = client.on("logs.append", (params: any) => {
       if (params?.lines) {
-        setLines((prev) => [...prev, ...params.lines]);
+        setLines((prev) => {
+          const next = [...prev, ...params.lines];
+          return next.length > MAX_LINES ? next.slice(next.length - MAX_LINES) : next;
+        });
         if (params.cursor) setCursor(params.cursor);
       }
     });
@@ -124,10 +131,14 @@ export default function LogsPage() {
     }
   }, [autoScroll]);
 
-  // Filtered lines
-  const filteredLines = filter
-    ? lines.filter((l) => l.toLowerCase().includes(filter.toLowerCase()))
-    : lines;
+  // Filtered + level-detected lines (memoized for performance)
+  const processedLines = useMemo(() => {
+    const source = filter
+      ? lines.filter((l) => l.toLowerCase().includes(filter.toLowerCase()))
+      : lines;
+    return source.map((line) => ({ line, level: detectLevel(line) }));
+  }, [lines, filter]);
+  const filteredLines = processedLines;
 
   // Load older
   const handleLoadOlder = () => {
@@ -206,9 +217,7 @@ export default function LogsPage() {
           </button>
         )}
 
-        {filteredLines.map((line, i) => {
-          const level = detectLevel(line);
-          return (
+        {filteredLines.map(({ line, level }, i) => (
             <div
               key={i}
               className={`px-4 py-px hover:bg-zinc-900 ${levelColors[level]}`}
@@ -218,8 +227,7 @@ export default function LogsPage() {
               </span>
               {line}
             </div>
-          );
-        })}
+        ))}
       </div>
 
       {/* Sticky bottom bar when auto-scroll is off */}

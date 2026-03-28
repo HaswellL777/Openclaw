@@ -51,12 +51,18 @@ export const useGatewayStore = create<GatewayStore>((set, get) => ({
     });
 
     client.on("health.snapshot", (params: HealthSnapshot) => {
-      set({ health: params });
+      const current = get().health;
+      if (current?.ts !== params?.ts) {
+        set({ health: params });
+      }
     });
 
     client.on("presence.update", (params: { entries: PresenceEntry[] }) => {
       if (params?.entries) {
-        set({ presence: params.entries });
+        const cur = get().presence;
+        const inc = params.entries;
+        if (cur.length === inc.length && cur.every((e, i) => e.deviceId === inc[i]?.deviceId && e.ts === inc[i]?.ts)) return;
+        set({ presence: inc });
       }
     });
 
@@ -107,7 +113,9 @@ function useRpcCall<T>(
 // ---------------------------------------------------------------------------
 
 export function useAgents() {
-  return useRpcCall<AgentListResult>(["agents.list"], "agents.list");
+  return useRpcCall<AgentListResult>(["agents.list"], "agents.list", undefined, {
+    staleTime: 120_000,
+  });
 }
 
 export function useSessions(params?: { agent?: string; limit?: number }) {
