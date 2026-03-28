@@ -243,9 +243,9 @@ export class RpcClient {
       id: connectId,
       params: {
         client: {
-          id: "gateway-client",
+          id: "openclaw-control-ui",
           displayName: "OpenClaw GUI",
-          mode: "backend",
+          mode: "ui",
           version: "0.1.0",
           platform: typeof navigator !== "undefined" ? navigator.platform : "web",
         },
