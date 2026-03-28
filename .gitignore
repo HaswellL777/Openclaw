@@ -4,3 +4,7 @@ docs/.meta/
 *.pyc
 __pycache__/
 artifacts/
+
+# GUI
+gui/node_modules/
+gui/dist/
