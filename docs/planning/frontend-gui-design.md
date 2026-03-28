@@ -44,10 +44,118 @@
 
 | # | 功能 | 说明 |
 |---|------|------|
-| 16 | Heartbeat 配置 | per-agent heartbeat 开关 + 间隔配置（via config.patch） |
-| 17 | 设备配对管理 | `device.pair.list/approve/reject/remove` + `device.token.rotate` |
-| 18 | 渠道管理 | `channels.status` + config 中 channel 块编辑 |
-| 19 | 用量成本追踪 | `usage.status/cost` + `sessions.usage` 组合 |
+| 16 | MCP Server 管理 | `config.get/patch` 读写 `mcp.servers` 块。添加/编辑/删除 MCP server，显示已加载的 MCP tools（from `tools.catalog`） |
+| 17 | Heartbeat 配置 | per-agent heartbeat 开关 + 间隔配置（via config.patch） |
+| 18 | 设备配对管理 | `device.pair.list/approve/reject/remove` + `device.token.rotate` |
+| 19 | 渠道管理 | `channels.status` + config 中 channel 块编辑 |
+| 20 | 用量成本追踪 | `usage.status/cost` + `sessions.usage` 组合 |
+| 21 | 安全加固 | IPv6 only 绑定 + 登录鉴权（开发完成后实施） |
+
+### 会话查看增强需求（P0 质量要求）
+
+以下需求适用于 SessionsPage 和 ChatPage 的消息渲染：
+
+1. **Tool call 展开/折叠**：agent 的 tool_use 消息显示为可折叠块，点击展开显示：
+   - 工具名称（高亮）
+   - 输入参数（JSON 格式化，语法高亮）
+   - 执行结果（tool_result 内容，支持文本/JSON/错误）
+   - 代码块使用等宽字体 + 语法高亮渲染
+
+2. **代码块渲染**：assistant 消息中的 markdown 代码块（\`\`\`）必须：
+   - 正确识别语言标签并高亮
+   - 有"复制"按钮
+   - 等宽字体，深色背景
+
+3. **Agent 来源/目标标识**：每条消息清晰显示：
+   - 发送者 agent（如 "main", "task-runner", "auditor"）用彩色 badge 标注
+   - 目标 agent（如果是 cross-agent 消息）
+   - Badge 可点击跳转到该 agent 的 session 列表
+
+4. **跨 agent 消息追踪**：
+   - `sessions_spawn` tool call 显示为特殊卡片，标注 spawned agent + session key
+   - 点击 spawned session key 跳转到该 session 的对话视图
+   - `sessions_send` 同理，显示目标 session 并可跳转
+
+---
+
+## MCP 集成设计
+
+### OpenClaw MCP 支持现状
+
+OpenClaw 原生支持 MCP（源码证据：`io-y3Az_Onx.js:5530-5542` McpConfigSchema）。
+
+**配置方式**：`openclaw.json` 顶级 `mcp.servers` 块
+```json
+{
+  "mcp": {
+    "servers": {
+      "server-name": {
+        "command": "path/to/server",
+        "args": ["arg1"],
+        "env": { "KEY": "value" },
+        "cwd": "/working/dir"
+      }
+    }
+  }
+}
+```
+
+**运行机制**：
+1. Gateway 启动时为每个 MCP server 创建 stdio 子进程
+2. 通过 `@modelcontextprotocol/sdk` 调用 `listTools()` 发现工具
+3. MCP 工具动态注入到 agent 的 tool set（`pi-embedded:170199-170218`）
+4. Agent 调用 MCP tool 时走 `callTool()` 透传
+
+**限制**：
+- 仅 stdio 传输（URL/SSE 在 schema 中存在但运行时拒绝：`pi-embedded:165543-165567`）
+- ACP session 不支持 per-session MCP（需 gateway 级配置）
+- MCP 工具名和 native 工具冲突时 native 优先
+
+**管理接口**：
+- CLI: `openclaw mcp list/show/set/unset`
+- 聊天命令: `/mcp show/set/unset`
+- Gateway API: `config.get/patch`（读写 `mcp.servers`）
+
+### 推荐 MCP Server
+
+| Server | 用途 | 安装命令 |
+|--------|------|----------|
+| `@anthropic/mcp-filesystem-server` | 文件系统访问（容器内 + 宿主机） | `npx -y @anthropic/mcp-filesystem-server /workspace` |
+| `context7` | 代码库上下文理解 | `uvx context7-mcp` |
+| `brave-search` | 网络搜索增强 | `npx -y @anthropic/mcp-brave-search` |
+
+### 前端 MCP 管理 UI 设计
+
+在 Settings 页面新增 "MCP Servers" section：
+
+```
+┌──────────────────────────────────────────┐
+│ MCP Servers                               │
+│                                           │
+│ context7                      ● running   │
+│   Command: uvx context7-mcp              │
+│   Tools: 3 discovered                     │
+│   [Edit] [Remove]                        │
+│                                           │
+│ filesystem                    ● running   │
+│   Command: npx -y @anthropic/...         │
+│   Tools: 8 discovered                     │
+│   [Edit] [Remove]                        │
+│                                           │
+│ [+ Add MCP Server]                       │
+│                                           │
+│ ── Discovered MCP Tools ──               │
+│ (from tools.catalog, filtered by mcpServer) │
+│ context7: resolve_library, search_docs... │
+│ filesystem: read_file, write_file, ls... │
+└──────────────────────────────────────────┘
+```
+
+数据源：
+- `config.get` → 读取 `mcp.servers`
+- `config.patch` → 添加/修改/删除
+- `tools.catalog` → 查看 MCP tool 是否加载成功
+- 需要 gateway restart 后 MCP server 才生效
 
 ---
 
