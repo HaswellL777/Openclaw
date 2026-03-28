@@ -149,9 +149,12 @@ export class RpcClient {
     listeners.add(callback);
 
     return () => {
-      listeners!.delete(callback);
-      if (listeners!.size === 0) {
-        this.eventListeners.delete(event);
+      const current = this.eventListeners.get(event);
+      if (current) {
+        current.delete(callback);
+        if (current.size === 0) {
+          this.eventListeners.delete(event);
+        }
       }
     };
   }

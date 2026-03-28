@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import ReactMarkdown from "react-markdown";
 import {
   useAgents,
@@ -204,8 +204,8 @@ export default function SessionsPage() {
   const sessions = sessionData?.sessions ?? [];
   const agents = agentData?.agents ?? [];
 
-  // Filter by search
-  const filtered = sessions.filter((s) => {
+  // Filter by search (memoized to avoid recomputation on message updates)
+  const filtered = useMemo(() => sessions.filter((s) => {
     if (!search) return true;
     const q = search.toLowerCase();
     return (
@@ -213,7 +213,12 @@ export default function SessionsPage() {
       (s.label ?? "").toLowerCase().includes(q) ||
       (s.agent ?? "").toLowerCase().includes(q)
     );
-  });
+  }), [sessions, search]);
+
+  const selectedSession = useMemo(
+    () => filtered.find((s) => s.sessionKey === selectedKey),
+    [filtered, selectedKey],
+  );
 
   // Load history when selection changes
   useEffect(() => {
@@ -255,7 +260,7 @@ export default function SessionsPage() {
 
   // Actions
   const handleAction = useCallback(
-    async (action: string) => {
+    async (action: "abort" | "reset" | "delete") => {
       if (!client || !selectedKey) return;
       try {
         await client.call(`sessions.${action}`, { sessionKey: selectedKey });
@@ -330,11 +335,11 @@ export default function SessionsPage() {
             <div className="px-4 py-3 border-b border-zinc-800 bg-zinc-900 flex items-center justify-between">
               <div>
                 <div className="text-sm font-semibold text-zinc-100">
-                  {filtered.find((s) => s.sessionKey === selectedKey)?.label ||
+                  {selectedSession?.label ||
                     selectedKey.slice(0, 16)}
                 </div>
                 <div className="text-xs text-zinc-500 mt-0.5">
-                  {filtered.find((s) => s.sessionKey === selectedKey)?.agent ??
+                  {selectedSession?.agent ??
                     "—"}{" "}
                   · {messages.length} messages
                 </div>
