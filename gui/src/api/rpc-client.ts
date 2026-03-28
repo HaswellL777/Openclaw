@@ -119,6 +119,7 @@ export class RpcClient {
       this.pending.set(Number(id), { resolve, reject, timer });
 
       const frame = { type: "req", method, id, params: params ?? {} };
+      console.debug(`[RPC →] ${method} id=${id}`, params);
 
       try {
         this.ws.send(JSON.stringify(frame));
@@ -193,9 +194,10 @@ export class RpcClient {
       return;
     }
 
-    // OpenClaw protocol: { type: "res", id: "...", ok: boolean, result/error }
+    // OpenClaw protocol: { type: "res", id: "...", ok: boolean, payload/error }
     if (msg.type === "res" && msg.id != null) {
       const numId = typeof msg.id === "string" ? Number(msg.id) : msg.id;
+      console.debug(`[RPC ←] id=${msg.id} ok=${msg.ok}`, msg.ok ? msg.payload : msg.error);
       const req = this.pending.get(numId);
       if (!req) {
         // Could be the connect handshake response
@@ -216,7 +218,8 @@ export class RpcClient {
       if (msg.ok === false || msg.error) {
         req.reject(new Error(`RPC error: ${msg.error?.message ?? JSON.stringify(msg.error)}`));
       } else {
-        req.resolve(msg.result);
+        // Gateway puts data in "payload", not "result"
+        req.resolve(msg.payload ?? msg.result ?? {});
       }
       return;
     }
@@ -252,7 +255,7 @@ export class RpcClient {
         minProtocol: 3,
         maxProtocol: 3,
         role: "operator",
-        scopes: ["read", "write", "admin"],
+        scopes: ["operator.read", "operator.write", "operator.admin"],
         ...(this.token ? { auth: { token: this.token } } : {}),
       },
     };
