@@ -202,12 +202,12 @@ function HealthPanel() {
                       <span className="text-zinc-400">{id}</span>
                       <span className="flex items-center gap-1.5">
                         <StatusDot
-                          status={ch.running ? "running" : "stopped"}
+                          status={(ch.running || (ch as any).probe?.ok) ? "running" : "stopped"}
                           size="xs"
                         />
                         <span
                           className={
-                            ch.running ? "text-emerald-400" : "text-red-400"
+                            (ch.running || (ch as any).probe?.ok) ? "text-emerald-400" : "text-red-400"
                           }
                         >
                           {ch.running
@@ -270,12 +270,12 @@ function HealthPanel() {
                       <span className="text-zinc-400">{label}</span>
                       <span className="flex items-center gap-1.5">
                         <StatusDot
-                          status={ch.running ? "running" : "stopped"}
+                          status={(ch.running || (ch as any).probe?.ok) ? "running" : "stopped"}
                           size="xs"
                         />
                         <span
                           className={
-                            ch.running ? "text-emerald-400" : "text-red-400"
+                            (ch.running || (ch as any).probe?.ok) ? "text-emerald-400" : "text-red-400"
                           }
                         >
                           {ch.running
