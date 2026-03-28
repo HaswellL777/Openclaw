@@ -92,10 +92,14 @@ export default function App() {
   const init = useGatewayStore((s) => s.init);
 
   useEffect(() => {
+    // Connect through Vite proxy (/ws → ws://127.0.0.1:17777)
+    // This avoids direct browser→Gateway connection (Gateway binds loopback only)
+    const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
     const wsUrl =
       import.meta.env.VITE_WS_URL ??
-      `ws://${window.location.hostname}:17777`;
-    init(wsUrl);
+      `${proto}//${window.location.host}/ws`;
+    const token = import.meta.env.VITE_GATEWAY_TOKEN ?? undefined;
+    init(wsUrl, token);
   }, [init]);
 
   return (

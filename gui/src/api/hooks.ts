@@ -27,7 +27,7 @@ interface GatewayStore {
   connectionState: ConnectionState;
   health: HealthSnapshot | null;
   presence: PresenceEntry[];
-  init: (url: string) => void;
+  init: (url: string, token?: string) => void;
   disconnect: () => void;
 }
 
@@ -37,14 +37,14 @@ export const useGatewayStore = create<GatewayStore>((set, get) => ({
   health: null,
   presence: [],
 
-  init(url: string) {
+  init(url: string, token?: string) {
     // Tear down any existing client first
     const prev = get().client;
     if (prev) {
       prev.disconnect();
     }
 
-    const client = new RpcClient(url);
+    const client = new RpcClient(url, token);
 
     client.onConnectionChange((state) => {
       set({ connectionState: state });

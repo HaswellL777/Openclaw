@@ -11,12 +11,16 @@ export default defineConfig({
     },
   },
   server: {
-    host: '::',      // 绑定所有接口（IPv4 + IPv6）
+    host: '::',
     port: 3000,
     proxy: {
+      // WebSocket proxy: browser connects to ws://HOST:3000/ws
+      // Vite forwards to ws://127.0.0.1:17777 (Gateway loopback)
       '/ws': {
-        target: 'ws://127.0.0.1:17777',
+        target: 'http://127.0.0.1:17777',
         ws: true,
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/ws/, ''),
       },
     },
   },

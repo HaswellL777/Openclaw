@@ -2,27 +2,6 @@ export type ConnectionState = "connecting" | "connected" | "disconnected";
 export type EventCallback = (params: any) => void;
 export type ConnectionCallback = (state: ConnectionState) => void;
 
-interface RpcRequest {
-  jsonrpc: "2.0";
-  method: string;
-  params?: any;
-  id: number;
-}
-
-interface RpcResponse {
-  jsonrpc: "2.0";
-  result?: any;
-  error?: { code: number; message: string };
-  id: number;
-}
-
-interface RpcEvent {
-  jsonrpc: "2.0";
-  method: string;
-  params?: any;
-  // no id = server push
-}
-
 interface PendingRequest {
   resolve: (value: any) => void;
   reject: (reason: any) => void;
@@ -33,8 +12,20 @@ const DEFAULT_TIMEOUT_MS = 30_000;
 const MAX_RECONNECT_DELAY_MS = 30_000;
 const INITIAL_RECONNECT_DELAY_MS = 500;
 
+/**
+ * OpenClaw Gateway WebSocket client.
+ *
+ * Protocol:
+ * 1. Client opens WebSocket
+ * 2. Server sends { type: "event", event: "connect.challenge", payload: { nonce, ts } }
+ * 3. Client sends { type: "req", method: "connect", id, params: { client, minProtocol, maxProtocol, role, auth } }
+ * 4. Server sends { type: "res", id, ok: true, result: {...} } → connected
+ * 5. After handshake: RPC via { type: "req", method, id, params } / { type: "res", id, ok, result/error }
+ *    Server pushes: { type: "event", event: "...", payload: {...} }
+ */
 export class RpcClient {
   private url: string;
+  private token: string | undefined;
   private ws: WebSocket | null = null;
   private state: ConnectionState = "disconnected";
   private nextId = 1;
@@ -44,9 +35,11 @@ export class RpcClient {
   private reconnectDelay = INITIAL_RECONNECT_DELAY_MS;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private intentionalClose = false;
+  private handshakeComplete = false;
 
-  constructor(url: string) {
+  constructor(url: string, token?: string) {
     this.url = url;
+    this.token = token;
   }
 
   connect(): void {
@@ -55,6 +48,7 @@ export class RpcClient {
     }
 
     this.intentionalClose = false;
+    this.handshakeComplete = false;
     this.setState("connecting");
 
     try {
@@ -66,8 +60,7 @@ export class RpcClient {
     }
 
     this.ws.onopen = () => {
-      this.setState("connected");
-      this.reconnectDelay = INITIAL_RECONNECT_DELAY_MS;
+      // Don't set connected yet — wait for handshake completion
     };
 
     this.ws.onmessage = (event) => {
@@ -75,6 +68,7 @@ export class RpcClient {
     };
 
     this.ws.onclose = () => {
+      this.handshakeComplete = false;
       this.setState("disconnected");
       this.rejectAllPending("Connection closed");
       if (!this.intentionalClose) {
@@ -83,7 +77,7 @@ export class RpcClient {
     };
 
     this.ws.onerror = () => {
-      // onclose will fire after onerror, so reconnect is handled there
+      // onclose will fire after onerror
     };
   }
 
@@ -100,41 +94,37 @@ export class RpcClient {
       this.ws = null;
     }
 
+    this.handshakeComplete = false;
     this.rejectAllPending("Client disconnected");
     this.setState("disconnected");
   }
 
   call<T = any>(method: string, params?: any, timeoutMs: number = DEFAULT_TIMEOUT_MS): Promise<T> {
     return new Promise<T>((resolve, reject) => {
-      if (this.state !== "connected" || !this.ws) {
+      if (!this.handshakeComplete || !this.ws) {
         reject(new Error("Not connected"));
         return;
       }
 
-      const id = this.nextId++;
+      const id = String(this.nextId++);
 
       const timer = setTimeout(() => {
-        const req = this.pending.get(id);
+        const req = this.pending.get(Number(id));
         if (req) {
-          this.pending.delete(id);
+          this.pending.delete(Number(id));
           req.reject(new Error(`RPC timeout after ${timeoutMs}ms: ${method}`));
         }
       }, timeoutMs);
 
-      this.pending.set(id, { resolve, reject, timer });
+      this.pending.set(Number(id), { resolve, reject, timer });
 
-      const request: RpcRequest = {
-        jsonrpc: "2.0",
-        method,
-        params,
-        id,
-      };
+      const frame = { type: "req", method, id, params: params ?? {} };
 
       try {
-        this.ws.send(JSON.stringify(request));
+        this.ws.send(JSON.stringify(frame));
       } catch (err) {
         clearTimeout(timer);
-        this.pending.delete(id);
+        this.pending.delete(Number(id));
         reject(err);
       }
     });
@@ -161,7 +151,6 @@ export class RpcClient {
 
   onConnectionChange(callback: ConnectionCallback): () => void {
     this.connectionListeners.add(callback);
-    // Immediately notify with current state
     callback(this.state);
     return () => {
       this.connectionListeners.delete(callback);
@@ -176,56 +165,102 @@ export class RpcClient {
     if (this.state === newState) return;
     this.state = newState;
     for (const cb of this.connectionListeners) {
-      try {
-        cb(newState);
-      } catch {
-        // listener errors must not break state machine
-      }
+      try { cb(newState); } catch { /* listener errors must not break state machine */ }
     }
   }
 
   private handleMessage(data: string | ArrayBuffer | Blob): void {
     if (typeof data !== "string") return;
 
-    let msg: RpcResponse | RpcEvent;
-    try {
-      msg = JSON.parse(data);
-    } catch {
-      return;
-    }
+    let msg: any;
+    try { msg = JSON.parse(data); } catch { return; }
 
-    if (msg.jsonrpc !== "2.0") return;
-
-    // Response to a pending request (has numeric id)
-    if ("id" in msg && typeof (msg as RpcResponse).id === "number") {
-      const resp = msg as RpcResponse;
-      const req = this.pending.get(resp.id);
-      if (!req) return;
-
-      this.pending.delete(resp.id);
-      clearTimeout(req.timer);
-
-      if (resp.error) {
-        req.reject(new Error(`RPC error ${resp.error.code}: ${resp.error.message}`));
-      } else {
-        req.resolve(resp.result);
+    // OpenClaw protocol: { type: "event", event: "...", payload: {...} }
+    if (msg.type === "event") {
+      if (msg.event === "connect.challenge") {
+        this.sendConnectHandshake();
+        return;
       }
-      return;
-    }
-
-    // Server-push event (has method, no id)
-    if ("method" in msg && !("id" in msg)) {
-      const evt = msg as RpcEvent;
-      const listeners = this.eventListeners.get(evt.method);
-      if (listeners) {
-        for (const cb of listeners) {
-          try {
-            cb(evt.params);
-          } catch {
-            // listener errors must not break event dispatch
+      // After handshake, dispatch events to listeners
+      if (msg.event) {
+        const listeners = this.eventListeners.get(msg.event);
+        if (listeners) {
+          for (const cb of listeners) {
+            try { cb(msg.payload); } catch { /* swallow */ }
           }
         }
       }
+      return;
+    }
+
+    // OpenClaw protocol: { type: "res", id: "...", ok: boolean, result/error }
+    if (msg.type === "res" && msg.id != null) {
+      const numId = typeof msg.id === "string" ? Number(msg.id) : msg.id;
+      const req = this.pending.get(numId);
+      if (!req) {
+        // Could be the connect handshake response
+        if (msg.ok && !this.handshakeComplete) {
+          this.handshakeComplete = true;
+          this.setState("connected");
+          this.reconnectDelay = INITIAL_RECONNECT_DELAY_MS;
+        } else if (!msg.ok && !this.handshakeComplete) {
+          console.error("Gateway handshake failed:", msg.error);
+          this.ws?.close();
+        }
+        return;
+      }
+
+      this.pending.delete(numId);
+      clearTimeout(req.timer);
+
+      if (msg.ok === false || msg.error) {
+        req.reject(new Error(`RPC error: ${msg.error?.message ?? JSON.stringify(msg.error)}`));
+      } else {
+        req.resolve(msg.result);
+      }
+      return;
+    }
+
+    // Fallback: JSON-RPC 2.0 server-push (method + no id)
+    if (msg.jsonrpc === "2.0" && msg.method && !("id" in msg)) {
+      const listeners = this.eventListeners.get(msg.method);
+      if (listeners) {
+        for (const cb of listeners) {
+          try { cb(msg.params); } catch { /* swallow */ }
+        }
+      }
+    }
+  }
+
+  private sendConnectHandshake(): void {
+    if (!this.ws) return;
+
+    const connectId = String(this.nextId++);
+    // Don't add to pending — we handle connect response specially in handleMessage
+
+    const frame = {
+      type: "req",
+      method: "connect",
+      id: connectId,
+      params: {
+        client: {
+          id: "openclaw-gui",
+          displayName: "OpenClaw GUI",
+          mode: "operator",
+          version: "0.1.0",
+        },
+        minProtocol: 3,
+        maxProtocol: 3,
+        role: "operator",
+        scopes: ["read", "write", "admin"],
+        ...(this.token ? { auth: { token: this.token } } : {}),
+      },
+    };
+
+    try {
+      this.ws.send(JSON.stringify(frame));
+    } catch {
+      console.error("Failed to send connect handshake");
     }
   }
 
@@ -237,7 +272,6 @@ export class RpcClient {
       this.connect();
     }, this.reconnectDelay);
 
-    // Exponential backoff capped at max
     this.reconnectDelay = Math.min(this.reconnectDelay * 2, MAX_RECONNECT_DELAY_MS);
   }
 
