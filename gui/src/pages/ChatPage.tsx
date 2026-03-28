@@ -6,47 +6,8 @@ import {
   useGatewayStore,
 } from "@/api/hooks";
 import type { ChatMessage } from "@/api/types";
-
-// ---------------------------------------------------------------------------
-// Message display
-// ---------------------------------------------------------------------------
-
-function ChatBubble({ msg }: { msg: ChatMessage }) {
-  const isUser = msg.role === "user";
-  const text =
-    typeof msg.content === "string"
-      ? msg.content
-      : JSON.stringify(msg.content, null, 2);
-
-  return (
-    <div className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
-      <div
-        className={`max-w-[75%] rounded-lg px-4 py-2.5 text-sm ${
-          isUser
-            ? "bg-indigo-600 text-zinc-100"
-            : "bg-zinc-800 text-zinc-200"
-        }`}
-      >
-        {msg.role === "tool" ? (
-          <pre className="text-xs font-mono text-amber-300 whitespace-pre-wrap break-all">
-            {text}
-          </pre>
-        ) : isUser ? (
-          <span className="whitespace-pre-wrap">{text}</span>
-        ) : (
-          <div className="prose prose-sm prose-invert max-w-none [&_pre]:bg-zinc-900 [&_pre]:p-2 [&_pre]:rounded [&_code]:text-amber-300">
-            <ReactMarkdown>{text}</ReactMarkdown>
-          </div>
-        )}
-        {msg.tokens != null && (
-          <div className="text-[10px] text-zinc-500 mt-1 text-right">
-            {msg.tokens} tokens
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
+import { MessageRenderer } from "@/components/MessageRenderer";
+import { Spinner, EmptyState, Badge } from "@/components/shared";
 
 // ---------------------------------------------------------------------------
 // Page
@@ -76,7 +37,6 @@ export default function ChatPage() {
   // Set defaults
   useEffect(() => {
     if (!agentId && agents.length > 0) {
-      // Use defaultId from the API response
       const defaultAgent = defaultAgentId
         ? agents.find((a) => a.id === defaultAgentId)
         : undefined;
@@ -95,7 +55,8 @@ export default function ChatPage() {
   useEffect(() => {
     if (!client || !sessionKey) return;
     const offMsg = client.on("chat.message", (params: any) => {
-      if (params?.key !== sessionKey && params?.sessionKey !== sessionKey) return;
+      if (params?.key !== sessionKey && params?.sessionKey !== sessionKey)
+        return;
       if (params?.message) {
         setMessages((prev) => [...prev, params.message]);
         setStreaming(false);
@@ -103,7 +64,8 @@ export default function ChatPage() {
       }
     });
     const offChunk = client.on("chat.chunk", (params: any) => {
-      if (params?.key !== sessionKey && params?.sessionKey !== sessionKey) return;
+      if (params?.key !== sessionKey && params?.sessionKey !== sessionKey)
+        return;
       setStreaming(true);
       setStreamBuf((prev) => prev + (params?.text ?? ""));
     });
@@ -125,7 +87,6 @@ export default function ChatPage() {
     if (!client) return;
     setError(null);
     try {
-      // Response may use 'key' or 'sessionKey'
       const res = await client.call<{ key?: string; sessionKey?: string }>(
         "sessions.create",
         {
@@ -158,10 +119,10 @@ export default function ChatPage() {
 
     try {
       const res = await client.call<{ message?: ChatMessage }>("chat.send", {
-        key: sessionKey,
+        sessionKey: sessionKey,
+        idempotencyKey: crypto.randomUUID(),
         text: userMsg.content,
       });
-      // If the response includes a direct message (non-streaming), add it
       if (res?.message) {
         setMessages((prev) => [...prev, res.message!]);
       }
@@ -185,12 +146,14 @@ export default function ChatPage() {
       {/* Header */}
       <div className="px-4 py-3 border-b border-zinc-800 bg-zinc-900">
         <div className="flex items-center gap-3 flex-wrap">
-          <h1 className="text-lg font-semibold text-zinc-100 mr-2">Chat</h1>
+          <h1 className="text-base font-bold text-zinc-100 tracking-tight mr-1">
+            Chat
+          </h1>
           {/* Agent selector */}
           <select
             value={agentId}
             onChange={(e) => setAgentId(e.target.value)}
-            className="bg-zinc-800 border border-zinc-700 rounded px-2 py-1.5 text-sm text-zinc-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            className="bg-zinc-800 border border-zinc-700 rounded-lg px-2.5 py-1.5 text-sm text-zinc-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
           >
             {agents.map((a) => (
               <option key={a.id} value={a.id}>
@@ -203,7 +166,7 @@ export default function ChatPage() {
           <select
             value={modelId}
             onChange={(e) => setModelId(e.target.value)}
-            className="bg-zinc-800 border border-zinc-700 rounded px-2 py-1.5 text-sm text-zinc-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            className="bg-zinc-800 border border-zinc-700 rounded-lg px-2.5 py-1.5 text-sm text-zinc-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
           >
             {models.map((m) => (
               <option key={m.id} value={m.id}>
@@ -214,12 +177,12 @@ export default function ChatPage() {
           {/* New session */}
           <button
             onClick={handleNewSession}
-            className="px-3 py-1.5 text-sm bg-indigo-600 text-zinc-100 rounded hover:bg-indigo-500 transition-colors font-medium"
+            className="px-3 py-1.5 text-sm bg-indigo-600 text-zinc-100 rounded-lg hover:bg-indigo-500 transition-colors font-medium"
           >
             New Session
           </button>
           {sessionKey && (
-            <span className="text-xs text-zinc-500 font-mono">
+            <span className="text-xs text-zinc-600 font-mono tabular-nums">
               {sessionKey.slice(0, 24)}...
             </span>
           )}
@@ -229,31 +192,35 @@ export default function ChatPage() {
       {/* Messages area */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3">
         {!sessionKey ? (
-          <div className="flex items-center justify-center h-full text-zinc-500 text-sm">
-            <div className="text-center space-y-2">
-              <p className="text-lg">Start a conversation</p>
-              <p className="text-xs">
-                Select an agent and model, then click "New Session"
-              </p>
-            </div>
+          <div className="flex items-center justify-center h-full">
+            <EmptyState
+              icon="<>"
+              message="Start a conversation by selecting an agent and clicking New Session"
+            />
           </div>
         ) : messages.length === 0 && !streaming ? (
-          <div className="flex items-center justify-center h-full text-zinc-500 text-sm">
-            Session started. Send a message below.
+          <div className="flex items-center justify-center h-full">
+            <EmptyState message="Session started. Send a message below." />
           </div>
         ) : (
           <>
             {messages.map((msg, i) => (
-              <ChatBubble key={`${msg.ts ?? i}-${i}`} msg={msg} />
+              <MessageRenderer
+                key={`${msg.ts ?? i}-${i}`}
+                msg={msg}
+                sessionKey={sessionKey}
+                allMessages={messages}
+                messageIndex={i}
+              />
             ))}
             {/* Streaming buffer */}
             {streaming && streamBuf && (
               <div className="flex justify-start">
-                <div className="max-w-[75%] rounded-lg px-4 py-2.5 text-sm bg-zinc-800 text-zinc-200 border border-zinc-700">
-                  <div className="prose prose-sm prose-invert max-w-none">
+                <div className="max-w-[75%] rounded-lg px-4 py-2.5 text-sm bg-zinc-800/80 text-zinc-200 border border-zinc-700/50">
+                  <div className="prose prose-sm prose-invert max-w-none [&_p]:my-1">
                     <ReactMarkdown>{streamBuf}</ReactMarkdown>
                   </div>
-                  <span className="inline-block w-2 h-4 bg-zinc-400 animate-pulse ml-0.5" />
+                  <span className="inline-block w-1.5 h-4 bg-zinc-400 animate-pulse ml-0.5 rounded-sm" />
                 </div>
               </div>
             )}
@@ -263,7 +230,18 @@ export default function ChatPage() {
 
       {/* Error display */}
       {error && (
-        <div className="mx-4 mb-2 text-xs text-red-400 bg-red-900/20 border border-red-800 rounded px-3 py-2">
+        <div className="mx-4 mb-2 text-xs text-red-400 bg-red-950/30 border border-red-900/50 rounded-lg px-3 py-2 flex items-center gap-2">
+          <svg
+            className="h-3.5 w-3.5 shrink-0"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+          >
+            <path
+              fillRule="evenodd"
+              d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+              clipRule="evenodd"
+            />
+          </svg>
           {error}
         </div>
       )}

@@ -5,18 +5,29 @@ import {
   useGatewayStore,
 } from "@/api/hooks";
 import type { CronJob, CronRun } from "@/api/types";
+import {
+  PageHeader,
+  Card,
+  CardHeader,
+  CardBody,
+  StatusDot,
+  Spinner,
+  EmptyState,
+  Badge,
+  ErrorBox,
+} from "@/components/shared";
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
 function fmtDate(ms?: number): string {
-  if (!ms) return "—";
+  if (!ms) return "--";
   return new Date(ms).toLocaleString();
 }
 
 function fmtDuration(ms?: number): string {
-  if (!ms) return "—";
+  if (!ms) return "--";
   if (ms < 1_000) return `${ms}ms`;
   if (ms < 60_000) return `${(ms / 1_000).toFixed(1)}s`;
   return `${(ms / 60_000).toFixed(1)}m`;
@@ -73,78 +84,82 @@ function JobForm({
     setForm((f) => ({ ...f, [key]: val }));
 
   return (
-    <div className="rounded-lg border border-zinc-700 bg-zinc-800 p-4 space-y-3">
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className="block text-xs text-zinc-400 mb-1">Name</label>
-          <input
-            type="text"
-            value={form.name}
-            onChange={(e) => set("name", e.target.value)}
-            className="w-full bg-zinc-900 border border-zinc-700 rounded px-2.5 py-1.5 text-sm text-zinc-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-          />
+    <Card>
+      <CardBody className="space-y-3">
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs text-zinc-400 mb-1">Name</label>
+            <input
+              type="text"
+              value={form.name}
+              onChange={(e) => set("name", e.target.value)}
+              className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-2.5 py-1.5 text-sm text-zinc-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-zinc-400 mb-1">
+              Schedule (cron)
+            </label>
+            <input
+              type="text"
+              value={form.schedule}
+              onChange={(e) => set("schedule", e.target.value)}
+              placeholder="*/5 * * * *"
+              className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-2.5 py-1.5 text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-zinc-400 mb-1">Agent</label>
+            <input
+              type="text"
+              value={form.agent}
+              onChange={(e) => set("agent", e.target.value)}
+              placeholder="task-runner"
+              className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-2.5 py-1.5 text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-zinc-400 mb-1">
+              Wake Mode
+            </label>
+            <select
+              value={form.wakeMode}
+              onChange={(e) => set("wakeMode", e.target.value)}
+              className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-2.5 py-1.5 text-sm text-zinc-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            >
+              <option value="spawn">spawn</option>
+              <option value="resume">resume</option>
+              <option value="send">send</option>
+            </select>
+          </div>
         </div>
         <div>
-          <label className="block text-xs text-zinc-400 mb-1">
-            Schedule (cron)
-          </label>
-          <input
-            type="text"
-            value={form.schedule}
-            onChange={(e) => set("schedule", e.target.value)}
-            placeholder="*/5 * * * *"
-            className="w-full bg-zinc-900 border border-zinc-700 rounded px-2.5 py-1.5 text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          <label className="block text-xs text-zinc-400 mb-1">Message</label>
+          <textarea
+            value={form.message}
+            onChange={(e) => set("message", e.target.value)}
+            rows={2}
+            placeholder="Message to send when triggered"
+            className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-2.5 py-1.5 text-sm text-zinc-200 placeholder:text-zinc-600 resize-none focus:outline-none focus:ring-1 focus:ring-indigo-500"
           />
         </div>
-        <div>
-          <label className="block text-xs text-zinc-400 mb-1">Agent</label>
-          <input
-            type="text"
-            value={form.agent}
-            onChange={(e) => set("agent", e.target.value)}
-            placeholder="task-runner"
-            className="w-full bg-zinc-900 border border-zinc-700 rounded px-2.5 py-1.5 text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-          />
-        </div>
-        <div>
-          <label className="block text-xs text-zinc-400 mb-1">Wake Mode</label>
-          <select
-            value={form.wakeMode}
-            onChange={(e) => set("wakeMode", e.target.value)}
-            className="w-full bg-zinc-900 border border-zinc-700 rounded px-2.5 py-1.5 text-sm text-zinc-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+        <div className="flex justify-end gap-2">
+          <button
+            onClick={onCancel}
+            className="px-3 py-1.5 text-xs bg-zinc-700 text-zinc-300 rounded-lg hover:bg-zinc-600 transition-colors"
           >
-            <option value="spawn">spawn</option>
-            <option value="resume">resume</option>
-            <option value="send">send</option>
-          </select>
+            Cancel
+          </button>
+          <button
+            onClick={() => onSubmit(form)}
+            disabled={!form.name || !form.schedule || submitting}
+            className="px-3 py-1.5 text-xs bg-indigo-600 text-zinc-100 rounded-lg hover:bg-indigo-500 transition-colors disabled:opacity-40 disabled:cursor-not-allowed font-medium"
+          >
+            {submitting ? "Saving..." : "Save"}
+          </button>
         </div>
-      </div>
-      <div>
-        <label className="block text-xs text-zinc-400 mb-1">Message</label>
-        <textarea
-          value={form.message}
-          onChange={(e) => set("message", e.target.value)}
-          rows={2}
-          placeholder="Message to send when triggered"
-          className="w-full bg-zinc-900 border border-zinc-700 rounded px-2.5 py-1.5 text-sm text-zinc-200 placeholder:text-zinc-600 resize-none focus:outline-none focus:ring-1 focus:ring-indigo-500"
-        />
-      </div>
-      <div className="flex justify-end gap-2">
-        <button
-          onClick={onCancel}
-          className="px-3 py-1.5 text-xs bg-zinc-700 text-zinc-300 rounded hover:bg-zinc-600 transition-colors"
-        >
-          Cancel
-        </button>
-        <button
-          onClick={() => onSubmit(form)}
-          disabled={!form.name || !form.schedule || submitting}
-          className="px-3 py-1.5 text-xs bg-indigo-600 text-zinc-100 rounded hover:bg-indigo-500 transition-colors disabled:opacity-40 disabled:cursor-not-allowed font-medium"
-        >
-          {submitting ? "Saving…" : "Save"}
-        </button>
-      </div>
-    </div>
+      </CardBody>
+    </Card>
   );
 }
 
@@ -174,19 +189,18 @@ function JobRow({
   return (
     <tr
       onClick={onSelect}
-      className={`border-b border-zinc-800 text-sm cursor-pointer transition-colors ${
-        selected ? "bg-zinc-800" : "hover:bg-zinc-800/50"
+      className={`border-b border-zinc-800/60 text-sm cursor-pointer transition-colors ${
+        selected ? "bg-zinc-800/50" : "hover:bg-zinc-800/30"
       }`}
     >
       <td className="px-3 py-2.5">
         <div className="font-medium text-zinc-200">{job.name}</div>
-        <div className="text-xs text-zinc-500 font-mono">{job.id}</div>
+        <div className="text-xs text-zinc-600 font-mono">{job.id}</div>
       </td>
       <td className="px-3 py-2.5 font-mono text-xs text-zinc-400">
         {fmtSchedule(job.schedule)}
       </td>
       <td className="px-3 py-2.5">
-        {/* Toggle switch */}
         <button
           onClick={(e) => {
             e.stopPropagation();
@@ -203,29 +217,29 @@ function JobRow({
           />
         </button>
       </td>
-      <td className="px-3 py-2.5 text-xs text-zinc-400">
+      <td className="px-3 py-2.5 text-xs text-zinc-400 tabular-nums">
         {fmtDate(job.state?.lastRunAtMs)}
       </td>
-      <td className="px-3 py-2.5 text-xs text-zinc-400">
+      <td className="px-3 py-2.5 text-xs text-zinc-400 tabular-nums">
         {fmtDate(job.state?.nextRunAtMs)}
       </td>
       <td className="px-3 py-2.5">
         <div className="flex gap-1.5" onClick={(e) => e.stopPropagation()}>
           <button
             onClick={onRunNow}
-            className="px-2 py-1 text-xs bg-indigo-600/20 text-indigo-300 rounded hover:bg-indigo-600/30 transition-colors"
+            className="px-2 py-1 text-xs bg-indigo-600/20 text-indigo-300 rounded-lg hover:bg-indigo-600/30 transition-colors"
           >
             Run
           </button>
           <button
             onClick={onEdit}
-            className="px-2 py-1 text-xs bg-zinc-700 text-zinc-300 rounded hover:bg-zinc-600 transition-colors"
+            className="px-2 py-1 text-xs bg-zinc-700 text-zinc-300 rounded-lg hover:bg-zinc-600 transition-colors"
           >
             Edit
           </button>
           <button
             onClick={onDelete}
-            className="px-2 py-1 text-xs bg-red-600/20 text-red-400 rounded hover:bg-red-600/30 transition-colors"
+            className="px-2 py-1 text-xs bg-red-600/20 text-red-400 rounded-lg hover:bg-red-600/30 transition-colors"
           >
             Del
           </button>
@@ -241,26 +255,18 @@ function JobRow({
 
 function RunHistory({ jobId }: { jobId: string }) {
   const { data, isLoading, error } = useCronRuns(jobId);
-  const runs = data?.runs ?? [];
+  const runs = (data as any)?.entries ?? (data as any)?.runs ?? [];
 
-  if (isLoading)
-    return (
-      <div className="text-sm text-zinc-500 p-4">Loading run history…</div>
-    );
-  if (error)
-    return (
-      <div className="text-sm text-red-400 p-4">Failed to load runs</div>
-    );
+  if (isLoading) return <Spinner text="Loading run history..." />;
+  if (error) return <ErrorBox message="Failed to load runs" />;
 
   return (
-    <div className="rounded-lg border border-zinc-800 bg-zinc-900 overflow-hidden">
-      <div className="px-4 py-2.5 border-b border-zinc-800">
-        <h3 className="text-sm font-semibold text-zinc-300">
-          Run History ({runs.length})
-        </h3>
-      </div>
+    <Card>
+      <CardHeader title="Run History" count={runs.length} />
       {runs.length === 0 ? (
-        <div className="p-4 text-sm text-zinc-500">No runs recorded</div>
+        <CardBody>
+          <EmptyState message="No runs recorded" />
+        </CardBody>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -292,17 +298,17 @@ function RunHistory({ jobId }: { jobId: string }) {
                       {run.status}
                     </span>
                   </td>
-                  <td className="px-3 py-2 text-xs text-zinc-400">
+                  <td className="px-3 py-2 text-xs text-zinc-400 tabular-nums">
                     {fmtDate(run.startedAtMs)}
                   </td>
-                  <td className="px-3 py-2 text-xs text-zinc-400">
+                  <td className="px-3 py-2 text-xs text-zinc-400 tabular-nums">
                     {fmtDuration(run.durationMs)}
                   </td>
-                  <td className="px-3 py-2 text-xs text-zinc-400">
-                    {run.tokens?.toLocaleString() ?? "—"}
+                  <td className="px-3 py-2 text-xs text-zinc-400 tabular-nums">
+                    {run.tokens?.toLocaleString() ?? "--"}
                   </td>
                   <td className="px-3 py-2 text-xs text-red-400 max-w-[200px] truncate">
-                    {run.error ?? "—"}
+                    {run.error ?? "--"}
                   </td>
                 </tr>
               ))}
@@ -310,7 +316,7 @@ function RunHistory({ jobId }: { jobId: string }) {
           </table>
         </div>
       )}
-    </div>
+    </Card>
   );
 }
 
@@ -416,7 +422,7 @@ export default function CronPage() {
     [rpc, refetch, editingJob],
   );
 
-  // Edit button → populate form
+  // Edit button -> populate form
   const handleEdit = (job: CronJob) => {
     setEditingJob(job);
     setShowForm(true);
@@ -435,25 +441,20 @@ export default function CronPage() {
 
   return (
     <div className="p-6 space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-zinc-100">Cron Jobs</h1>
+      <PageHeader title="Cron Jobs" subtitle="Scheduled task automation">
         <button
           onClick={() => {
             setEditingJob(null);
             setShowForm((v) => !v);
           }}
-          className="px-3 py-1.5 text-sm bg-indigo-600 text-zinc-100 rounded hover:bg-indigo-500 transition-colors font-medium"
+          className="px-3 py-1.5 text-sm bg-indigo-600 text-zinc-100 rounded-lg hover:bg-indigo-500 transition-colors font-medium"
         >
           {showForm && !editingJob ? "Close" : "Add Job"}
         </button>
-      </div>
+      </PageHeader>
 
       {/* Error */}
-      {actionError && (
-        <div className="text-xs text-red-400 bg-red-900/20 border border-red-800 rounded px-3 py-2">
-          {actionError}
-        </div>
-      )}
+      {actionError && <ErrorBox message={actionError} />}
 
       {/* Form */}
       {showForm && (
@@ -469,19 +470,19 @@ export default function CronPage() {
       )}
 
       {/* Job table */}
-      <div className="rounded-lg border border-zinc-800 bg-zinc-900 overflow-hidden">
+      <Card>
         {isLoading ? (
-          <div className="p-6 text-sm text-zinc-500 text-center">
-            Loading cron jobs…
-          </div>
+          <CardBody>
+            <Spinner text="Loading cron jobs..." />
+          </CardBody>
         ) : error ? (
-          <div className="p-6 text-sm text-red-400 text-center">
-            Failed to load cron jobs
-          </div>
+          <CardBody>
+            <ErrorBox message="Failed to load cron jobs" />
+          </CardBody>
         ) : jobs.length === 0 ? (
-          <div className="p-6 text-sm text-zinc-500 text-center">
-            No cron jobs configured
-          </div>
+          <CardBody>
+            <EmptyState message="No cron jobs configured" />
+          </CardBody>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -516,7 +517,7 @@ export default function CronPage() {
             </table>
           </div>
         )}
-      </div>
+      </Card>
 
       {/* Run history */}
       {selectedJobId && <RunHistory jobId={selectedJobId} />}

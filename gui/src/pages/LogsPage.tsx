@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useGatewayStore } from "@/api/hooks";
 import type { LogsResult, ParsedLogLine } from "@/api/types";
+import { Badge } from "@/components/shared";
 
 // ---------------------------------------------------------------------------
 // Log line parsing and color coding
@@ -20,7 +21,6 @@ function parseLogLine(raw: string): ParsedLogLine {
       ...obj,
     };
   } catch {
-    // Not JSON, fall back to raw string detection
     return {
       level: detectLevelFromRaw(raw),
       message: raw,
@@ -31,13 +31,29 @@ function parseLogLine(raw: string): ParsedLogLine {
 
 function detectLevelFromRaw(line: string): string {
   const lower = line.toLowerCase();
-  if (lower.includes('"level":"error"') || lower.includes(" error ") || lower.includes("[error]"))
+  if (
+    lower.includes('"level":"error"') ||
+    lower.includes(" error ") ||
+    lower.includes("[error]")
+  )
     return "error";
-  if (lower.includes('"level":"warn"') || lower.includes(" warn") || lower.includes("[warn]"))
+  if (
+    lower.includes('"level":"warn"') ||
+    lower.includes(" warn") ||
+    lower.includes("[warn]")
+  )
     return "warn";
-  if (lower.includes('"level":"debug"') || lower.includes(" debug ") || lower.includes("[debug]"))
+  if (
+    lower.includes('"level":"debug"') ||
+    lower.includes(" debug ") ||
+    lower.includes("[debug]")
+  )
     return "debug";
-  if (lower.includes('"level":"trace"') || lower.includes(" trace ") || lower.includes("[trace]"))
+  if (
+    lower.includes('"level":"trace"') ||
+    lower.includes(" trace ") ||
+    lower.includes("[trace]")
+  )
     return "trace";
   return "info";
 }
@@ -71,7 +87,10 @@ function formatLogTime(time?: string): string {
   if (!time) return "";
   try {
     const d = new Date(time);
-    return d.toLocaleTimeString(undefined, { hour12: false, fractionalSecondDigits: 3 });
+    return d.toLocaleTimeString(undefined, {
+      hour12: false,
+      fractionalSecondDigits: 3,
+    });
   } catch {
     return time;
   }
@@ -83,7 +102,9 @@ function formatLogTime(time?: string): string {
 
 export default function LogsPage() {
   const client = useGatewayStore((s) => s.client);
-  const connected = useGatewayStore((s) => s.connectionState === "connected");
+  const connected = useGatewayStore(
+    (s) => s.connectionState === "connected",
+  );
 
   const [lines, setLines] = useState<string[]>([]);
   const MAX_LINES = 10_000;
@@ -94,7 +115,9 @@ export default function LogsPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
-  const [viewMode, setViewMode] = useState<"structured" | "raw">("structured");
+  const [viewMode, setViewMode] = useState<"structured" | "raw">(
+    "structured",
+  );
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -115,7 +138,9 @@ export default function LogsPage() {
         } else {
           setLines((prev) => {
             const next = [...prev, ...res.lines];
-            return next.length > MAX_LINES ? next.slice(next.length - MAX_LINES) : next;
+            return next.length > MAX_LINES
+              ? next.slice(next.length - MAX_LINES)
+              : next;
           });
         }
         setCursor(res.cursor);
@@ -156,7 +181,9 @@ export default function LogsPage() {
       if (params?.lines) {
         setLines((prev) => {
           const next = [...prev, ...params.lines];
-          return next.length > MAX_LINES ? next.slice(next.length - MAX_LINES) : next;
+          return next.length > MAX_LINES
+            ? next.slice(next.length - MAX_LINES)
+            : next;
         });
         if (params.cursor != null) setCursor(params.cursor);
       }
@@ -188,15 +215,14 @@ export default function LogsPage() {
 
   const filteredLines = useMemo(() => {
     return processedLines.filter((parsed) => {
-      // Level filter
       if (levelFilter) {
         const lvl = normalizeLevel(parsed.level);
         if (lvl !== levelFilter) return false;
       }
-      // Text filter
       if (filter) {
         const q = filter.toLowerCase();
-        const searchText = `${parsed.message ?? ""} ${parsed.subsystem ?? ""} ${parsed.raw}`.toLowerCase();
+        const searchText =
+          `${parsed.message ?? ""} ${parsed.subsystem ?? ""} ${parsed.raw}`.toLowerCase();
         if (!searchText.includes(q)) return false;
       }
       return true;
@@ -212,19 +238,36 @@ export default function LogsPage() {
     <div className="flex flex-col h-screen">
       {/* Header */}
       <div className="px-4 py-3 border-b border-zinc-800 bg-zinc-900 flex items-center gap-3 flex-wrap">
-        <h1 className="text-lg font-semibold text-zinc-100">Logs</h1>
-        <input
-          type="text"
-          placeholder="Filter..."
-          value={filter}
-          onChange={(e) => setFilter(e.target.value)}
-          className="bg-zinc-800 border border-zinc-700 rounded px-2.5 py-1.5 text-sm text-zinc-200 placeholder:text-zinc-500 w-52 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-        />
+        <h1 className="text-base font-bold text-zinc-100 tracking-tight">
+          Logs
+        </h1>
+        <div className="relative">
+          <svg
+            className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-500"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+          >
+            <path
+              fillRule="evenodd"
+              d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
+              clipRule="evenodd"
+            />
+          </svg>
+          <input
+            type="text"
+            placeholder="Filter..."
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            className="bg-zinc-800 border border-zinc-700 rounded-lg pl-8 pr-2.5 py-1.5 text-sm text-zinc-200 placeholder:text-zinc-500 w-52 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          />
+        </div>
         {/* Level filter */}
         <select
           value={levelFilter}
-          onChange={(e) => setLevelFilter(e.target.value as LogLevel | "")}
-          className="bg-zinc-800 border border-zinc-700 rounded px-2 py-1.5 text-sm text-zinc-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          onChange={(e) =>
+            setLevelFilter(e.target.value as LogLevel | "")
+          }
+          className="bg-zinc-800 border border-zinc-700 rounded-lg px-2.5 py-1.5 text-sm text-zinc-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
         >
           <option value="">All levels</option>
           <option value="error">error</option>
@@ -235,14 +278,18 @@ export default function LogsPage() {
         </select>
         {/* View mode */}
         <button
-          onClick={() => setViewMode((v) => (v === "structured" ? "raw" : "structured"))}
-          className="px-2.5 py-1.5 text-xs bg-zinc-800 text-zinc-400 border border-zinc-700 rounded hover:bg-zinc-700 transition-colors"
+          onClick={() =>
+            setViewMode((v) =>
+              v === "structured" ? "raw" : "structured",
+            )
+          }
+          className="px-2.5 py-1.5 text-xs bg-zinc-800 text-zinc-400 border border-zinc-700 rounded-lg hover:bg-zinc-700 transition-colors"
         >
           {viewMode === "structured" ? "Raw" : "Structured"}
         </button>
         <button
           onClick={() => setAutoScroll((v) => !v)}
-          className={`px-2.5 py-1.5 text-xs rounded transition-colors ${
+          className={`px-2.5 py-1.5 text-xs rounded-lg transition-colors ${
             autoScroll
               ? "bg-indigo-600/20 text-indigo-300 border border-indigo-500/30"
               : "bg-zinc-800 text-zinc-400 border border-zinc-700"
@@ -256,12 +303,13 @@ export default function LogsPage() {
             setCursor(undefined);
             fetchLogs();
           }}
-          className="px-2.5 py-1.5 text-xs bg-zinc-800 text-zinc-400 border border-zinc-700 rounded hover:bg-zinc-700 transition-colors"
+          className="px-2.5 py-1.5 text-xs bg-zinc-800 text-zinc-400 border border-zinc-700 rounded-lg hover:bg-zinc-700 transition-colors"
         >
           Refresh
         </button>
-        <span className="text-xs text-zinc-500 ml-auto">
-          {filteredLines.length} line{filteredLines.length !== 1 ? "s" : ""}
+        <span className="text-xs text-zinc-500 ml-auto tabular-nums">
+          {filteredLines.length} line
+          {filteredLines.length !== 1 ? "s" : ""}
           {(filter || levelFilter) && ` (filtered from ${lines.length})`}
         </span>
       </div>
@@ -273,7 +321,7 @@ export default function LogsPage() {
         className="flex-1 overflow-y-auto bg-zinc-950 font-mono text-xs leading-5"
       >
         {error && (
-          <div className="px-4 py-2 text-red-400 bg-red-900/20 border-b border-red-800">
+          <div className="px-4 py-2 text-red-400 bg-red-950/30 border-b border-red-900/50">
             {error}
           </div>
         )}
@@ -308,16 +356,16 @@ export default function LogsPage() {
                   key={i}
                   className="px-4 py-0.5 hover:bg-zinc-900 flex items-start gap-2"
                 >
-                  <span className="text-zinc-600 select-none shrink-0 w-10 text-right">
+                  <span className="text-zinc-600 select-none shrink-0 w-10 text-right tabular-nums">
                     {i + 1}
                   </span>
                   {parsed.time && (
-                    <span className="text-zinc-600 shrink-0 w-[90px]">
+                    <span className="text-zinc-600 shrink-0 w-[90px] tabular-nums">
                       {formatLogTime(parsed.time)}
                     </span>
                   )}
                   <span
-                    className={`shrink-0 w-[44px] text-center rounded px-1 py-px text-[10px] font-semibold uppercase ${levelBadgeColors[level]}`}
+                    className={`shrink-0 w-[44px] text-center rounded-md px-1 py-px text-[10px] font-semibold uppercase ${levelBadgeColors[level]}`}
                   >
                     {level}
                   </span>
@@ -326,7 +374,9 @@ export default function LogsPage() {
                       [{parsed.subsystem}]
                     </span>
                   )}
-                  <span className={`flex-1 break-all ${levelColors[level]}`}>
+                  <span
+                    className={`flex-1 break-all ${levelColors[level]}`}
+                  >
                     {parsed.message ?? parsed.raw}
                   </span>
                 </div>
@@ -339,7 +389,7 @@ export default function LogsPage() {
                   key={i}
                   className={`px-4 py-px hover:bg-zinc-900 ${levelColors[level]}`}
                 >
-                  <span className="text-zinc-600 select-none mr-3 inline-block w-10 text-right">
+                  <span className="text-zinc-600 select-none mr-3 inline-block w-10 text-right tabular-nums">
                     {i + 1}
                   </span>
                   {parsed.raw}
