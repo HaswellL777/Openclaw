@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
+import dagre from "@dagrejs/dagre";
 import {
   ReactFlow, Background, Controls,
   type Node, type Edge, type NodeProps,
@@ -195,92 +196,84 @@ function RootNodeComp({ data }: NodeProps<Node<RootData>>) {
 const nodeTypes = { session: SessNode, taskHeader: TaskHeaderNode, root: RootNodeComp };
 
 // ---------------------------------------------------------------------------
-// Layout: root at top → task headers in a row → session nodes under each
+// Layout: dagre auto-layout for task spawn DAG
 // ---------------------------------------------------------------------------
+
+const NODE_W = 220;
+const NODE_H_TASK = 130;
+const NODE_H_SESS = 75;
 
 function layoutGraph(rootKey: string, rootLabel: string, groups: TaskGroup[], taskNames?: Record<string, string>, archivedTasks?: Set<string>) {
   const nodes: Node[] = [];
   const edges: Edge[] = [];
 
-  const NODE_W = 220;
-  const NODE_GAP_X = 20;
-  const NODE_GAP_Y = 90;
-  const HEADER_OFFSET_Y = 70;
-  const COLS = 3;
-  const TASKS_PER_ROW = 2;
-  const TASK_INNER_W = (NODE_W + NODE_GAP_X) * COLS;
-  const TASK_COL_W = TASK_INNER_W + 80;
+  const g = new dagre.graphlib.Graph();
+  g.setGraph({ rankdir: "TB", ranksep: 60, nodesep: 30, edgesep: 20 });
+  g.setDefaultEdgeLabel(() => ({}));
 
-  for (let gi = 0; gi < groups.length; gi++) {
-    const g = groups[gi];
-    const taskCol = gi % TASKS_PER_ROW;
-    const baseX = taskCol * TASK_COL_W;
-
-    // Calculate Y based on previous rows' heights
-    const taskRow = Math.floor(gi / TASKS_PER_ROW);
-    // Estimate row height from max task in that row
-    let maxRowH = 300;
-    for (let ri = taskRow * TASKS_PER_ROW; ri < Math.min((taskRow + 1) * TASKS_PER_ROW, groups.length); ri++) {
-      const rg = groups[ri];
-      const first = rg.runs.filter(r => r.requesterSessionKey === rootKey).length;
-      const second = rg.runs.filter(r => r.requesterSessionKey !== rootKey).length;
-      const h = HEADER_OFFSET_Y + (Math.ceil(first / COLS) + Math.ceil(second / COLS)) * NODE_GAP_Y + 60;
-      maxRowH = Math.max(maxRowH, h);
-    }
-    const baseY = taskRow * (maxRowH + 40);
-
-    // Task header
+  for (const group of groups) {
+    // Task header node
+    g.setNode(group.id, { width: 280, height: NODE_H_TASK });
     nodes.push({
-      id: g.id, type: "taskHeader",
-      position: { x: baseX, y: baseY },
-      data: { group: g, customName: taskNames?.[g.id], isArchived: archivedTasks?.has(g.id) },
+      id: group.id, type: "taskHeader",
+      position: { x: 0, y: 0 }, // will be set by dagre
+      data: { group, customName: taskNames?.[group.id], isArchived: archivedTasks?.has(group.id) },
     });
 
-    const firstLevel = g.runs.filter(r => r.requesterSessionKey === rootKey);
-    const secondLevel = g.runs.filter(r => r.requesterSessionKey !== rootKey);
+    const firstLevel = group.runs.filter(r => r.requesterSessionKey === rootKey);
+    const secondLevel = group.runs.filter(r => r.requesterSessionKey !== rootKey);
 
-    // First-level nodes
-    let nodeY = baseY + HEADER_OFFSET_Y;
-    for (let i = 0; i < firstLevel.length; i++) {
-      const r = firstLevel[i];
+    // First-level session nodes
+    for (const r of firstLevel) {
       const agent = agentFromKey(r.childSessionKey);
-      const col = i % COLS;
-      const row = Math.floor(i / COLS);
-
+      g.setNode(r.childSessionKey, { width: NODE_W, height: NODE_H_SESS });
       nodes.push({
         id: r.childSessionKey, type: "session",
-        position: { x: baseX + col * (NODE_W + NODE_GAP_X), y: nodeY + row * NODE_GAP_Y },
+        position: { x: 0, y: 0 },
         data: { run: r, agentId: agent, colors: ac(agent) },
       });
+      g.setEdge(group.id, r.childSessionKey);
       edges.push({
-        id: `${g.id}->${r.childSessionKey}`, source: g.id, target: r.childSessionKey,
+        id: `${group.id}->${r.childSessionKey}`, source: group.id, target: r.childSessionKey,
         style: { stroke: ac(agent).dot, strokeWidth: 1.5, opacity: 0.35 },
         markerEnd: { type: MarkerType.ArrowClosed, color: ac(agent).dot, width: 8, height: 8 },
       });
     }
 
-    // Second-level nodes
-    const secondY = nodeY + Math.ceil(firstLevel.length / COLS) * NODE_GAP_Y + 10;
-    for (let i = 0; i < secondLevel.length; i++) {
-      const r = secondLevel[i];
+    // Second-level session nodes
+    for (const r of secondLevel) {
       const agent = agentFromKey(r.childSessionKey);
-      const col = i % COLS;
-      const row = Math.floor(i / COLS);
-
+      g.setNode(r.childSessionKey, { width: NODE_W, height: NODE_H_SESS });
       nodes.push({
         id: r.childSessionKey, type: "session",
-        position: { x: baseX + 20 + col * (NODE_W + NODE_GAP_X), y: secondY + row * NODE_GAP_Y },
+        position: { x: 0, y: 0 },
         data: { run: r, agentId: agent, colors: ac(agent) },
       });
 
-      const parentInGraph = nodes.some(n => n.id === r.requesterSessionKey);
+      const parentInGraph = g.hasNode(r.requesterSessionKey);
+      const sourceId = parentInGraph ? r.requesterSessionKey : group.id;
+      g.setEdge(sourceId, r.childSessionKey);
       edges.push({
         id: `${r.requesterSessionKey}->${r.childSessionKey}`,
-        source: parentInGraph ? r.requesterSessionKey : g.id,
+        source: sourceId,
         target: r.childSessionKey,
         style: { stroke: ac(agent).dot, strokeWidth: 1.5, opacity: 0.35 },
         markerEnd: { type: MarkerType.ArrowClosed, color: ac(agent).dot, width: 8, height: 8 },
       });
+    }
+  }
+
+  // Run dagre layout
+  dagre.layout(g);
+
+  // Apply dagre positions to React Flow nodes
+  for (const node of nodes) {
+    const dagreNode = g.node(node.id);
+    if (dagreNode) {
+      node.position = {
+        x: dagreNode.x - (dagreNode.width ?? NODE_W) / 2,
+        y: dagreNode.y - (dagreNode.height ?? NODE_H_SESS) / 2,
+      };
     }
   }
 

@@ -21,6 +21,9 @@ import DockerPage from "@/pages/DockerPage";
 import BrokerPage from "@/pages/BrokerPage";
 import SettingsPage from "@/pages/SettingsPage";
 import TaskFlowPage from "@/pages/TaskFlowPage";
+import DocsPage from "@/pages/DocsPage";
+import HeartbeatPage from "@/pages/HeartbeatPage";
+import McpPage from "@/pages/McpPage";
 
 const NAV_GROUPS = [
   {
@@ -35,19 +38,22 @@ const NAV_GROUPS = [
   {
     label: "Operations",
     items: [
-      { to: "/monitor", label: "Monitor", icon: "monitor" },
+      { to: "/monitor", label: "Inspector", icon: "monitor" },
       { to: "/logs", label: "Logs", icon: "logs" },
       { to: "/cron", label: "Cron", icon: "cron" },
+      { to: "/heartbeat", label: "Heartbeat", icon: "cron" },
     ],
   },
   {
     label: "System",
     items: [
       { to: "/skills", label: "Skills", icon: "skills" },
+      { to: "/mcp", label: "MCP", icon: "skills" },
       { to: "/files", label: "Files", icon: "files" },
       { to: "/docker", label: "Docker", icon: "docker" },
       { to: "/broker", label: "Broker", icon: "broker" },
       { to: "/settings", label: "Settings", icon: "settings" },
+      { to: "/docs", label: "Help", icon: "files" },
     ],
   },
 ] as const;
@@ -245,6 +251,9 @@ export default function App() {
             <Route path="/broker" element={<BrokerPage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/tasks" element={<TaskFlowPage />} />
+            <Route path="/docs" element={<DocsPage />} />
+            <Route path="/heartbeat" element={<HeartbeatPage />} />
+            <Route path="/mcp" element={<McpPage />} />
           </Routes>
         </main>
       </div>
