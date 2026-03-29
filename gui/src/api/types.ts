@@ -33,14 +33,19 @@ export interface Session {
   origin?: SessionOrigin;
   updatedAt?: number;       // epoch ms
   sessionId?: string;
-  status?: string;
+  status?: string;          // subagent only: "running"|"done"|"killed"|"failed"|"timeout"
   modelProvider?: string;
   model?: string;
   inputTokens?: number;
   outputTokens?: number;
   totalTokens?: number;
   childSessions?: string[];
+  parentSessionKey?: string;
+  spawnedBy?: string;       // parent session key that spawned this one
   lastMessagePreview?: string;
+  startedAt?: number;
+  endedAt?: number;
+  runtimeMs?: number;
 }
 
 /** Extract agent ID from a session key like "agent:main:main" or "agent:task-runner:subagent:uuid". */

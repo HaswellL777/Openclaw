@@ -1,5 +1,5 @@
-import { useState, useMemo, useCallback } from "react";
-import { useConfig, useModels, useAgents, useGatewayStore } from "@/api/hooks";
+import { useMemo } from "react";
+import { useConfig, useModels, useAgents } from "@/api/hooks";
 import type { Agent, Model } from "@/api/types";
 
 // ---------------------------------------------------------------------------
@@ -43,121 +43,74 @@ function Badge({ children, variant = "default" }: { children: React.ReactNode; v
   );
 }
 
-function SaveFeedback({ status }: { status: "idle" | "saving" | "saved" | "error" }) {
-  if (status === "idle") return null;
-  if (status === "saving") return <span className="text-xs text-amber-400">Saving...</span>;
-  if (status === "saved") return <span className="text-xs text-emerald-400">Saved</span>;
-  return <span className="text-xs text-red-400">Save failed</span>;
-}
-
 // ---------------------------------------------------------------------------
-// Provider row
+// Provider row (read-only)
 // ---------------------------------------------------------------------------
 
 interface ProviderData {
   baseUrl?: string;
   apiKey?: string;
   apiType?: string;
+  models?: Array<{ id?: string; name?: string; contextWindow?: number; maxTokens?: number }>;
   [key: string]: unknown;
 }
 
-interface ProviderRowProps {
-  id: string;
-  provider: ProviderData;
-  onSave: (id: string, changes: Partial<ProviderData>) => Promise<void>;
-}
-
-function ProviderRow({ id, provider, onSave }: ProviderRowProps) {
-  const [baseUrl, setBaseUrl] = useState(provider.baseUrl ?? "");
-  const [showKey, setShowKey] = useState(false);
-  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
-
+function ProviderRow({ id, provider }: { id: string; provider: ProviderData }) {
   const maskedKey = useMemo(() => {
     const key = provider.apiKey ?? "";
-    if (!key) return "(not set)";
+    if (!key || key === "__OPENCLAW_REDACTED__") return "(redacted)";
     if (key.length <= 8) return "********";
     return key.slice(0, 4) + "****" + key.slice(-4);
   }, [provider.apiKey]);
 
-  const dirty = baseUrl !== (provider.baseUrl ?? "");
-
-  const handleSave = useCallback(async () => {
-    if (!dirty) return;
-    setSaveStatus("saving");
-    try {
-      await onSave(id, { baseUrl });
-      setSaveStatus("saved");
-      setTimeout(() => setSaveStatus("idle"), 2000);
-    } catch {
-      setSaveStatus("error");
-      setTimeout(() => setSaveStatus("idle"), 3000);
-    }
-  }, [dirty, id, baseUrl, onSave]);
-
   return (
     <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-4">
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-3">
-          <span className="text-sm font-semibold text-zinc-100">{id}</span>
-          {provider.apiType && <Badge variant="muted">{provider.apiType}</Badge>}
-        </div>
-        <div className="flex items-center gap-2">
-          <SaveFeedback status={saveStatus} />
-          <button
-            disabled={!dirty || saveStatus === "saving"}
-            onClick={handleSave}
-            className="rounded px-3 py-1 text-xs font-medium transition-colors
-              bg-emerald-700 hover:bg-emerald-600 text-white
-              disabled:bg-zinc-700 disabled:text-zinc-500 disabled:cursor-not-allowed"
-          >
-            Save
-          </button>
-        </div>
+      <div className="flex items-center gap-3 mb-3">
+        <span className="text-sm font-semibold text-zinc-100">{id}</span>
+        {provider.apiType && <Badge variant="muted">{provider.apiType}</Badge>}
       </div>
 
       <div className="grid grid-cols-1 gap-3">
-        {/* Base URL */}
-        <label className="block">
-          <span className="text-xs text-zinc-400 mb-1 block">Base URL</span>
-          <input
-            type="text"
-            value={baseUrl}
-            onChange={(e) => setBaseUrl(e.target.value)}
-            placeholder="https://api.example.com/v1"
-            className="w-full rounded border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-sm text-zinc-100
-              placeholder:text-zinc-600 focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500"
-          />
-        </label>
-
-        {/* API Key */}
-        <label className="block">
-          <span className="text-xs text-zinc-400 mb-1 block">API Key</span>
-          <div className="flex items-center gap-2">
-            <div className="flex-1 rounded border border-zinc-700 bg-zinc-800/60 px-3 py-1.5 text-sm text-zinc-400 font-mono">
-              {showKey ? (provider.apiKey ?? "(not set)") : maskedKey}
-            </div>
-            <button
-              onClick={() => setShowKey((v) => !v)}
-              className="rounded border border-zinc-700 bg-zinc-800 px-2 py-1.5 text-xs text-zinc-400
-                hover:bg-zinc-700 hover:text-zinc-200 transition-colors"
-              title={showKey ? "Hide key" : "Show key"}
-            >
-              {showKey ? "Hide" : "Show"}
-            </button>
+        <div>
+          <span className="text-xs text-zinc-500 mb-1 block">Base URL</span>
+          <div className="rounded border border-zinc-700/50 bg-zinc-800/60 px-3 py-1.5 text-sm text-zinc-300 font-mono">
+            {provider.baseUrl || "(not set)"}
           </div>
-        </label>
+        </div>
+        <div>
+          <span className="text-xs text-zinc-500 mb-1 block">API Key</span>
+          <div className="rounded border border-zinc-700/50 bg-zinc-800/60 px-3 py-1.5 text-sm text-zinc-400 font-mono">
+            {maskedKey}
+          </div>
+        </div>
+        {provider.models && provider.models.length > 0 && (
+          <div>
+            <span className="text-xs text-zinc-500 mb-1 block">Models</span>
+            <div className="space-y-1">
+              {provider.models.map((m, i) => (
+                <div key={i} className="flex items-center gap-2 text-xs text-zinc-400">
+                  <span className="font-mono text-zinc-300">{m.id ?? m.name}</span>
+                  {m.contextWindow && (
+                    <span className="text-zinc-600">ctx: {(m.contextWindow / 1000).toFixed(0)}k</span>
+                  )}
+                  {m.maxTokens && (
+                    <span className="text-zinc-600">max: {(m.maxTokens / 1000).toFixed(0)}k</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Section 1: Providers
+// Section 1: Providers (read-only)
 // ---------------------------------------------------------------------------
 
 function ProvidersSection({ config }: { config: Record<string, unknown> }) {
-  const client = useGatewayStore((s) => s.client);
-
   const providers = useMemo(() => {
     const models = config.models as Record<string, unknown> | undefined;
     const raw = models?.providers as Record<string, ProviderData> | undefined;
@@ -165,13 +118,6 @@ function ProvidersSection({ config }: { config: Record<string, unknown> }) {
   }, [config]);
 
   const ids = Object.keys(providers);
-
-  const handleSave = useCallback(async (id: string, changes: Partial<ProviderData>) => {
-    if (!client) throw new Error("Not connected");
-    await client.call("config.patch", {
-      patch: { models: { providers: { [id]: changes } } },
-    });
-  }, [client]);
 
   if (ids.length === 0) {
     return (
@@ -187,7 +133,7 @@ function ProvidersSection({ config }: { config: Record<string, unknown> }) {
       <SectionHeading>Providers</SectionHeading>
       <div className="space-y-3">
         {ids.map((id) => (
-          <ProviderRow key={id} id={id} provider={providers[id]} onSave={handleSave} />
+          <ProviderRow key={id} id={id} provider={providers[id]} />
         ))}
       </div>
     </section>
@@ -195,34 +141,22 @@ function ProvidersSection({ config }: { config: Record<string, unknown> }) {
 }
 
 // ---------------------------------------------------------------------------
-// Section 2: Agent Models
+// Section 2: Agent Models (read-only)
 // ---------------------------------------------------------------------------
 
-interface AgentModelRowProps {
+function AgentModelRow({ agent, isDefault, models, currentModelId }: {
   agent: Agent;
   isDefault: boolean;
   models: Model[];
   currentModelId: string;
-  onSave: (agentId: string, modelId: string) => Promise<void>;
-}
-
-function AgentModelRow({ agent, isDefault, models, currentModelId, onSave }: AgentModelRowProps) {
-  const [selected, setSelected] = useState(currentModelId);
-  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
-  const dirty = selected !== currentModelId;
-
-  const handleSave = useCallback(async () => {
-    if (!dirty) return;
-    setSaveStatus("saving");
-    try {
-      await onSave(agent.id, selected);
-      setSaveStatus("saved");
-      setTimeout(() => setSaveStatus("idle"), 2000);
-    } catch {
-      setSaveStatus("error");
-      setTimeout(() => setSaveStatus("idle"), 3000);
-    }
-  }, [dirty, agent.id, selected, onSave]);
+}) {
+  // Try exact match, then provider/model format, then just model name
+  const modelInfo = models.find((m) => m.id === currentModelId)
+    ?? models.find((m) => currentModelId === `${m.provider}/${m.id}`)
+    ?? models.find((m) => currentModelId.endsWith(`/${m.id}`));
+  const displayName = modelInfo
+    ? `${modelInfo.name} (${modelInfo.provider})`
+    : currentModelId || "not configured";
 
   return (
     <div className="flex items-center gap-4 rounded-lg border border-zinc-800 bg-zinc-900 px-4 py-3">
@@ -232,35 +166,8 @@ function AgentModelRow({ agent, isDefault, models, currentModelId, onSave }: Age
           <span className="ml-2 text-[10px] uppercase tracking-wider text-emerald-500 font-semibold">default</span>
         )}
       </div>
-
-      <select
-        value={selected}
-        onChange={(e) => setSelected(e.target.value)}
-        className="flex-1 rounded border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-sm text-zinc-200
-          focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500"
-      >
-        {/* Keep the current value as an option even if not in the models list */}
-        {currentModelId && !models.some((m) => m.id === currentModelId) && (
-          <option value={currentModelId}>{currentModelId}</option>
-        )}
-        {models.map((m) => (
-          <option key={m.id} value={m.id}>
-            {m.name} ({m.provider}){m.reasoning ? " -- reasoning" : ""}
-          </option>
-        ))}
-      </select>
-
-      <div className="flex items-center gap-2 min-w-[100px] justify-end">
-        <SaveFeedback status={saveStatus} />
-        <button
-          disabled={!dirty || saveStatus === "saving"}
-          onClick={handleSave}
-          className="rounded px-3 py-1 text-xs font-medium transition-colors
-            bg-emerald-700 hover:bg-emerald-600 text-white
-            disabled:bg-zinc-700 disabled:text-zinc-500 disabled:cursor-not-allowed"
-        >
-          Save
-        </button>
+      <div className="flex-1 rounded border border-zinc-700/50 bg-zinc-800/60 px-3 py-1.5 text-sm text-zinc-300 font-mono">
+        {displayName}
       </div>
     </div>
   );
@@ -270,25 +177,37 @@ function AgentModelsSection() {
   const { data: agentData, isLoading: agentsLoading } = useAgents();
   const { data: modelsData, isLoading: modelsLoading } = useModels();
   const { data: configData } = useConfig();
-  const client = useGatewayStore((s) => s.client);
 
   const agents = agentData?.agents ?? [];
   const defaultId = agentData?.defaultId ?? "";
   const models = modelsData?.models ?? [];
 
   // Extract agent model assignments from the config
-  const agentConfigs = useMemo(() => {
+  // Config structure: agents.defaults.model.primary + agents.list[].model.primary
+  const { agentModelMap, defaultModel } = useMemo(() => {
     const parsed = configData?.parsed ?? configData?.raw ?? {};
-    const agentsCfg = parsed.agents as Record<string, Record<string, unknown>> | undefined;
-    return agentsCfg ?? {};
-  }, [configData]);
+    const agentsCfg = parsed.agents as Record<string, unknown> | undefined;
 
-  const handleSave = useCallback(async (agentId: string, modelId: string) => {
-    if (!client) throw new Error("Not connected");
-    await client.call("config.patch", {
-      patch: { agents: { [agentId]: { model: { primary: modelId } } } },
-    });
-  }, [client]);
+    // Default model from agents.defaults.model.primary
+    const defaults = agentsCfg?.defaults as Record<string, unknown> | undefined;
+    const defaultModelCfg = defaults?.model as Record<string, unknown> | undefined;
+    const defaultModel = (defaultModelCfg?.primary as string) ?? "";
+
+    // Per-agent models from agents.list[]
+    const list = agentsCfg?.list as Array<Record<string, unknown>> | undefined;
+    const map = new Map<string, string>();
+    if (list) {
+      for (const entry of list) {
+        const id = entry.id as string;
+        const modelCfg = entry.model as Record<string, unknown> | undefined;
+        const primary = modelCfg?.primary as string | undefined;
+        if (id && primary) {
+          map.set(id, primary);
+        }
+      }
+    }
+    return { agentModelMap: map, defaultModel };
+  }, [configData]);
 
   if (agentsLoading || modelsLoading) return <Spinner />;
 
@@ -300,10 +219,7 @@ function AgentModelsSection() {
       ) : (
         <div className="space-y-2">
           {agents.map((agent) => {
-            // Try to get model from config
-            const agentCfg = agentConfigs[agent.id] as Record<string, unknown> | undefined;
-            const modelCfg = agentCfg?.model as Record<string, unknown> | undefined;
-            const currentModel = (modelCfg?.primary as string) ?? "";
+            const currentModel = agentModelMap.get(agent.id) ?? defaultModel;
 
             return (
               <AgentModelRow
@@ -312,7 +228,6 @@ function AgentModelsSection() {
                 isDefault={agent.id === defaultId}
                 models={models}
                 currentModelId={currentModel}
-                onSave={handleSave}
               />
             );
           })}
@@ -374,7 +289,6 @@ function GeneralInfoSection({ config }: { config: Record<string, unknown> }) {
 export default function SettingsPage() {
   const { data, isLoading, error } = useConfig();
 
-  // Use 'parsed' for full config, fall back to 'raw' or 'config' (redacted)
   const configObj = useMemo(() => {
     if (!data) return null;
     return (data.parsed ?? data.raw ?? data.config ?? null) as Record<string, unknown> | null;
@@ -383,12 +297,23 @@ export default function SettingsPage() {
   return (
     <div className="p-6 max-w-4xl">
       <h1 className="text-2xl font-semibold text-zinc-100 mb-1">Settings</h1>
-      <p className="text-sm text-zinc-500 mb-6">
-        Configuration management
+      <p className="text-sm text-zinc-500 mb-4">
+        Configuration overview
         {data?.path && (
           <span className="ml-2 text-zinc-600 font-mono text-xs">({data.path})</span>
         )}
       </p>
+
+      <div className="rounded-lg border border-amber-800/40 bg-amber-950/20 px-4 py-3 text-sm text-amber-300/90 mb-6 flex items-start gap-2.5">
+        <svg className="h-4 w-4 shrink-0 mt-0.5 text-amber-500/70" viewBox="0 0 20 20" fill="currentColor">
+          <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+        </svg>
+        <span>
+          Configuration is read-only. To modify settings, edit{" "}
+          <code className="text-amber-200 bg-amber-900/30 px-1 py-0.5 rounded text-xs">/etc/openclaw/openclaw.json</code>{" "}
+          and restart the gateway.
+        </span>
+      </div>
 
       {isLoading && <Spinner />}
       {error && <ErrorBox message={error instanceof Error ? error.message : "Failed to load config"} />}

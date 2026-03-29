@@ -20,6 +20,7 @@ import FilesPage from "@/pages/FilesPage";
 import DockerPage from "@/pages/DockerPage";
 import BrokerPage from "@/pages/BrokerPage";
 import SettingsPage from "@/pages/SettingsPage";
+import TaskFlowPage from "@/pages/TaskFlowPage";
 
 const NAV_GROUPS = [
   {
@@ -28,6 +29,7 @@ const NAV_GROUPS = [
       { to: "/overview", label: "Overview", icon: "grid" },
       { to: "/chat", label: "Chat", icon: "chat" },
       { to: "/sessions", label: "Sessions", icon: "sessions" },
+      { to: "/tasks", label: "Task Flow", icon: "broker" },
     ],
   },
   {
@@ -189,10 +191,10 @@ function Sidebar() {
                 key={item.to}
                 to={item.to}
                 className={({ isActive }) =>
-                  `flex items-center gap-2.5 mx-2 px-2.5 py-1.5 rounded-lg text-sm transition-colors ${
+                  `flex items-center gap-2.5 mx-2 px-2.5 py-1.5 rounded-lg text-sm transition-all duration-150 ${
                     isActive
-                      ? "bg-zinc-800 text-zinc-100 font-medium"
-                      : "text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200"
+                      ? "bg-indigo-500/10 text-indigo-300 font-medium shadow-sm shadow-indigo-500/5"
+                      : "text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200 hover:translate-x-0.5"
                   }`
                 }
               >
@@ -242,6 +244,7 @@ export default function App() {
             <Route path="/docker" element={<DockerPage />} />
             <Route path="/broker" element={<BrokerPage />} />
             <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/tasks" element={<TaskFlowPage />} />
           </Routes>
         </main>
       </div>

@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import type { ChatMessage } from "@/api/types";
 import { agentFromKey } from "@/api/types";
@@ -18,6 +19,23 @@ const AGENT_COLORS: Record<string, "indigo" | "amber" | "emerald" | "blue" | "pu
 
 function agentColor(agentId: string) {
   return AGENT_COLORS[agentId] ?? "amber";
+}
+
+// ---------------------------------------------------------------------------
+// ClickableAgentBadge — navigates to sessions filtered by agent
+// ---------------------------------------------------------------------------
+
+function ClickableAgentBadge({ agentId }: { agentId: string }) {
+  const navigate = useNavigate();
+  return (
+    <button
+      onClick={() => navigate(`/sessions?agent=${encodeURIComponent(agentId)}`)}
+      className="cursor-pointer hover:opacity-80 transition-opacity"
+      title={`View ${agentId} sessions`}
+    >
+      <Badge variant={agentColor(agentId) as any}>{agentId}</Badge>
+    </button>
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -301,6 +319,178 @@ function createMarkdownComponents() {
 const markdownComponents = createMarkdownComponents();
 
 // ---------------------------------------------------------------------------
+// Runtime context detection & provenance extraction
+// ---------------------------------------------------------------------------
+
+const RUNTIME_PATTERNS = [
+  /^\[Subagent Context\]/,
+  /^OpenClaw runtime context \(internal\):/,
+  /^\[System:/,
+  /^\[Internal:/,
+];
+
+/** Check if a text block is an OpenClaw runtime injection */
+function isRuntimeContext(text: string): boolean {
+  const trimmed = text.trim();
+  return RUNTIME_PATTERNS.some((p) => p.test(trimmed));
+}
+
+/** Extract inter-session provenance info from message */
+function extractProvenance(msg: any): { sourceKey?: string; sourceTool?: string } | null {
+  const prov = msg?.provenance;
+  if (!prov || prov.kind !== "inter_session") return null;
+  return { sourceKey: prov.sourceSessionKey, sourceTool: prov.sourceTool };
+}
+
+/** Parse [Internal task completion event] blocks from text */
+function parseCompletionEvents(text: string): Array<{ sessionKey: string; status: string; task: string }> {
+  const events: Array<{ sessionKey: string; status: string; task: string }> = [];
+  const regex = /\[Internal task completion event\]\s*\n(?:.*\n)*?session_key:\s*(\S+)\s*\n(?:.*\n)*?task:\s*(.+?)\s*\nstatus:\s*(.+?)(?:\n|$)/g;
+  let match;
+  while ((match = regex.exec(text)) !== null) {
+    events.push({ sessionKey: match[1], task: match[2], status: match[3] });
+  }
+  return events;
+}
+
+/** Detect and render spawn result JSON inline */
+function tryRenderSpawnResult(text: string, onSessionClick?: (key: string) => void): React.ReactNode | null {
+  // Match { "status": "accepted", "childSessionKey": "..." ... }
+  const match = text.match(/\{\s*"status"\s*:\s*"accepted"\s*,\s*"childSessionKey"\s*:\s*"([^"]+)"/);
+  if (!match) return null;
+  const childKey = match[1];
+  const agent = agentFromKey(childKey);
+
+  // Extract other fields
+  const modeMatch = text.match(/"mode"\s*:\s*"([^"]+)"/);
+  const mode = modeMatch?.[1] ?? "run";
+
+  return (
+    <div className="rounded-lg border border-blue-800/30 bg-blue-950/20 px-3 py-2 my-1">
+      <div className="flex items-center gap-2 text-[10px]">
+        <svg className="w-3.5 h-3.5 text-blue-400 shrink-0" viewBox="0 0 20 20" fill="currentColor">
+          <path d="M10 2a1 1 0 011 1v1.323l3.954 1.582 1.599-.8a1 1 0 01.894 1.79l-1.233.617 1.738 4.346a1 1 0 01-.025.846A3.955 3.955 0 0114 15.5a3.955 3.955 0 01-2.927-2.796 1 1 0 01-.025-.846l1.738-4.346L11 6.618V16h2a1 1 0 110 2H7a1 1 0 110-2h2V6.618L7.214 7.512l1.738 4.346a1 1 0 01-.025.846A3.955 3.955 0 016 15.5a3.955 3.955 0 01-2.927-2.796 1 1 0 01-.025-.846l1.738-4.346-1.233-.617a1 1 0 01.894-1.79l1.599.8L10 4.323V3a1 1 0 011-1z" />
+        </svg>
+        <span className="text-blue-300 font-semibold">Spawned</span>
+        <Badge variant={agentColor(agent) as any}>{agent}</Badge>
+        <span className="text-zinc-500">{mode}</span>
+      </div>
+      {onSessionClick ? (
+        <button
+          onClick={() => onSessionClick(childKey)}
+          className="text-[9px] font-mono text-indigo-400 hover:text-indigo-300 hover:underline mt-1 transition-colors block"
+        >
+          {childKey}
+        </button>
+      ) : (
+        <div className="text-[9px] font-mono text-zinc-500 mt-1">{childKey}</div>
+      )}
+    </div>
+  );
+}
+
+/** Detect and render external web content blocks more cleanly */
+function tryRenderExternalContent(text: string): React.ReactNode | null {
+  const match = text.match(/<<<EXTERNAL_UNTRUSTED_CONTENT[^>]*>>>\s*\nSource:\s*(\S+)\s*\n---\n([\s\S]*?)<<<END_EXTERNAL_UNTRUSTED_CONTENT/);
+  if (!match) return null;
+  const source = match[1];
+  const content = match[2].trim();
+  return (
+    <div className="rounded-lg border border-zinc-800 bg-zinc-950 my-1 overflow-hidden">
+      <div className="px-3 py-1.5 bg-zinc-900/50 border-b border-zinc-800 flex items-center gap-2">
+        <span className="text-[10px] font-mono text-zinc-500">External: {source}</span>
+      </div>
+      <div className="px-3 py-2 text-xs text-zinc-400 max-h-48 overflow-y-auto whitespace-pre-wrap">{content.slice(0, 2000)}</div>
+    </div>
+  );
+}
+
+/** Compact runtime context block */
+function RuntimeContextBlock({ text, defaultOpen }: { text: string; defaultOpen?: boolean }) {
+  const [open, setOpen] = useState(defaultOpen ?? false);
+  // Extract a one-line summary
+  const firstLine = text.trim().split("\n")[0].slice(0, 60);
+
+  return (
+    <div className="rounded-lg border border-zinc-800/50 bg-zinc-900/30 my-1 overflow-hidden">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="w-full text-left px-2.5 py-1.5 flex items-center gap-2 text-[10px] text-zinc-600 hover:text-zinc-400 transition-colors"
+      >
+        <svg className={`w-2.5 h-2.5 transition-transform shrink-0 ${open ? "rotate-90" : ""}`} viewBox="0 0 20 20" fill="currentColor">
+          <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+        </svg>
+        <span className="truncate">{firstLine}</span>
+      </button>
+      {open && (
+        <pre className="px-2.5 pb-2 text-[9px] text-zinc-600 whitespace-pre-wrap max-h-40 overflow-y-auto font-mono">
+          {text}
+        </pre>
+      )}
+    </div>
+  );
+}
+
+/** Completion event card */
+function CompletionEventCard({
+  event,
+  onSessionClick,
+}: {
+  event: { sessionKey: string; status: string; task: string };
+  onSessionClick?: (key: string) => void;
+}) {
+  const agent = agentFromKey(event.sessionKey);
+  const statusColor = event.status.includes("completed") ? "text-emerald-400"
+    : event.status.includes("failed") ? "text-red-400" : "text-amber-400";
+
+  return (
+    <div className="rounded-lg border border-zinc-800/50 bg-zinc-900/40 px-3 py-2 my-1">
+      <div className="flex items-center gap-2 text-[10px]">
+        <svg className="w-3 h-3 text-blue-400 shrink-0" viewBox="0 0 20 20" fill="currentColor">
+          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+        </svg>
+        <Badge variant={agentColor(agent) as any}>{agent}</Badge>
+        <span className={statusColor}>{event.status}</span>
+      </div>
+      <div className="text-[10px] text-zinc-500 mt-1 truncate">{event.task}</div>
+      {onSessionClick && (
+        <button
+          onClick={() => onSessionClick(event.sessionKey)}
+          className="text-[9px] font-mono text-indigo-400 hover:text-indigo-300 hover:underline mt-1 transition-colors"
+        >
+          {event.sessionKey.slice(0, 50)}
+        </button>
+      )}
+    </div>
+  );
+}
+
+/** Provenance badge — shows where this message came from */
+function ProvenanceBadge({ sourceKey, sourceTool, onSessionClick }: {
+  sourceKey: string;
+  sourceTool?: string;
+  onSessionClick?: (key: string) => void;
+}) {
+  const agent = agentFromKey(sourceKey);
+  return (
+    <div className="flex items-center gap-1.5 text-[9px] text-zinc-600 mb-1">
+      <svg className="w-3 h-3 text-zinc-600" viewBox="0 0 20 20" fill="currentColor">
+        <path fillRule="evenodd" d="M12.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
+      </svg>
+      <span>from</span>
+      {onSessionClick ? (
+        <button onClick={() => onSessionClick(sourceKey)} className="text-indigo-400 hover:underline">
+          {agent}
+        </button>
+      ) : (
+        <span className="text-zinc-400">{agent}</span>
+      )}
+      {sourceTool && <span className="text-zinc-700">via {sourceTool}</span>}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // MessageRenderer — the main exported component
 // ---------------------------------------------------------------------------
 
@@ -325,15 +515,74 @@ export function MessageRenderer({
 
   // Agent badge from session key
   const agentId = sessionKey ? agentFromKey(sessionKey) : null;
+  const provenance = extractProvenance(msg);
 
   // ---- Tool result messages (role: "tool") ----
   if (isTool) {
-    // Tool results are rendered inline with their ToolCallCard, skip standalone rendering
     return null;
   }
 
-  // ---- Assistant messages with array content (may have tool_use blocks) ----
+  // ---- Array content: extract text for display ----
   if (Array.isArray(msg.content)) {
+    const extractText = (blocks: any[]): string => {
+      return blocks
+        .map((b: any) => b.text ?? b.content ?? "")
+        .filter(Boolean)
+        .join("\n");
+    };
+
+    // User messages with array content
+    if (isUser) {
+      const fullText = extractText(msg.content);
+
+      // Split text into runtime context vs real content
+      const segments = fullText.split(/(?=\[Subagent Context\]|(?=OpenClaw runtime context))/);
+      const runtimeParts: string[] = [];
+      const contentParts: string[] = [];
+      for (const seg of segments) {
+        if (isRuntimeContext(seg)) runtimeParts.push(seg.trim());
+        else contentParts.push(seg.trim());
+      }
+      const realText = contentParts.join("\n").trim();
+
+      // Parse completion events from the text
+      const completionEvents = parseCompletionEvents(fullText);
+
+      return (
+        <div>
+          {/* Provenance indicator */}
+          {provenance && (
+            <ProvenanceBadge sourceKey={provenance.sourceKey!} sourceTool={provenance.sourceTool} onSessionClick={onSessionClick} />
+          )}
+          {/* Completion events get special cards */}
+          {completionEvents.length > 0 && (
+            <div className="space-y-1 mb-1">
+              {completionEvents.map((ev, i) => (
+                <CompletionEventCard key={i} event={ev} onSessionClick={onSessionClick} />
+              ))}
+            </div>
+          )}
+          {/* Runtime context collapsed */}
+          {runtimeParts.map((rt, i) => (
+            <RuntimeContextBlock key={`rt-${i}`} text={rt} />
+          ))}
+          {/* Actual user message content */}
+          {realText && (
+            <div className="flex justify-end">
+              <div className="max-w-[80%] rounded-lg px-3.5 py-2.5 text-sm bg-indigo-600 text-zinc-100">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-indigo-200/60">you</span>
+                  {msg.ts && <span className="text-[10px] tabular-nums opacity-50">{formatTimestamp(msg.ts)}</span>}
+                </div>
+                <span className="whitespace-pre-wrap">{realText}</span>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // Assistant messages with array content (may have tool_use blocks)
     const textBlocks: { text: string; index: number }[] = [];
     const toolUseBlocks: { block: ToolUseBlock; index: number }[] = [];
 
@@ -356,18 +605,29 @@ export function MessageRenderer({
       // Look at subsequent messages for tool_result matches
       for (let j = messageIndex + 1; j < allMessages.length; j++) {
         const nextMsg = allMessages[j];
-        if (nextMsg.role === "tool" && nextMsg.content) {
-          // Tool results may be in content array or as a flat message
-          // Try to parse the tool_use_id
+        if (nextMsg.role === "tool") {
           if (Array.isArray(nextMsg.content)) {
             for (const block of nextMsg.content) {
               if (block.type === "tool_result" && block.tool_use_id) {
                 toolResultMap.set(block.tool_use_id, block);
               }
             }
+          } else if (typeof nextMsg.content === "string") {
+            // Flat tool result — try to match with the next unmatched tool_use
+            // OpenClaw sends tool results as sequential messages matching tool_use order
+            const unmatchedUses = toolUseBlocks.filter(
+              ({ block }) => block.id && !toolResultMap.has(block.id),
+            );
+            if (unmatchedUses.length > 0) {
+              const targetId = unmatchedUses[0].block.id!;
+              toolResultMap.set(targetId, {
+                type: "tool_result",
+                tool_use_id: targetId,
+                content: nextMsg.content,
+              });
+            }
           }
         }
-        // Also check if it's a paired content array message
         if (nextMsg.role === "assistant") break; // Stop at next assistant
       }
     }
@@ -384,7 +644,7 @@ export function MessageRenderer({
         {/* Agent badge */}
         {agentId && (
           <div className="flex items-center gap-1.5 mb-1">
-            <Badge variant={agentColor(agentId) as any}>{agentId}</Badge>
+            <ClickableAgentBadge agentId={agentId} />
             {msg.ts && (
               <span className="text-[10px] text-zinc-600 tabular-nums">
                 {formatTimestamp(msg.ts)}
@@ -437,24 +697,60 @@ export function MessageRenderer({
   }
 
   // ---- Simple string content ----
-  const text =
+  const rawText =
     typeof msg.content === "string"
       ? msg.content
       : JSON.stringify(msg.content, null, 2);
 
+  // Check for runtime context in string content
+  if (isRuntimeContext(rawText)) {
+    return <RuntimeContextBlock text={rawText} />;
+  }
+
+  // Try special renderers for known structured content
+  const spawnResult = tryRenderSpawnResult(rawText, onSessionClick);
+  if (spawnResult) return <>{provenance && <ProvenanceBadge sourceKey={provenance.sourceKey!} sourceTool={provenance.sourceTool} onSessionClick={onSessionClick} />}{spawnResult}</>;
+
+  const externalContent = tryRenderExternalContent(rawText);
+
+  // Check for completion events embedded in text
+  const completionEventsInText = parseCompletionEvents(rawText);
+  // Strip the runtime context prefix from displayed text
+  const cleanText = rawText
+    .replace(/OpenClaw runtime context \(internal\):[\s\S]*?(?=\n\n|\n---|\n\[Internal)/g, "")
+    .replace(/---\nQueued #\d+\n/g, "")
+    .trim();
+
   return (
-    <div className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
-      <div
-        className={`max-w-[80%] rounded-lg px-3.5 py-2.5 text-sm ${
-          isUser
-            ? "bg-indigo-600 text-zinc-100"
-            : "bg-zinc-800/80 text-zinc-200"
-        }`}
-      >
+    <div>
+      {/* Provenance */}
+      {provenance && (
+        <ProvenanceBadge sourceKey={provenance.sourceKey!} sourceTool={provenance.sourceTool} onSessionClick={onSessionClick} />
+      )}
+      {/* Completion event cards */}
+      {completionEventsInText.length > 0 && (
+        <div className="space-y-1 mb-1">
+          {completionEventsInText.map((ev, i) => (
+            <CompletionEventCard key={i} event={ev} onSessionClick={onSessionClick} />
+          ))}
+        </div>
+      )}
+      {/* External content block */}
+      {externalContent && externalContent}
+      {/* Regular message bubble */}
+      {cleanText && (
+      <div className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
+        <div
+          className={`max-w-[80%] rounded-lg px-3.5 py-2.5 text-sm ${
+            isUser
+              ? "bg-indigo-600 text-zinc-100"
+              : "bg-zinc-800/80 text-zinc-200"
+          }`}
+        >
         {/* Header with role + timestamp */}
         <div className="flex items-center gap-2 mb-1">
           {agentId && !isUser && (
-            <Badge variant={agentColor(agentId) as any}>{agentId}</Badge>
+            <ClickableAgentBadge agentId={agentId} />
           )}
           {isUser && (
             <span className="text-[10px] font-semibold uppercase tracking-wider text-indigo-200/60">
@@ -470,11 +766,11 @@ export function MessageRenderer({
 
         {/* Content */}
         {isUser ? (
-          <span className="whitespace-pre-wrap">{text}</span>
+          <span className="whitespace-pre-wrap">{cleanText}</span>
         ) : (
           <div className="prose prose-sm prose-invert max-w-none [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1">
             <ReactMarkdown components={markdownComponents}>
-              {text}
+              {cleanText}
             </ReactMarkdown>
           </div>
         )}
@@ -486,6 +782,8 @@ export function MessageRenderer({
           </div>
         )}
       </div>
+    </div>
+    )}
     </div>
   );
 }
