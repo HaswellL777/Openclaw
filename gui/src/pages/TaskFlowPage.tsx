@@ -1,5 +1,4 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import {
   ReactFlow, Background, Controls,
   type Node, type Edge, type NodeProps,
@@ -9,52 +8,16 @@ import {
 import "@xyflow/react/dist/style.css";
 import { useQuery } from "@tanstack/react-query";
 import { useSessions, useGatewayStore } from "@/api/hooks";
-import type { Session, ChatMessage, ChatHistoryResult } from "@/api/types";
+import type { Session, ChatMessage, ChatHistoryResult, RunRecord, TaskGroup } from "@/api/types";
 import { agentFromKey } from "@/api/types";
 import { MessageRenderer } from "@/components/MessageRenderer";
+import { TaskDetailView } from "@/components/TaskDetailView";
 import { StatusDot, Spinner, EmptyState, Badge } from "@/components/shared";
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
+import { AGENT_COLORS, DEFAULT_AGENT_COLOR, agentColor as ac } from "@/api/agent-colors";
 
-interface RunRecord {
-  runId: string;
-  childSessionKey: string;
-  requesterSessionKey: string;
-  task: string;
-  label: string;
-  createdAt: number;
-  startedAt: number;
-  endedAt: number;
-  status: string;
-  cleanup: string;
-  spawnMode: string;
-}
-
-// A "task" = a group of runs spawned from the same requester within a short window
-interface TaskGroup {
-  id: string;
-  requesterKey: string;
-  runs: RunRecord[];
-  startTime: number;
-  taskSummary: string;
-}
-
-// ---------------------------------------------------------------------------
-// Colors
-// ---------------------------------------------------------------------------
-
-const AGENT_C: Record<string, { dot: string; bg: string; border: string }> = {
-  main:                   { dot: "#6366f1", bg: "rgba(99,102,241,0.08)",  border: "rgba(99,102,241,0.3)" },
-  "research-coordinator": { dot: "#3b82f6", bg: "rgba(59,130,246,0.08)",  border: "rgba(59,130,246,0.3)" },
-  auditor:                { dot: "#a855f7", bg: "rgba(168,85,247,0.08)",  border: "rgba(168,85,247,0.3)" },
-  "task-runner":          { dot: "#10b981", bg: "rgba(16,185,129,0.08)",  border: "rgba(16,185,129,0.3)" },
-  "claude-engineer":      { dot: "#06b6d4", bg: "rgba(6,182,212,0.08)",   border: "rgba(6,182,212,0.3)" },
-  claude:                 { dot: "#06b6d4", bg: "rgba(6,182,212,0.08)",   border: "rgba(6,182,212,0.3)" },
-};
-const DEF_C = { dot: "#f59e0b", bg: "rgba(245,158,11,0.08)", border: "rgba(245,158,11,0.3)" };
-function ac(id: string) { return AGENT_C[id] ?? DEF_C; }
+// AGENT_C alias for the legend rendering
+const AGENT_C = AGENT_COLORS;
 
 // ---------------------------------------------------------------------------
 // Fetch runs export
@@ -133,7 +96,7 @@ function makeGroup(idx: number, reqKey: string, runs: RunRecord[]): TaskGroup {
 // Session node
 // ---------------------------------------------------------------------------
 
-type SessNodeData = { run: RunRecord; agentId: string; colors: typeof DEF_C };
+type SessNodeData = { run: RunRecord; agentId: string; colors: typeof DEFAULT_AGENT_COLOR };
 
 function SessNode({ data }: NodeProps<Node<SessNodeData>>) {
   const d = data as SessNodeData;
@@ -168,27 +131,31 @@ function SessNode({ data }: NodeProps<Node<SessNodeData>>) {
 // Task group header node
 // ---------------------------------------------------------------------------
 
-type TaskHeaderData = { group: TaskGroup };
+type TaskHeaderData = { group: TaskGroup; customName?: string; isArchived?: boolean };
 
 function TaskHeaderNode({ data }: NodeProps<Node<TaskHeaderData>>) {
   const g = (data as TaskHeaderData).group;
+  const customName = (data as TaskHeaderData).customName;
+  const isArchived = (data as TaskHeaderData).isArchived;
   const agents: Record<string, number> = {};
   for (const r of g.runs) {
     const a = agentFromKey(r.childSessionKey);
     agents[a] = (agents[a] ?? 0) + 1;
   }
   const time = new Date(g.startTime).toLocaleString("zh-CN", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
+  const displayName = customName || `Task #${g.id.split("-")[1] ? Number(g.id.split("-")[1]) + 1 : "?"}`;
 
   return (
-    <div className="rounded-2xl border border-zinc-700/40 bg-zinc-900/80 backdrop-blur px-5 py-3 shadow-xl shadow-black/30 w-[280px]">
+    <div className={`rounded-2xl border bg-zinc-900/80 backdrop-blur px-5 py-3 shadow-xl shadow-black/30 w-[280px] cursor-pointer transition-colors ${isArchived ? "border-zinc-800/30 opacity-50" : "border-zinc-700/40 hover:border-indigo-500/40"}`}>
       <Handle type="target" position={Position.Top} className="!bg-zinc-500 !w-2 !h-2 !border-none" />
       <div className="flex items-center gap-2 mb-1">
         <div className="w-3 h-3 rounded-md bg-indigo-500/30 border border-indigo-500/50" />
-        <span className="text-sm font-bold text-zinc-100">Task #{g.id.split("-")[1] ? Number(g.id.split("-")[1]) + 1 : "?"}</span>
+        <span className="text-sm font-bold text-zinc-100">{displayName}</span>
+        {isArchived && <span className="text-[9px] px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-500 border border-zinc-700/40">archived</span>}
         <span className="text-[10px] text-zinc-500 font-mono ml-auto">{time}</span>
       </div>
       <div className="text-[10px] text-zinc-400 leading-tight mb-2 line-clamp-2">{g.taskSummary}</div>
-      <div className="flex flex-wrap gap-1">
+      <div className="flex flex-wrap gap-1 mb-1.5">
         {Object.entries(agents).map(([a, n]) => (
           <span key={a} className="text-[9px] px-1.5 py-0.5 rounded bg-zinc-800/80 border border-zinc-700/40"
             style={{ color: ac(a).dot }}>
@@ -196,6 +163,12 @@ function TaskHeaderNode({ data }: NodeProps<Node<TaskHeaderData>>) {
             {a}{n > 1 ? ` x${n}` : ""}
           </span>
         ))}
+      </div>
+      <div className="text-[9px] text-indigo-400/60 flex items-center gap-1">
+        <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor">
+          <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
+        </svg>
+        Click to view message flow
       </div>
       <Handle type="source" position={Position.Bottom} className="!bg-zinc-500 !w-2 !h-2 !border-none" />
     </div>
@@ -225,7 +198,7 @@ const nodeTypes = { session: SessNode, taskHeader: TaskHeaderNode, root: RootNod
 // Layout: root at top → task headers in a row → session nodes under each
 // ---------------------------------------------------------------------------
 
-function layoutGraph(rootKey: string, rootLabel: string, groups: TaskGroup[]) {
+function layoutGraph(rootKey: string, rootLabel: string, groups: TaskGroup[], taskNames?: Record<string, string>, archivedTasks?: Set<string>) {
   const nodes: Node[] = [];
   const edges: Edge[] = [];
 
@@ -260,7 +233,7 @@ function layoutGraph(rootKey: string, rootLabel: string, groups: TaskGroup[]) {
     nodes.push({
       id: g.id, type: "taskHeader",
       position: { x: baseX, y: baseY },
-      data: { group: g },
+      data: { group: g, customName: taskNames?.[g.id], isArchived: archivedTasks?.has(g.id) },
     });
 
     const firstLevel = g.runs.filter(r => r.requesterSessionKey === rootKey);
@@ -322,12 +295,64 @@ export default function TaskFlowPage() {
   const { data: sessionData, isLoading: sessionsLoading } = useSessions({ includeLastMessage: true });
   const { data: runsData, isLoading: runsLoading } = useRunsExport();
   const client = useGatewayStore(s => s.client);
-  const navigate = useNavigate();
 
   const [selectedRoot, setSelectedRoot] = useState<string | null>(null);
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [activeTaskGroup, setActiveTaskGroup] = useState<TaskGroup | null>(null);
+
+  // Filter state
+  const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [filterAgent, setFilterAgent] = useState<string>("all");
+  const [filterSearch, setFilterSearch] = useState<string>("");
+
+  // Task rename state (localStorage-backed)
+  const [taskNames, setTaskNames] = useState<Record<string, string>>(() => {
+    try { return JSON.parse(localStorage.getItem("openclaw-task-names") ?? "{}"); } catch { return {}; }
+  });
+  const [renamingTaskId, setRenamingTaskId] = useState<string | null>(null);
+  const [renameInput, setRenameInput] = useState("");
+
+  // Persist task names
+  const saveTaskName = useCallback((taskId: string, name: string) => {
+    setTaskNames(prev => {
+      const next = { ...prev, [taskId]: name };
+      localStorage.setItem("openclaw-task-names", JSON.stringify(next));
+      return next;
+    });
+  }, []);
+  const clearTaskName = useCallback((taskId: string) => {
+    setTaskNames(prev => {
+      const next = { ...prev };
+      delete next[taskId];
+      localStorage.setItem("openclaw-task-names", JSON.stringify(next));
+      return next;
+    });
+  }, []);
+
+  // Soft archive state (localStorage-only, no data deletion)
+  const [archivedTasks, setArchivedTasks] = useState<Set<string>>(() => {
+    try { return new Set(JSON.parse(localStorage.getItem("openclaw-archived-tasks") ?? "[]")); } catch { return new Set(); }
+  });
+  const [showArchived, setShowArchived] = useState(false);
+
+  const archiveTask = useCallback((taskId: string) => {
+    setArchivedTasks(prev => {
+      const next = new Set(prev);
+      next.add(taskId);
+      localStorage.setItem("openclaw-archived-tasks", JSON.stringify([...next]));
+      return next;
+    });
+  }, []);
+  const restoreTask = useCallback((taskId: string) => {
+    setArchivedTasks(prev => {
+      const next = new Set(prev);
+      next.delete(taskId);
+      localStorage.setItem("openclaw-archived-tasks", JSON.stringify([...next]));
+      return next;
+    });
+  }, []);
 
   const sessions = sessionData?.sessions ?? [];
   const runs = runsData ?? [];
@@ -354,10 +379,49 @@ export default function TaskFlowPage() {
     return buildTaskGroups(runs, selectedRoot);
   }, [runs, selectedRoot]);
 
+  // Apply filters
+  const filteredGroups = useMemo(() => {
+    return groups.filter(g => {
+      // Archive filter: hide archived unless showArchived is on
+      const isArchived = archivedTasks.has(g.id);
+      if (isArchived && !showArchived) return false;
+      // Status filter
+      if (filterStatus !== "all") {
+        const hasStatus = g.runs.some(r => r.status === filterStatus);
+        if (!hasStatus) return false;
+      }
+      // Agent filter
+      if (filterAgent !== "all") {
+        const hasAgent = g.runs.some(r => agentFromKey(r.childSessionKey) === filterAgent);
+        if (!hasAgent) return false;
+      }
+      // Text search
+      if (filterSearch.trim()) {
+        const q = filterSearch.toLowerCase();
+        const name = taskNames[g.id] ?? "";
+        const match = g.taskSummary.toLowerCase().includes(q)
+          || name.toLowerCase().includes(q)
+          || g.runs.some(r => r.task.toLowerCase().includes(q))
+          || g.runs.some(r => agentFromKey(r.childSessionKey).includes(q));
+        if (!match) return false;
+      }
+      return true;
+    });
+  }, [groups, filterStatus, filterAgent, filterSearch, taskNames, archivedTasks, showArchived]);
+
+  const archivedCount = useMemo(() => groups.filter(g => archivedTasks.has(g.id)).length, [groups, archivedTasks]);
+
+  // All unique agents across groups (for filter dropdown)
+  const allAgents = useMemo(() => {
+    const s = new Set<string>();
+    for (const g of groups) for (const r of g.runs) s.add(agentFromKey(r.childSessionKey));
+    return [...s].sort();
+  }, [groups]);
+
   const { nodes: layoutNodes, edges: layoutEdges } = useMemo(() => {
-    if (!rootSession || groups.length === 0) return { nodes: [], edges: [] };
-    return layoutGraph(rootSession.key, rootSession.displayName || rootSession.key.slice(0, 30), groups);
-  }, [rootSession, groups]);
+    if (!rootSession || filteredGroups.length === 0) return { nodes: [], edges: [] };
+    return layoutGraph(rootSession.key, rootSession.displayName || rootSession.key.slice(0, 30), filteredGroups, taskNames, archivedTasks);
+  }, [rootSession, filteredGroups, taskNames, archivedTasks]);
 
   // Controlled state for dragging
   const [flowNodes, setFlowNodes, onNodesChange] = useNodesState(layoutNodes);
@@ -389,7 +453,7 @@ export default function TaskFlowPage() {
     if (node.type === "session") loadHistory(node.id);
     if (node.type === "taskHeader") {
       const d = node.data as TaskHeaderData;
-      if (d.group.runs.length > 0) loadHistory(d.group.runs[0].childSessionKey);
+      setActiveTaskGroup(d.group);
     }
   }, [client]);
 
@@ -404,6 +468,23 @@ export default function TaskFlowPage() {
   const proOptions = useMemo(() => ({ hideAttribution: true }), []);
   const onInit = useCallback((inst: any) => { setTimeout(() => inst.fitView({ padding: 0.1 }), 100); }, []);
   const loading = sessionsLoading || runsLoading;
+
+  // If a task group is selected, show the detail view
+  if (activeTaskGroup) {
+    return (
+      <TaskDetailView
+        group={activeTaskGroup}
+        allRuns={runs}
+        onBack={() => setActiveTaskGroup(null)}
+        customName={taskNames[activeTaskGroup.id]}
+        onRename={(name) => saveTaskName(activeTaskGroup.id, name)}
+        onClearName={() => clearTaskName(activeTaskGroup.id)}
+        isArchived={archivedTasks.has(activeTaskGroup.id)}
+        onArchive={() => { archiveTask(activeTaskGroup.id); setActiveTaskGroup(null); }}
+        onRestore={() => restoreTask(activeTaskGroup.id)}
+      />
+    );
+  }
 
   return (
     <div className="flex h-screen">
@@ -425,8 +506,9 @@ export default function TaskFlowPage() {
               );
             })}
           </select>
-          <span className="text-xs text-zinc-500">{groups.length} tasks, {groups.reduce((s, g) => s + g.runs.length, 0)} spawns</span>
-          <span className="text-[10px] text-zinc-600">(heartbeats filtered)</span>
+          <span className="text-xs text-zinc-500">
+            {filteredGroups.length}{filteredGroups.length !== groups.length ? `/${groups.length}` : ""} tasks, {filteredGroups.reduce((s, g) => s + g.runs.length, 0)} spawns
+          </span>
           {/* Legend */}
           <div className="flex items-center gap-3 ml-auto text-[10px]">
             {Object.entries(AGENT_C).filter(([k]) => k !== "claude").map(([id, c]) => (
@@ -435,6 +517,61 @@ export default function TaskFlowPage() {
                 <span className="text-zinc-500">{id}</span>
               </div>
             ))}
+          </div>
+        </div>
+
+        {/* Filter bar */}
+        <div className="px-4 py-1.5 border-b border-zinc-800/60 bg-zinc-900/50 flex items-center gap-2 flex-wrap text-[11px]">
+          {/* Status filter */}
+          <select
+            value={filterStatus}
+            onChange={e => setFilterStatus(e.target.value)}
+            className="bg-zinc-800 border border-zinc-700/50 rounded px-2 py-1 text-zinc-300 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          >
+            <option value="all">All status</option>
+            <option value="ok">OK</option>
+            <option value="error">Error</option>
+            <option value="timeout">Timeout</option>
+            <option value="unknown">Unknown</option>
+          </select>
+          {/* Agent filter */}
+          <select
+            value={filterAgent}
+            onChange={e => setFilterAgent(e.target.value)}
+            className="bg-zinc-800 border border-zinc-700/50 rounded px-2 py-1 text-zinc-300 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          >
+            <option value="all">All agents</option>
+            {allAgents.map(a => <option key={a} value={a}>{a}</option>)}
+          </select>
+          {/* Text search */}
+          <input
+            type="text"
+            placeholder="Search tasks..."
+            value={filterSearch}
+            onChange={e => setFilterSearch(e.target.value)}
+            className="bg-zinc-800 border border-zinc-700/50 rounded px-2 py-1 text-zinc-300 placeholder-zinc-600 focus:outline-none focus:ring-1 focus:ring-indigo-500 w-48"
+          />
+          {(filterStatus !== "all" || filterAgent !== "all" || filterSearch) && (
+            <button
+              onClick={() => { setFilterStatus("all"); setFilterAgent("all"); setFilterSearch(""); }}
+              className="text-zinc-500 hover:text-zinc-300 transition-colors px-1.5"
+            >
+              Clear filters
+            </button>
+          )}
+          {/* Archive toggle */}
+          <div className="ml-auto flex items-center gap-1.5">
+            {archivedCount > 0 && (
+              <label className="flex items-center gap-1.5 cursor-pointer text-zinc-500 hover:text-zinc-400 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={showArchived}
+                  onChange={e => setShowArchived(e.target.checked)}
+                  className="rounded border-zinc-600 bg-zinc-800 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-0 w-3.5 h-3.5"
+                />
+                <span>Show archived ({archivedCount})</span>
+              </label>
+            )}
           </div>
         </div>
 
@@ -469,25 +606,83 @@ export default function TaskFlowPage() {
       {/* Right panel */}
       {selectedKey && (
         <div className="w-[380px] shrink-0 border-l border-zinc-800 bg-zinc-950 flex flex-col">
-          {/* Task session list */}
+          {/* Task group header with rename + delete actions */}
           {selectedGroup && (
-            <div className="border-b border-zinc-800 bg-zinc-900/50 max-h-[200px] overflow-y-auto">
-              <div className="px-3 py-1.5 text-[10px] text-zinc-500 font-semibold uppercase tracking-wider sticky top-0 bg-zinc-900/95 backdrop-blur-sm z-10">
-                Task #{groups.indexOf(selectedGroup) + 1} — {selectedGroup.runs.length} sessions
+            <div className="border-b border-zinc-800 bg-zinc-900/50">
+              <div className="px-3 py-2 flex items-center gap-2">
+                {renamingTaskId === selectedGroup.id ? (
+                  <form className="flex-1 flex items-center gap-1.5" onSubmit={e => {
+                    e.preventDefault();
+                    if (renameInput.trim()) saveTaskName(selectedGroup.id, renameInput.trim());
+                    setRenamingTaskId(null);
+                  }}>
+                    <input
+                      autoFocus
+                      value={renameInput}
+                      onChange={e => setRenameInput(e.target.value)}
+                      className="flex-1 bg-zinc-800 border border-indigo-500/50 rounded px-2 py-0.5 text-xs text-zinc-200 focus:outline-none"
+                      placeholder="Task name..."
+                    />
+                    <button type="submit" className="text-[10px] text-indigo-400 hover:text-indigo-300">Save</button>
+                    <button type="button" onClick={() => setRenamingTaskId(null)} className="text-[10px] text-zinc-500 hover:text-zinc-400">Cancel</button>
+                  </form>
+                ) : (
+                  <>
+                    <span className="text-[11px] text-zinc-300 font-semibold truncate flex-1">
+                      {taskNames[selectedGroup.id] || `Task #${groups.indexOf(selectedGroup) + 1}`}
+                    </span>
+                    <button
+                      onClick={() => { setRenamingTaskId(selectedGroup.id); setRenameInput(taskNames[selectedGroup.id] ?? ""); }}
+                      className="text-[10px] text-zinc-500 hover:text-zinc-300 transition-colors px-1.5 py-0.5 rounded hover:bg-zinc-800"
+                      title="Rename task"
+                    >
+                      Rename
+                    </button>
+                    {taskNames[selectedGroup.id] && (
+                      <button
+                        onClick={() => clearTaskName(selectedGroup.id)}
+                        className="text-[10px] text-zinc-600 hover:text-zinc-400 transition-colors"
+                        title="Clear custom name"
+                      >
+                        Reset
+                      </button>
+                    )}
+                    {archivedTasks.has(selectedGroup.id) ? (
+                      <button
+                        onClick={() => restoreTask(selectedGroup.id)}
+                        className="text-[10px] text-emerald-400/70 hover:text-emerald-400 transition-colors px-1.5 py-0.5 rounded hover:bg-emerald-500/10"
+                      >
+                        Restore
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => archiveTask(selectedGroup.id)}
+                        className="text-[10px] text-zinc-500 hover:text-zinc-300 transition-colors px-1.5 py-0.5 rounded hover:bg-zinc-800"
+                      >
+                        Archive
+                      </button>
+                    )}
+                  </>
+                )}
               </div>
-              {selectedGroup.runs.map(r => {
-                const agent = agentFromKey(r.childSessionKey);
-                const active = r.childSessionKey === selectedKey;
-                return (
-                  <button key={r.childSessionKey} onClick={() => loadHistory(r.childSessionKey)}
-                    className={`w-full text-left px-3 py-1.5 flex items-center gap-2 text-[11px] transition-colors ${active ? "bg-zinc-800" : "hover:bg-zinc-800/50"}`}
-                  >
-                    <span className="w-2 h-2 rounded-full shrink-0" style={{ background: ac(agent).dot }} />
-                    <span style={{ color: active ? ac(agent).dot : undefined }} className={active ? "font-medium" : "text-zinc-400"}>{agent}</span>
-                    <span className="text-zinc-600 truncate flex-1 text-[10px]">{r.task.slice(0, 30) || r.label}</span>
-                  </button>
-                );
-              })}
+              <div className="px-3 pb-1.5 text-[10px] text-zinc-500">
+                {selectedGroup.runs.length} sessions
+              </div>
+              <div className="max-h-[160px] overflow-y-auto">
+                {selectedGroup.runs.map(r => {
+                  const agent = agentFromKey(r.childSessionKey);
+                  const active = r.childSessionKey === selectedKey;
+                  return (
+                    <button key={r.childSessionKey} onClick={() => loadHistory(r.childSessionKey)}
+                      className={`w-full text-left px-3 py-1.5 flex items-center gap-2 text-[11px] transition-colors ${active ? "bg-zinc-800" : "hover:bg-zinc-800/50"}`}
+                    >
+                      <span className="w-2 h-2 rounded-full shrink-0" style={{ background: ac(agent).dot }} />
+                      <span style={{ color: active ? ac(agent).dot : undefined }} className={active ? "font-medium" : "text-zinc-400"}>{agent}</span>
+                      <span className="text-zinc-600 truncate flex-1 text-[10px]">{r.task.slice(0, 30) || r.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
           {/* Session header */}
@@ -500,7 +695,7 @@ export default function TaskFlowPage() {
                 <span className="text-xs text-zinc-300 truncate">{selectedKey.split(":").pop()?.slice(0, 12)}</span>
               </div>
               <div className="flex gap-1.5">
-                <button onClick={() => navigate(`/chat?session=${encodeURIComponent(selectedKey)}`)} className="px-2 py-1 text-[10px] bg-indigo-600/20 text-indigo-400 rounded hover:bg-indigo-600/30">Chat</button>
+                <a href={`/chat?session=${encodeURIComponent(selectedKey)}`} target="_blank" rel="noopener noreferrer" className="px-2 py-1 text-[10px] bg-indigo-600/20 text-indigo-400 rounded hover:bg-indigo-600/30 inline-flex items-center gap-1">Chat<svg className="w-2.5 h-2.5" viewBox="0 0 20 20" fill="currentColor"><path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z" /><path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z" /></svg></a>
                 <button onClick={() => { setSelectedKey(null); setMessages([]); }} className="px-2 py-1 text-[10px] bg-zinc-700 text-zinc-400 rounded hover:bg-zinc-600">Close</button>
               </div>
             </div>

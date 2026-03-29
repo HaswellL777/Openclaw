@@ -1,6 +1,34 @@
 import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
+import { PrismLight as SyntaxHighlighter } from "react-syntax-highlighter";
+import oneDark from "react-syntax-highlighter/dist/esm/styles/prism/one-dark";
+import javascript from "react-syntax-highlighter/dist/esm/languages/prism/javascript";
+import typescript from "react-syntax-highlighter/dist/esm/languages/prism/typescript";
+import python from "react-syntax-highlighter/dist/esm/languages/prism/python";
+import bash from "react-syntax-highlighter/dist/esm/languages/prism/bash";
+import json from "react-syntax-highlighter/dist/esm/languages/prism/json";
+import yaml from "react-syntax-highlighter/dist/esm/languages/prism/yaml";
+import markdown from "react-syntax-highlighter/dist/esm/languages/prism/markdown";
+import css from "react-syntax-highlighter/dist/esm/languages/prism/css";
+import jsx from "react-syntax-highlighter/dist/esm/languages/prism/jsx";
+import tsx from "react-syntax-highlighter/dist/esm/languages/prism/tsx";
+
+SyntaxHighlighter.registerLanguage("javascript", javascript);
+SyntaxHighlighter.registerLanguage("js", javascript);
+SyntaxHighlighter.registerLanguage("typescript", typescript);
+SyntaxHighlighter.registerLanguage("ts", typescript);
+SyntaxHighlighter.registerLanguage("python", python);
+SyntaxHighlighter.registerLanguage("bash", bash);
+SyntaxHighlighter.registerLanguage("sh", bash);
+SyntaxHighlighter.registerLanguage("json", json);
+SyntaxHighlighter.registerLanguage("yaml", yaml);
+SyntaxHighlighter.registerLanguage("yml", yaml);
+SyntaxHighlighter.registerLanguage("markdown", markdown);
+SyntaxHighlighter.registerLanguage("md", markdown);
+SyntaxHighlighter.registerLanguage("css", css);
+SyntaxHighlighter.registerLanguage("jsx", jsx);
+SyntaxHighlighter.registerLanguage("tsx", tsx);
 import type { ChatMessage } from "@/api/types";
 import { agentFromKey } from "@/api/types";
 import { Badge } from "@/components/shared";
@@ -72,10 +100,21 @@ function CodeBlock({
           {copied ? "Copied" : "Copy"}
         </button>
       </div>
-      {/* Code content */}
-      <pre className="px-3 py-2.5 overflow-x-auto text-xs leading-relaxed">
-        <code className="font-mono text-zinc-300">{children}</code>
-      </pre>
+      {/* Code content with syntax highlighting */}
+      <SyntaxHighlighter
+        language={language || "text"}
+        style={oneDark}
+        customStyle={{
+          margin: 0,
+          padding: "10px 12px",
+          background: "transparent",
+          fontSize: "12px",
+          lineHeight: "1.6",
+        }}
+        codeTagProps={{ style: { fontFamily: "'IBM Plex Mono', monospace" } }}
+      >
+        {children}
+      </SyntaxHighlighter>
     </div>
   );
 }

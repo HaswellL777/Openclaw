@@ -1,6 +1,6 @@
 # OpenClaw Dev Repo 文档地图
 
-> 更新日期：2026-03-28
+> 更新日期：2026-03-29
 
 ---
 
@@ -25,18 +25,22 @@
 
 | 文件 | 描述 |
 |------|------|
-| `docs/planning/api-migration-model-switch.md` | API 管理方案（close-by: 2026-03-29）— ✅ DuckCoding 迁移已完成 |
 | `docs/planning/container-isolation-design.md` | 容器隔离方案设计（close-by: 2026-04-01）— 推荐方案 A |
-| `docs/planning/frontend-gui-design.md` | 前端 GUI 需求规格 v2（close-by: 2026-04-05）— 基础功能已实现 |
+| `docs/planning/frontend-gui-design.md` | 前端 GUI 需求规格 v2（close-by: 2026-04-05）— P0/P1 大部分已实现 |
 
 ## GUI 前端 `[active]`
 
-| 目录 | 描述 |
-|------|------|
-| `gui/` | React + TypeScript + Vite 管理前端（11 页面） |
-| `gui/src/api/` | RPC 客户端 + 类型 + Hooks |
-| `gui/src/pages/` | 页面组件 |
-| `gui/src/components/` | 共享 UI 组件 |
+| 目录/文件 | 描述 |
+|-----------|------|
+| `gui/` | React + TypeScript + Vite 管理前端（12 页面） |
+| `gui/src/api/rpc-client.ts` | Gateway WebSocket 协议客户端 |
+| `gui/src/api/hooks.ts` | Zustand store + React Query hooks |
+| `gui/src/api/types.ts` | TypeScript 类型（含 RunRecord, TaskGroup） |
+| `gui/src/api/agent-colors.ts` | 共享 agent 颜色配置 |
+| `gui/src/pages/` | 页面组件（12 个） |
+| `gui/src/components/TaskDetailView.tsx` | Task 内部 swimlane 消息流程图 |
+| `gui/src/components/MessageRenderer.tsx` | 消息渲染器（语法高亮 + tool call + provenance） |
+| `gui/src/components/shared.tsx` | 共享 UI 组件 |
 
 ## 部署脚本 `[active]`
 
@@ -49,17 +53,14 @@
 | `scripts/apply-duckcoding-migration.py` | DuckCoding 迁移脚本 |
 | `scripts/acpx-wrapper.sh` | ACP 环境配置 wrapper |
 | `scripts/publish-workspace-main.sh` | main workspace publish 脚本 |
-
-## 活跃候选 `[active]`
-
-| 文件 | 描述 |
-|------|------|
-| `candidates/openclaw.duckcoding-claude-backup.candidate.json5` | 备用 Claude provider |
+| `scripts/setup-runs-access.sh` | ACL 设置 nick 读 runs.json |
+| `scripts/apply-logrotate.sh` | 安装日志轮转 |
 
 ## 交接文档 `[handoff]`
 
 | 文件 | 描述 |
 |------|------|
+| `.claude/handoff/handoff-2026-03-29-task-flow.md` | Task Flow + 消息渲染 + 观测性交接 |
 | `.claude/handoff/handoff-2026-03-28-gui-development.md` | Phase 5 + GUI 开发交接 |
 | `.claude/handoff/handoff-2026-03-27-phase4-completion.md` | Phase 4 完成交接 |
 
@@ -68,7 +69,7 @@
 | 目录 | 描述 |
 |------|------|
 | `workspace-main-template/` | main agent workspace（含 control/、skills/） |
-| `workspace-task-runner-template/` | task-runner workspace（11 skills，含 task-state） |
+| `workspace-task-runner-template/` | task-runner workspace（11 skills） |
 | `workspace-research-coordinator-template/` | research-coordinator workspace |
 | `workspace-auditor-template/` | auditor workspace |
 
@@ -89,7 +90,8 @@
 | `docs/archive/planning/phase3-stall/` | Phase 3 stall-period 文档 |
 | `docs/archive/planning/phase4-acp/` | Phase 4 ACP 研究 + 策略修复 + LabClaw 集成 |
 | `docs/archive/planning/phase5/` | Phase 5 升级评估 + Skills 扩展 + 长期任务设计 |
-| `candidates/archive/` | 已部署/已过期的配置候选（13 个文件） |
+| `docs/archive/planning/api-migration/` | API 迁移方案（已完成归档） |
+| `candidates/archive/` | 已部署/已过期的配置候选 |
 
 ## 参考文档 `[reference]`
 

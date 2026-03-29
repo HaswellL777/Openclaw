@@ -534,12 +534,6 @@ export default function SessionsPage() {
                 >
                   Clear History
                 </button>
-                <button
-                  onClick={() => setConfirmAction("delete")}
-                  className="px-2.5 py-1 text-xs bg-red-600/20 text-red-400 rounded-lg hover:bg-red-600/30 transition-colors font-medium"
-                >
-                  Delete
-                </button>
               </div>
             </div>
 

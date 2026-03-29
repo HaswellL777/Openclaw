@@ -30,6 +30,8 @@ function runsApiPlugin(): Plugin {
             startedAt: r.startedAt ?? 0,
             endedAt: r.endedAt ?? 0,
             status: r.outcome?.status ?? 'unknown',
+            cleanup: r.cleanup ?? '',
+            spawnMode: r.spawnMode ?? 'run',
           }));
 
           res.setHeader('Content-Type', 'application/json');

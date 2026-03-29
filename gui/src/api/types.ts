@@ -1,4 +1,30 @@
 // -------------------------------------------------------------------------
+// Runs / Task Groups (shared between TaskFlowPage + TaskDetailView)
+// -------------------------------------------------------------------------
+
+export interface RunRecord {
+  runId: string;
+  childSessionKey: string;
+  requesterSessionKey: string;
+  task: string;
+  label: string;
+  createdAt: number;
+  startedAt: number;
+  endedAt: number;
+  status: string;
+  cleanup: string;
+  spawnMode: string;
+}
+
+export interface TaskGroup {
+  id: string;
+  requesterKey: string;
+  runs: RunRecord[];
+  startTime: number;
+  taskSummary: string;
+}
+
+// -------------------------------------------------------------------------
 // Agent
 // -------------------------------------------------------------------------
 
