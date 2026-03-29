@@ -358,6 +358,30 @@ function createMarkdownComponents() {
 const markdownComponents = createMarkdownComponents();
 
 // ---------------------------------------------------------------------------
+// CopyButton — small floating copy for message text
+// ---------------------------------------------------------------------------
+
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  const handleCopy = useCallback(() => {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
+  }, [text]);
+
+  return (
+    <button
+      onClick={handleCopy}
+      className="opacity-0 group-hover:opacity-100 transition-opacity text-[10px] text-zinc-500 hover:text-zinc-300 px-1.5 py-0.5 rounded hover:bg-zinc-700/50 shrink-0"
+      title="Copy message"
+    >
+      {copied ? "Copied" : "Copy"}
+    </button>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Runtime context detection & provenance extraction
 // ---------------------------------------------------------------------------
 
@@ -607,11 +631,12 @@ export function MessageRenderer({
           ))}
           {/* Actual user message content */}
           {realText && (
-            <div className="flex justify-end">
+            <div className="flex justify-end group">
               <div className="max-w-[80%] rounded-lg px-3.5 py-2.5 text-sm bg-indigo-600 text-zinc-100">
                 <div className="flex items-center gap-2 mb-1">
                   <span className="text-[10px] font-semibold uppercase tracking-wider text-indigo-200/60">you</span>
                   {msg.ts && <span className="text-[10px] tabular-nums opacity-50">{formatTimestamp(msg.ts)}</span>}
+                  <CopyButton text={realText} />
                 </div>
                 <span className="whitespace-pre-wrap">{realText}</span>
               </div>
@@ -696,8 +721,9 @@ export function MessageRenderer({
         {textBlocks.map(({ text, index }) => (
           <div
             key={index}
-            className="rounded-lg px-3 py-2 bg-zinc-800/80 text-zinc-200 text-sm"
+            className="rounded-lg px-3 py-2 bg-zinc-800/80 text-zinc-200 text-sm group"
           >
+            <div className="flex justify-end mb-0.5"><CopyButton text={text} /></div>
             <div className="prose prose-sm prose-invert max-w-none [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1">
               <ReactMarkdown components={markdownComponents}>
                 {text}
@@ -778,7 +804,7 @@ export function MessageRenderer({
       {externalContent && externalContent}
       {/* Regular message bubble */}
       {cleanText && (
-      <div className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
+      <div className={`flex ${isUser ? "justify-end" : "justify-start"} group`}>
         <div
           className={`max-w-[80%] rounded-lg px-3.5 py-2.5 text-sm ${
             isUser
@@ -786,7 +812,7 @@ export function MessageRenderer({
               : "bg-zinc-800/80 text-zinc-200"
           }`}
         >
-        {/* Header with role + timestamp */}
+        {/* Header with role + timestamp + copy */}
         <div className="flex items-center gap-2 mb-1">
           {agentId && !isUser && (
             <ClickableAgentBadge agentId={agentId} />
@@ -801,6 +827,7 @@ export function MessageRenderer({
               {formatTimestamp(msg.ts)}
             </span>
           )}
+          <CopyButton text={cleanText} />
         </div>
 
         {/* Content */}

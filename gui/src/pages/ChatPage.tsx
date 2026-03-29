@@ -247,9 +247,49 @@ export default function ChatPage() {
     }
   }, [client, agentId, modelId]);
 
+  // Handle slash commands locally
+  const handleSlashCommand = useCallback((cmd: string): boolean => {
+    const parts = cmd.trim().split(/\s+/);
+    const name = parts[0].toLowerCase();
+    switch (name) {
+      case "/clear":
+        setMessages([]);
+        return true;
+      case "/abort":
+        if (client && sessionKey) client.call("sessions.abort", { key: sessionKey }).catch(() => {});
+        setSending(false);
+        return true;
+      case "/reset":
+        if (client && sessionKey) {
+          client.call("sessions.reset", { key: sessionKey }).then(() => setMessages([])).catch(() => {});
+        }
+        return true;
+      case "/compact":
+        if (client && sessionKey) {
+          client.call("sessions.compact", { key: sessionKey }).catch(() => {});
+        }
+        return true;
+      case "/help":
+        setMessages(prev => [...prev, {
+          role: "assistant" as const,
+          content: "**可用命令：**\n- `/clear` — 清空本地聊天显示\n- `/abort` — 终止当前回复\n- `/reset` — 清空 session 历史（保留 key）\n- `/compact` — 压缩 session 记录\n- `/help` — 显示此帮助",
+          ts: Date.now(),
+        }]);
+        return true;
+      default:
+        return false;
+    }
+  }, [client, sessionKey]);
+
   // Send message
   const handleSend = useCallback(async () => {
     if (!client || !sessionKey || !input.trim() || sending) return;
+
+    // Check for slash commands
+    if (input.trim().startsWith("/")) {
+      const handled = handleSlashCommand(input.trim());
+      if (handled) { setInput(""); return; }
+    }
 
     const userMsg: ChatMessage = {
       role: "user",
