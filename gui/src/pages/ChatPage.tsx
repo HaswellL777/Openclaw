@@ -233,7 +233,7 @@ export default function ChatPage() {
       const res = await client.call<{ key?: string; sessionKey?: string }>(
         "sessions.create",
         {
-          agent: agentId || undefined,
+          agentId: agentId || undefined,
           model: modelId || undefined,
         },
       );

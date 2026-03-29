@@ -202,79 +202,94 @@ const nodeTypes = { session: SessNode, taskHeader: TaskHeaderNode, root: RootNod
 const NODE_W = 220;
 const NODE_H_TASK = 130;
 const NODE_H_SESS = 75;
+const GROUPS_PER_ROW = 3;
+const GROUP_PAD_X = 60;
+const GROUP_PAD_Y = 40;
 
 function layoutGraph(rootKey: string, rootLabel: string, groups: TaskGroup[], taskNames?: Record<string, string>, archivedTasks?: Set<string>) {
   const nodes: Node[] = [];
   const edges: Edge[] = [];
 
-  const g = new dagre.graphlib.Graph();
-  g.setGraph({ rankdir: "TB", ranksep: 60, nodesep: 30, edgesep: 20 });
-  g.setDefaultEdgeLabel(() => ({}));
+  // Layout each task group independently, then tile them in a grid
+  const groupBoxes: { w: number; h: number; nodes: Node[]; edges: Edge[] }[] = [];
 
   for (const group of groups) {
+    const gNodes: Node[] = [];
+    const gEdges: Edge[] = [];
+    const dg = new dagre.graphlib.Graph();
+    dg.setGraph({ rankdir: "TB", ranksep: 40, nodesep: 20, edgesep: 15 });
+    dg.setDefaultEdgeLabel(() => ({}));
+
     // Task header node
-    g.setNode(group.id, { width: 280, height: NODE_H_TASK });
-    nodes.push({
+    dg.setNode(group.id, { width: 280, height: NODE_H_TASK });
+    gNodes.push({
       id: group.id, type: "taskHeader",
-      position: { x: 0, y: 0 }, // will be set by dagre
+      position: { x: 0, y: 0 },
       data: { group, customName: taskNames?.[group.id], isArchived: archivedTasks?.has(group.id) },
     });
 
     const firstLevel = group.runs.filter(r => r.requesterSessionKey === rootKey);
     const secondLevel = group.runs.filter(r => r.requesterSessionKey !== rootKey);
 
-    // First-level session nodes
     for (const r of firstLevel) {
       const agent = agentFromKey(r.childSessionKey);
-      g.setNode(r.childSessionKey, { width: NODE_W, height: NODE_H_SESS });
-      nodes.push({
-        id: r.childSessionKey, type: "session",
-        position: { x: 0, y: 0 },
-        data: { run: r, agentId: agent, colors: ac(agent) },
-      });
-      g.setEdge(group.id, r.childSessionKey);
-      edges.push({
+      dg.setNode(r.childSessionKey, { width: NODE_W, height: NODE_H_SESS });
+      gNodes.push({ id: r.childSessionKey, type: "session", position: { x: 0, y: 0 }, data: { run: r, agentId: agent, colors: ac(agent) } });
+      dg.setEdge(group.id, r.childSessionKey);
+      gEdges.push({
         id: `${group.id}->${r.childSessionKey}`, source: group.id, target: r.childSessionKey,
         style: { stroke: ac(agent).dot, strokeWidth: 1.5, opacity: 0.35 },
         markerEnd: { type: MarkerType.ArrowClosed, color: ac(agent).dot, width: 8, height: 8 },
       });
     }
 
-    // Second-level session nodes
     for (const r of secondLevel) {
       const agent = agentFromKey(r.childSessionKey);
-      g.setNode(r.childSessionKey, { width: NODE_W, height: NODE_H_SESS });
-      nodes.push({
-        id: r.childSessionKey, type: "session",
-        position: { x: 0, y: 0 },
-        data: { run: r, agentId: agent, colors: ac(agent) },
-      });
-
-      const parentInGraph = g.hasNode(r.requesterSessionKey);
-      const sourceId = parentInGraph ? r.requesterSessionKey : group.id;
-      g.setEdge(sourceId, r.childSessionKey);
-      edges.push({
-        id: `${r.requesterSessionKey}->${r.childSessionKey}`,
-        source: sourceId,
-        target: r.childSessionKey,
+      dg.setNode(r.childSessionKey, { width: NODE_W, height: NODE_H_SESS });
+      gNodes.push({ id: r.childSessionKey, type: "session", position: { x: 0, y: 0 }, data: { run: r, agentId: agent, colors: ac(agent) } });
+      const sourceId = dg.hasNode(r.requesterSessionKey) ? r.requesterSessionKey : group.id;
+      dg.setEdge(sourceId, r.childSessionKey);
+      gEdges.push({
+        id: `${r.requesterSessionKey}->${r.childSessionKey}`, source: sourceId, target: r.childSessionKey,
         style: { stroke: ac(agent).dot, strokeWidth: 1.5, opacity: 0.35 },
         markerEnd: { type: MarkerType.ArrowClosed, color: ac(agent).dot, width: 8, height: 8 },
       });
     }
+
+    dagre.layout(dg);
+
+    // Get bounding box
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (const n of gNodes) {
+      const dn = dg.node(n.id);
+      if (!dn) continue;
+      const w = dn.width ?? NODE_W;
+      const h = dn.height ?? NODE_H_SESS;
+      n.position = { x: dn.x - w / 2, y: dn.y - h / 2 };
+      minX = Math.min(minX, n.position.x);
+      minY = Math.min(minY, n.position.y);
+      maxX = Math.max(maxX, n.position.x + w);
+      maxY = Math.max(maxY, n.position.y + h);
+    }
+    // Normalize positions to start at (0,0)
+    for (const n of gNodes) { n.position.x -= minX; n.position.y -= minY; }
+
+    groupBoxes.push({ w: maxX - minX, h: maxY - minY, nodes: gNodes, edges: gEdges });
   }
 
-  // Run dagre layout
-  dagre.layout(g);
+  // Tile groups in a grid
+  let curX = 0, curY = 0, rowMaxH = 0;
+  for (let i = 0; i < groupBoxes.length; i++) {
+    const box = groupBoxes[i];
+    const col = i % GROUPS_PER_ROW;
+    if (col === 0 && i > 0) { curX = 0; curY += rowMaxH + GROUP_PAD_Y; rowMaxH = 0; }
 
-  // Apply dagre positions to React Flow nodes
-  for (const node of nodes) {
-    const dagreNode = g.node(node.id);
-    if (dagreNode) {
-      node.position = {
-        x: dagreNode.x - (dagreNode.width ?? NODE_W) / 2,
-        y: dagreNode.y - (dagreNode.height ?? NODE_H_SESS) / 2,
-      };
-    }
+    for (const n of box.nodes) { n.position.x += curX; n.position.y += curY; }
+    nodes.push(...box.nodes);
+    edges.push(...box.edges);
+
+    rowMaxH = Math.max(rowMaxH, box.h);
+    curX += box.w + GROUP_PAD_X;
   }
 
   return { nodes, edges };

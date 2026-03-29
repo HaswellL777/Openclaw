@@ -12,96 +12,96 @@ interface HelpSection {
 
 const SECTIONS: HelpSection[] = [
   {
-    title: "Gateway Management",
+    title: "Gateway 管理",
     items: [
-      { label: "Restart gateway", content: "sudo systemctl restart openclaw-gateway.service" },
-      { label: "Check gateway status", content: "sudo systemctl status openclaw-gateway.service" },
-      { label: "View gateway logs (live)", content: "sudo journalctl -u openclaw-gateway.service -f" },
-      { label: "View gateway log file", content: "tail -f /var/log/openclaw/openclaw.log" },
-      { label: "Check gateway port", content: "ss -tlnp | grep 17777" },
+      { label: "重启 Gateway", content: "sudo systemctl restart openclaw-gateway.service" },
+      { label: "查看 Gateway 状态", content: "sudo systemctl status openclaw-gateway.service" },
+      { label: "实时查看日志（journald）", content: "sudo journalctl -u openclaw-gateway.service -f" },
+      { label: "查看日志文件", content: "tail -f /var/log/openclaw/openclaw.log" },
+      { label: "检查 Gateway 端口", content: "ss -tlnp | grep 17777" },
     ],
   },
   {
-    title: "Docker / Sandbox",
+    title: "Docker / 沙箱",
     items: [
-      { label: "List running containers", content: "docker ps --filter name=openclaw" },
-      { label: "View shared sandbox container", content: "docker inspect openclaw-sbx-shared" },
-      { label: "Force remove shared container (after image change)", content: "docker rm -f openclaw-sbx-shared" },
-      { label: "List OpenClaw images", content: "docker images | grep openclaw" },
-      { label: "View container logs", content: "docker logs openclaw-sbx-shared --tail 50" },
-      { label: "View Docker network", content: "docker network inspect openclaw-task-net" },
+      { label: "查看运行中容器", content: "docker ps --filter name=openclaw" },
+      { label: "查看共享沙箱容器详情", content: "docker inspect openclaw-sbx-shared" },
+      { label: "强制移除容器（镜像更换后必须执行）", content: "docker rm -f openclaw-sbx-shared" },
+      { label: "查看 OpenClaw 镜像", content: "docker images | grep openclaw" },
+      { label: "查看容器日志", content: "docker logs openclaw-sbx-shared --tail 50" },
+      { label: "查看 Docker 网络", content: "docker network inspect openclaw-task-net" },
     ],
   },
   {
-    title: "Configuration",
+    title: "配置文件",
     items: [
-      { label: "Config file path", content: "/etc/openclaw/openclaw.json" },
-      { label: "Environment file (secrets)", content: "/etc/openclaw/openclaw.env" },
-      { label: "View current config", content: "sudo cat /etc/openclaw/openclaw.json | python3 -m json.tool" },
-      { label: "Validate config (dry run)", content: "sudo -u openclaw openclaw doctor --check" },
+      { label: "主配置文件路径", content: "/etc/openclaw/openclaw.json" },
+      { label: "环境变量文件（密钥）", content: "/etc/openclaw/openclaw.env" },
+      { label: "查看当前配置", content: "sudo cat /etc/openclaw/openclaw.json | python3 -m json.tool" },
+      { label: "验证配置（仅检查）", content: "sudo -u openclaw openclaw doctor --check" },
     ],
   },
   {
-    title: "Directory Structure",
+    title: "目录结构",
     items: [
-      { label: "Code (root-owned, read-only)", content: "/opt/openclaw" },
-      { label: "Config (root:openclaw)", content: "/etc/openclaw/" },
-      { label: "Runtime data (btrfs subvolume)", content: "/var/lib/openclaw/" },
-      { label: "State directory", content: "/var/lib/openclaw/.openclaw/" },
-      { label: "Session store", content: "/var/lib/openclaw/.openclaw/sessions/" },
-      { label: "Subagent runs registry", content: "/var/lib/openclaw/.openclaw/subagents/runs.json" },
-      { label: "Extensions (plugins)", content: "/var/lib/openclaw/.openclaw/extensions/" },
-      { label: "Agent workspaces", content: "/var/lib/openclaw/agents/<agentId>/" },
-      { label: "Logs", content: "/var/log/openclaw/" },
-      { label: "Snapshots", content: "/.snapshots/" },
+      { label: "程序代码（root 所有，只读）", content: "/opt/openclaw" },
+      { label: "配置（root:openclaw）", content: "/etc/openclaw/" },
+      { label: "运行时数据（btrfs 独立子卷）", content: "/var/lib/openclaw/" },
+      { label: "状态目录", content: "/var/lib/openclaw/.openclaw/" },
+      { label: "Session 存储", content: "/var/lib/openclaw/.openclaw/sessions/" },
+      { label: "Subagent 运行注册表", content: "/var/lib/openclaw/.openclaw/subagents/runs.json" },
+      { label: "插件目录", content: "/var/lib/openclaw/.openclaw/extensions/" },
+      { label: "Agent 工作区", content: "/var/lib/openclaw/agents/<agentId>/" },
+      { label: "日志", content: "/var/log/openclaw/" },
+      { label: "快照", content: "/.snapshots/" },
     ],
   },
   {
-    title: "Snapshot & Backup",
+    title: "快照与备份",
     items: [
-      { label: "Create root snapshot", content: "sudo btrfs subvolume snapshot / /.snapshots/root-pre-<label>-$(date +%Y%m%d-%H%M)" },
-      { label: "List snapshots", content: "ls -la /.snapshots/" },
-      { label: "Note: /var/lib/openclaw is separate subvolume", content: "Root snapshots do NOT include OpenClaw runtime data. Backup /var/lib/openclaw separately." },
-      { label: "Vault mount (offline, noauto)", content: "sudo mount /mnt/vault" },
+      { label: "创建根快照", content: "sudo btrfs subvolume snapshot / /.snapshots/root-pre-<label>-$(date +%Y%m%d-%H%M)" },
+      { label: "列出快照", content: "ls -la /.snapshots/" },
+      { label: "注意：/var/lib/openclaw 是独立子卷", content: "根快照不包含 OpenClaw 运行时数据。需要单独备份 /var/lib/openclaw。" },
+      { label: "挂载 Vault（离线 noauto）", content: "sudo mount /mnt/vault" },
     ],
   },
   {
-    title: "Session Management",
+    title: "Session 管理",
     items: [
-      { label: "List sessions (via GUI)", content: "Open Sessions page in this GUI, or use gateway API: sessions.list" },
-      { label: "Session key format", content: "agent:<agentId>:<rest> — subagent depth = count of ':subagent:' in key" },
-      { label: "View session transcript on disk", content: "/var/lib/openclaw/agents/<agentId>/sessions/<sessionId>.jsonl" },
-      { label: "Session 'active' = updatedAt within N minutes", content: "No status field for regular sessions. Use sessions.list({activeMinutes: N}) to filter." },
-      { label: "Maintenance mode (current)", content: "mode: 'warn' (default) — does not auto-delete. pruneAfterMs = 30 days, maxEntries = 500." },
+      { label: "查看 Session 列表", content: "通过本 GUI 的 Sessions 页面查看，或使用 Gateway API：sessions.list" },
+      { label: "Session Key 格式", content: "agent:<agentId>:<rest> — 子代理深度 = key 中 ':subagent:' 的数量" },
+      { label: "查看 Session 对话记录文件", content: "/var/lib/openclaw/agents/<agentId>/sessions/<sessionId>.jsonl" },
+      { label: "活跃 = updatedAt 在最近 N 分钟内", content: "普通 Session 没有 status 字段。使用 sessions.list({activeMinutes: N}) 按时间窗口过滤。" },
+      { label: "维护模式（当前）", content: "mode: 'warn'（默认）— 不自动删除。pruneAfterMs = 30 天，maxEntries = 500。" },
     ],
   },
   {
-    title: "Agent Workspaces",
+    title: "Agent 工作区",
     items: [
-      { label: "Publish main workspace", content: "bash scripts/publish-workspace-main.sh" },
-      { label: "Manual rsync for task-runner/RC/auditor", content: "rsync -av workspace-<agent>-template/ /var/lib/openclaw/agents/<agentId>/workspace/" },
-      { label: "WARNING: chown -R fails on knowledge/", content: "knowledge/ is a read-only bind mount. Chown specific paths only, not -R." },
-      { label: "Container UID must match", content: "runner must be --uid 997 --gid 984 (matches openclaw user)" },
+      { label: "发布 main 工作区", content: "bash scripts/publish-workspace-main.sh" },
+      { label: "手动 rsync 其他 agent", content: "rsync -av workspace-<agent>-template/ /var/lib/openclaw/agents/<agentId>/workspace/" },
+      { label: "警告：chown -R 会在 knowledge/ 上失败", content: "knowledge/ 是只读绑定挂载，不能递归 chown。需要逐个路径指定。" },
+      { label: "容器 UID 必须匹配", content: "runner 必须使用 --uid 997 --gid 984（匹配 openclaw 用户）" },
     ],
   },
   {
-    title: "Troubleshooting",
+    title: "故障排查",
     items: [
-      { label: "Gateway crash loop", content: "Check config schema: .strict() rejects unknown fields. Remove any unrecognized keys from openclaw.json." },
-      { label: "Plugin crash loop", content: "Check /var/lib/openclaw/.openclaw/extensions/ — every subdirectory must have openclaw.plugin.json." },
-      { label: "Config changes not taking effect", content: "Config must be in /etc/openclaw/openclaw.json, NOT /var/lib/openclaw/.openclaw/openclaw.json." },
-      { label: "Container not updating after image change", content: "scope: 'shared' reuses the existing container. Run: docker rm -f openclaw-sbx-shared" },
-      { label: "queueOwnerTtlSeconds too low", content: "Default 0.1s causes task timeouts. Override to 300+ in config." },
-      { label: "GUI WebSocket connection fails", content: "Vite proxy must rewrite Origin header to localhost:17777. Check gui/vite.config.ts." },
+      { label: "Gateway 启动崩溃循环", content: "检查配置 schema：.strict() 拒绝未知字段。从 openclaw.json 移除所有不认识的 key。" },
+      { label: "插件导致崩溃", content: "检查 /var/lib/openclaw/.openclaw/extensions/ — 每个子目录必须有 openclaw.plugin.json。" },
+      { label: "配置修改不生效", content: "配置必须在 /etc/openclaw/openclaw.json，不是 /var/lib/openclaw/.openclaw/openclaw.json。" },
+      { label: "更换镜像后容器不更新", content: "scope: 'shared' 会复用旧容器。执行：docker rm -f openclaw-sbx-shared" },
+      { label: "queueOwnerTtlSeconds 太低", content: "默认 0.1 秒会导致任务超时。在配置中 override 到 300 以上。" },
+      { label: "GUI WebSocket 连接失败", content: "Vite proxy 必须重写 Origin header 到 localhost:17777。检查 gui/vite.config.ts。" },
     ],
   },
   {
-    title: "Dangerous Operations (DO NOT run as nick)",
+    title: "危险操作（禁止以 nick 用户执行）",
     items: [
-      { label: "openclaw onboard", content: "Creates ~/.openclaw/ user-level config, spawns second gateway. DO NOT RUN." },
-      { label: "openclaw doctor --repair", content: "Auto-repairs by creating user-level state. DO NOT RUN." },
-      { label: "openclaw gateway (as nick)", content: "Spawns nick-owned gateway on different port. DO NOT RUN." },
-      { label: "openclaw config set", content: "Writes to ~/.openclaw/openclaw.json (user-level). DO NOT RUN." },
+      { label: "openclaw onboard", content: "会创建 ~/.openclaw/ 用户级配置，产生第二个 gateway 进程。禁止执行。" },
+      { label: "openclaw doctor --repair", content: "会自动创建用户级状态目录进行修复。禁止执行。" },
+      { label: "openclaw gateway（以 nick 执行）", content: "会产生 nick 用户的 gateway 进程，占用不同端口。禁止执行。" },
+      { label: "openclaw config set", content: "会写入 ~/.openclaw/openclaw.json（用户级配置文件）。禁止执行。" },
     ],
   },
 ];
@@ -165,8 +165,8 @@ export default function DocsPage() {
   return (
     <div className="p-6 h-full overflow-y-auto">
       <PageHeader
-        title="Help & Reference"
-        subtitle="Common operations, directory structure, and troubleshooting"
+        title="帮助与参考"
+        subtitle="常用操作、目录结构与故障排查"
       />
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {SECTIONS.map(s => (
