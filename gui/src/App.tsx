@@ -49,7 +49,7 @@ const NAV_GROUPS = [
     items: [
       { to: "/skills", label: "Skills", icon: "skills" },
       { to: "/mcp", label: "MCP", icon: "skills" },
-      { to: "/files", label: "Files", icon: "files" },
+      { to: "/files", label: "Workspace", icon: "files" },
       { to: "/docker", label: "Docker", icon: "docker" },
       { to: "/broker", label: "Broker", icon: "broker" },
       { to: "/settings", label: "Settings", icon: "settings" },
