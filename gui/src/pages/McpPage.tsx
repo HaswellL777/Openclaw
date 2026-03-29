@@ -28,8 +28,12 @@ export default function McpPage() {
   // Extract MCP servers from config
   const mcpServers = useMemo(() => {
     if (!config) return {};
-    const resolved = (config as any).resolved ?? (config as any).parsed ?? {};
-    return resolved?.mcp?.servers ?? {};
+    // Check multiple possible locations — config.get returns different views
+    const c = config as any;
+    return c.resolved?.mcp?.servers
+      ?? c.parsed?.mcp?.servers
+      ?? c.config?.mcp?.servers
+      ?? {};
   }, [config]);
 
   const serverEntries = Object.entries(mcpServers) as [string, any][];
@@ -37,8 +41,8 @@ export default function McpPage() {
   // MCP raw config for syntax highlight
   const mcpRaw = useMemo(() => {
     if (!config) return "";
-    const resolved = (config as any).resolved ?? (config as any).parsed ?? {};
-    const mcp = resolved?.mcp;
+    const c = config as any;
+    const mcp = c.resolved?.mcp ?? c.parsed?.mcp ?? c.config?.mcp;
     return mcp ? JSON.stringify(mcp, null, 2) : "";
   }, [config]);
 

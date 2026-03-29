@@ -2,6 +2,7 @@ import { useState, useCallback, useMemo } from "react";
 import {
   useCronJobs,
   useCronRuns,
+  useAgents,
   useGatewayStore,
 } from "@/api/hooks";
 import type { CronJob, CronRun } from "@/api/types";
@@ -54,18 +55,22 @@ const statusColors: Record<string, string> = {
 
 interface JobFormData {
   name: string;
+  scheduleType: "every" | "cron";
   schedule: string;
-  agent: string;
-  message: string;
+  sessionTarget: string;
   wakeMode: string;
+  payloadKind: string;
+  message: string;
 }
 
 const emptyForm: JobFormData = {
   name: "",
+  scheduleType: "cron",
   schedule: "",
-  agent: "",
+  sessionTarget: "main",
+  wakeMode: "now",
+  payloadKind: "agentTurn",
   message: "",
-  wakeMode: "spawn",
 };
 
 function JobForm({
@@ -80,6 +85,8 @@ function JobForm({
   submitting: boolean;
 }) {
   const [form, setForm] = useState<JobFormData>(initial);
+  const { data: agentData } = useAgents();
+  const agents = agentData?.agents ?? [];
   const set = (key: keyof JobFormData, val: string) =>
     setForm((f) => ({ ...f, [key]: val }));
 
@@ -93,43 +100,67 @@ function JobForm({
               type="text"
               value={form.name}
               onChange={(e) => set("name", e.target.value)}
+              placeholder="My cron job"
               className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-2.5 py-1.5 text-sm text-zinc-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
             />
           </div>
           <div>
+            <label className="block text-xs text-zinc-400 mb-1">Schedule Type</label>
+            <select
+              value={form.scheduleType}
+              onChange={(e) => set("scheduleType", e.target.value)}
+              className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-2.5 py-1.5 text-sm text-zinc-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            >
+              <option value="cron">Cron Expression</option>
+              <option value="every">Interval</option>
+            </select>
+          </div>
+          <div>
             <label className="block text-xs text-zinc-400 mb-1">
-              Schedule (cron)
+              {form.scheduleType === "cron" ? "Cron Expression" : "Interval (e.g. 5m, 1h)"}
             </label>
             <input
               type="text"
               value={form.schedule}
               onChange={(e) => set("schedule", e.target.value)}
-              placeholder="*/5 * * * *"
+              placeholder={form.scheduleType === "cron" ? "*/5 * * * *" : "5m"}
               className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-2.5 py-1.5 text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-indigo-500"
             />
           </div>
           <div>
-            <label className="block text-xs text-zinc-400 mb-1">Agent</label>
-            <input
-              type="text"
-              value={form.agent}
-              onChange={(e) => set("agent", e.target.value)}
-              placeholder="task-runner"
-              className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-2.5 py-1.5 text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-            />
+            <label className="block text-xs text-zinc-400 mb-1">Session Target</label>
+            <select
+              value={form.sessionTarget}
+              onChange={(e) => set("sessionTarget", e.target.value)}
+              className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-2.5 py-1.5 text-sm text-zinc-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            >
+              <option value="main">Main (default agent)</option>
+              <option value="isolated">Isolated (new session)</option>
+              {agents.map(a => (
+                <option key={a.id} value={`session:agent:${a.id}`}>Agent: {a.id}</option>
+              ))}
+            </select>
           </div>
           <div>
-            <label className="block text-xs text-zinc-400 mb-1">
-              Wake Mode
-            </label>
+            <label className="block text-xs text-zinc-400 mb-1">Wake Mode</label>
             <select
               value={form.wakeMode}
               onChange={(e) => set("wakeMode", e.target.value)}
               className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-2.5 py-1.5 text-sm text-zinc-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
             >
-              <option value="spawn">spawn</option>
-              <option value="resume">resume</option>
-              <option value="send">send</option>
+              <option value="now">Now (immediate)</option>
+              <option value="next-heartbeat">Next Heartbeat</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs text-zinc-400 mb-1">Payload Type</label>
+            <select
+              value={form.payloadKind}
+              onChange={(e) => set("payloadKind", e.target.value)}
+              className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-2.5 py-1.5 text-sm text-zinc-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            >
+              <option value="agentTurn">Agent Turn (send message)</option>
+              <option value="systemEvent">System Event</option>
             </select>
           </div>
         </div>
@@ -395,20 +426,26 @@ export default function CronPage() {
       setSubmitting(true);
       setActionError(null);
       try {
+        const schedule = formData.scheduleType === "every"
+          ? { every: formData.schedule }
+          : { cron: formData.schedule };
+
+        const payload = formData.payloadKind === "systemEvent"
+          ? { systemEvent: { text: formData.message } }
+          : { agentTurn: { message: formData.message } };
+
         const params: any = {
           name: formData.name,
-          schedule: formData.schedule,
-          wakeMode: formData.wakeMode || undefined,
-          sessionTarget: {
-            agent: formData.agent || undefined,
-            message: formData.message || undefined,
-          },
+          schedule,
+          wakeMode: formData.wakeMode,
+          sessionTarget: formData.sessionTarget,
+          payload,
         };
 
         if (editingJob) {
-          await rpc("cron.update", { id: editingJob.id, ...params });
+          await rpc("cron.update", { id: editingJob.id, patch: params });
         } else {
-          await rpc("cron.create", params);
+          await rpc("cron.add", params);
         }
         setShowForm(false);
         setEditingJob(null);
