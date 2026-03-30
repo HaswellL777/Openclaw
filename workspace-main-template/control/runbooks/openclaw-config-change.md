@@ -145,10 +145,10 @@ sudo reboot
 - Check btrfs send/receive errors in logs
 - Retry sync after fixing issue
 
-## Phase 1B+ automation
+## Broker automation (operational)
 
-When host-ops broker is available:
-- This runbook becomes input to broker automation
+Host-ops broker is available (since 2026-03-17):
+- This runbook is input to broker automation
 - main agent calls broker API with config patch
 - Broker executes steps automatically
 - main agent monitors and reports results

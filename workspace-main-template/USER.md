@@ -23,6 +23,5 @@
 - Distinguish between "already implemented" and "planned for future phases"
 
 ## Context awareness
-- User is aware of Phase 1A/1B/2/3 roadmap
-- User expects main to stay within Phase 1A boundaries until explicitly upgraded
+- System is Phase 4+ operational (since 2026-03-26): all agents deployed, broker operational, ACP verified, GUI deployed
 - User values accurate status reporting over optimistic assumptions

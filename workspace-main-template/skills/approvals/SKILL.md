@@ -58,7 +58,7 @@ This skill should:
 3. Write to control/state/pending-approvals.json with plan
 4. Present plan to human
 5. Wait for explicit approval
-6. If approved, route to host-ops broker (Phase 1B+)
+6. If approved, route to host-ops broker
 
 ### Category 3: Post-validation required (MONITORING)
 - Modify configuration files (non-critical)

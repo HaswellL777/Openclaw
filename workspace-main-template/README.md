@@ -44,7 +44,7 @@ workspace-main/
 │   │   └── SKILL.md
 │   ├── approvals/              # Approvals skill
 │   │   └── SKILL.md
-│   └── broker/                 # Broker skill (Phase 1B+)
+│   └── broker/                 # Broker skill (operational)
 │       └── SKILL.md
 ├── memory/                      # Optional: long-term memory
 └── .gitignore                   # Ignore runtime state
@@ -80,21 +80,21 @@ Use `scripts/check-workspace-main.sh` to validate a deployed workspace-main arti
 ./scripts/check-workspace-main.sh /var/lib/openclaw/.openclaw/workspace-main
 ```
 
-## Phase 1B status
+## Workspace status (Phase 4+)
 - [x] Template structure created
 - [x] Core control files (AGENTS, IDENTITY, SOUL, USER, HEARTBEAT, TOOLS)
 - [x] Control policies (routing, approval, allowed-workers, host-ops-api)
 - [x] Control state files (pending-approvals, last-health, last-sop-hash, last-task-index)
 - [x] Runbooks (openclaw-config-change, gateway-restart, rollback)
-- [x] Skills (host-sop, routing, approvals, broker)
-- [ ] SOP.md populated (requires publish-sop.sh)
-- [ ] Broker/wrapper integration (Phase 1B later)
-- [ ] Live deployment validation (Phase 1B later)
-- [ ] task-runner integration (Phase 1B later)
+- [x] Skills (host-sop, routing, approvals, broker, task-delegation)
+- [x] SOP.md populated and published
+- [x] Broker operational (since 2026-03-17)
+- [x] Live deployment validated and published (2026-03-29)
+- [x] task-runner integration operational (since 2026-03-23)
 
 ## File categories
 
-### Phase 1A/1B required (must be present and valid)
+### Required (must be present and valid)
 - AGENTS.md, IDENTITY.md, SOUL.md, USER.md, HEARTBEAT.md, TOOLS.md
 - control/SOP.md (must be published from authoritative source)
 - control/routing-policy.md
@@ -105,9 +105,9 @@ Use `scripts/check-workspace-main.sh` to validate a deployed workspace-main arti
 - control/runbooks/*.md
 - skills/*/SKILL.md
 
-### Phase 1B+ (planned, not yet operational)
-- skills/broker/SKILL.md (defined but broker not yet deployed)
-- control/host-ops-api.md (defined but broker not yet deployed)
+### Operational (Phase 4+)
+- skills/broker/SKILL.md (broker operational since 2026-03-17)
+- control/host-ops-api.md (8/8 host_ops actions available)
 
 ### Optional (may be added later)
 - BOOT.md (if internal boot flow needed)

@@ -17,7 +17,7 @@ This skill provides access to the host SOP document, which contains:
 - Prohibited operations (safety boundaries)
 - Directory structure and ownership rules
 - Snapshot and backup procedures
-- Phase status (1A/1B/2/3)
+- Phase status (Phase 4+ operational)
 - Known issues and workarounds
 
 ## Authority
@@ -40,7 +40,7 @@ This skill should:
   → Read control/SOP.md prohibited operations section, list them
 
 - "What is the current phase status?"
-  → Read control/SOP.md, answer: Phase 1A (main bootstrap only)
+  → Read control/SOP.md, answer: Phase 4+ (all agents deployed, broker operational, ACP verified)
 
 - "How should I handle snapshot operations?"
   → Read control/SOP.md snapshot procedures, explain workflow
@@ -64,12 +64,12 @@ If SOP doesn't answer a question or is ambiguous:
 3. Escalate to human for clarification
 4. Do NOT guess or invent facts
 
-## Phase 1B implementation
+## Implementation
 - Markdown-first: skill definition in this file
 - No code execution required
 - main agent reads this skill definition
 - main agent reads control/SOP.md for facts
-- Future: may integrate with broker for live SOP queries
+- Broker integration available for live SOP queries (broker operational since 2026-03-17)
 
 ## Safety notes
 - This skill is read-only
@@ -81,7 +81,7 @@ If SOP doesn't answer a question or is ambiguous:
 ## Related skills
 - `routing`: determines when to use this skill vs others
 - `approvals`: determines when human approval is needed based on SOP prohibited list
-- `broker`: uses SOP facts to validate host operations (Phase 1B+)
+- `broker`: uses SOP facts to validate host operations (operational)
 
 ## Example interactions
 

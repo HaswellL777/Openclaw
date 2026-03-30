@@ -7,7 +7,7 @@ This file defines how main agent monitors and reports system health.
 - On startup: Always read control/state/last-health.md
 - On user request: Run health check and update state
 - After significant events: Update health state
-- Periodic: Not yet implemented (Phase 1B+)
+- Periodic: Not yet implemented (planned)
 
 ## Health check components
 
@@ -74,7 +74,7 @@ Write to `control/state/last-health.md`:
 
 ## When to report degraded
 - Optional features unavailable
-- Subagents not yet deployed (expected in Phase 1A)
+- Subagent temporarily unavailable (all agents deployed since Phase 4+)
 - Non-critical files missing
 
 ## Escalation

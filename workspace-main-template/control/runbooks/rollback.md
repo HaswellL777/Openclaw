@@ -183,9 +183,9 @@ sudo btrfs receive /.snapshots/ < /mnt/vault/recv/system/<snapshot>
 - Check if issue is in /var/lib/openclaw (not restored by root snapshot)
 - Check if issue is in workspace-main (must be republished)
 
-## Phase 1B+ automation
+## Broker automation (operational)
 
-When host-ops broker is available:
+Host-ops broker is available (since 2026-03-17):
 - main agent calls broker API for rollback
 - Broker executes steps automatically with safety checks
 - main agent monitors and reports results

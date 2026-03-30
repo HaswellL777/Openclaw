@@ -56,7 +56,7 @@ Operations that:
 3. Write to control/state/pending-approvals.json with plan
 4. Present plan to human
 5. Wait for explicit approval
-6. If approved, route to host-ops broker (Phase 2)
+6. If approved, route to host-ops broker
 7. Monitor execution and report results
 8. Update state files
 
@@ -145,11 +145,13 @@ Write to `control/state/pending-approvals.json`:
 }
 ```
 
-## Current capabilities (Phase 3 operational)
+## Current capabilities (Phase 4+ operational)
 
-- host-ops broker: operational (2026-03-17) → Category 2 operations routed through broker
-- task-runner: operational (2026-03-23) → Engineering tasks delegated to Docker sandbox
+- host-ops broker: operational (since 2026-03-17) → Category 2 operations routed through broker
+- task-runner: operational (since 2026-03-23) → Engineering tasks delegated to Docker sandbox
+- ACP verified (since 2026-03-26)
 - All 8 host_ops actions available for approved host mutations
+- GUI operational on port 3000 (since 2026-03-28)
 
 ## Approval examples
 
@@ -157,13 +159,13 @@ Write to `control/state/pending-approvals.json`:
 - **Category**: 1 (destructive)
 - **Approval required**: Yes
 - **Information needed**: Which snapshots, why, how to verify no data loss
-- **Workflow**: Request approval → Wait → If approved, route to broker (Phase 2)
+- **Workflow**: Request approval → Wait → If approved, route to broker
 
 ### Example 2: Update OpenClaw config to add new agent
 - **Category**: 2 (alter /etc/openclaw/openclaw.json)
 - **Approval required**: Yes (plan + approval)
 - **Information needed**: Full plan, risk assessment, rollback procedure, validation checklist
-- **Workflow**: Prepare plan → Request approval → Wait → If approved, route to broker (Phase 1B+)
+- **Workflow**: Prepare plan → Request approval → Wait → If approved, route to broker
 
 ### Example 3: Update workspace-main control files
 - **Category**: 3 (post-validation)

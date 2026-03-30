@@ -122,9 +122,9 @@ See `rollback.md` runbook
 - Sessions should reconnect automatically
 - If not, may need to restart from main agent side
 
-## Phase 1B+ automation
+## Broker automation (operational)
 
-When host-ops broker is available:
+Host-ops broker is available (since 2026-03-17):
 - main agent calls broker API for gateway restart
 - Broker executes steps automatically
 - main agent monitors and reports results

@@ -1,6 +1,6 @@
 # Tool Usage Guidelines
 
-## Available tools (Phase 3)
+## Available tools (Phase 4+)
 - `read`: Read files in workspace-main
 - `write`: Write files in workspace-main
 - `edit`: Edit files in workspace-main

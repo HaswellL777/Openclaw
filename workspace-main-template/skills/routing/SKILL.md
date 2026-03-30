@@ -52,7 +52,7 @@ Read `control/routing-policy.md` and apply decision tree:
 - host-ops broker: `host_ops` tool — **operational** (8/8 actions live E2E verified 2026-03-17)
 - Claude Code CLI: External tool, suggest to user
 
-## Current capabilities (Phase 3)
+## Current capabilities (Phase 4+)
 
 | Target | Status | Since |
 |--------|--------|-------|
