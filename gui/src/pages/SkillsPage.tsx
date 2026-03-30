@@ -92,10 +92,31 @@ function SkillsTab({ agentId }: { agentId: string }) {
     agentId || undefined,
   );
   const [updating, setUpdating] = useState(false);
+  const [sourceFilter, setSourceFilter] = useState("all");
+  const [search, setSearch] = useState("");
 
-  const skills: Skill[] = useMemo(() => {
+  const allSkills: Skill[] = useMemo(() => {
     return data?.skills ?? [];
   }, [data]);
+
+  // Unique sources for filter
+  const sources = useMemo(() => {
+    const s = new Set<string>();
+    for (const sk of allSkills) if (sk.source) s.add(sk.source);
+    return [...s].sort();
+  }, [allSkills]);
+
+  // Filtered skills
+  const skills = useMemo(() => {
+    return allSkills.filter(sk => {
+      if (sourceFilter !== "all" && sk.source !== sourceFilter) return false;
+      if (search) {
+        const q = search.toLowerCase();
+        if (!sk.name.toLowerCase().includes(q) && !(sk.description ?? "").toLowerCase().includes(q)) return false;
+      }
+      return true;
+    });
+  }, [allSkills, sourceFilter, search]);
 
   const handleUpdateAll = async () => {
     setUpdating(true);
@@ -118,13 +139,30 @@ function SkillsTab({ agentId }: { agentId: string }) {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
-        <p className="text-sm text-zinc-400 tabular-nums">
-          {skills.length} skill{skills.length !== 1 ? "s" : ""} found
+      <div className="flex items-center gap-3 mb-4 flex-wrap">
+        <select
+          value={sourceFilter}
+          onChange={e => setSourceFilter(e.target.value)}
+          className="bg-zinc-800 border border-zinc-700 rounded-lg px-2.5 py-1.5 text-xs text-zinc-200"
+        >
+          <option value="all">All sources ({allSkills.length})</option>
+          {sources.map(s => (
+            <option key={s} value={s}>{s} ({allSkills.filter(sk => sk.source === s).length})</option>
+          ))}
+        </select>
+        <input
+          type="text"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Search skills..."
+          className="bg-zinc-800 border border-zinc-700 rounded-lg px-2.5 py-1.5 text-xs text-zinc-200 placeholder:text-zinc-600 w-48"
+        />
+        <p className="text-sm text-zinc-400 tabular-nums ml-auto">
+          {skills.length}{skills.length !== allSkills.length ? ` / ${allSkills.length}` : ""} skills
         </p>
         <button
           onClick={handleUpdateAll}
-          disabled={updating || skills.length === 0}
+          disabled={updating || allSkills.length === 0}
           className="rounded-lg px-3 py-1.5 text-xs font-medium transition-colors
             bg-zinc-700 hover:bg-zinc-600 text-zinc-200
             disabled:bg-zinc-800 disabled:text-zinc-600 disabled:cursor-not-allowed"
