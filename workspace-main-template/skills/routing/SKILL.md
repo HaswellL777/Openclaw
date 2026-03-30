@@ -1,3 +1,9 @@
+---
+name: routing
+description: |
+  Route requests to appropriate execution contexts (main agent, task-runner, broker, Claude Code CLI, or human escalation). Use when determining where and how a user request should be executed.
+---
+
 # Routing Skill
 
 ## Skill identity

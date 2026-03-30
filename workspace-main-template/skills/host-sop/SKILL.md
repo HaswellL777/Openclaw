@@ -1,3 +1,9 @@
+---
+name: host-sop
+description: |
+  Provide authoritative host operational facts and procedures. Use when questions involve host configuration, directory structure, safety boundaries, snapshot discipline, or operational status.
+---
+
 # Host SOP Skill
 
 ## Skill identity

@@ -1,3 +1,9 @@
+---
+name: task-delegation
+description: |
+  Delegate tasks to sub-agents (task-runner, research-coordinator, auditor) with appropriate context, timeout, and monitoring. Use when work should be distributed to specialized agents.
+---
+
 # Task Delegation Skill
 
 ## Skill identity

@@ -1,3 +1,9 @@
+---
+name: approvals
+description: |
+  Handle approval workflows for risky operations (config changes, service restarts, security boundary modifications). Use when an operation requires operator confirmation before execution.
+---
+
 # Approvals Skill
 
 ## Skill identity

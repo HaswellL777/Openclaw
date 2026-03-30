@@ -1,3 +1,9 @@
+---
+name: broker
+description: |
+  Interact with the host-ops broker for host-level mutations (snapshots, config changes, service restarts, package management). Use when operations require elevated privileges or host-side changes.
+---
+
 # Broker Skill
 
 ## Skill identity
