@@ -166,6 +166,15 @@ function SkillsTab({ agentId }: { agentId: string }) {
                     {skill.bundled && (
                       <Badge variant="indigo">bundled</Badge>
                     )}
+                    {skill.source === "openclaw-workspace" && (
+                      <Badge variant="emerald">workspace</Badge>
+                    )}
+                    {skill.source?.includes("plugin") && (
+                      <Badge variant="purple">plugin</Badge>
+                    )}
+                    {skill.source?.includes("managed") && (
+                      <Badge variant="blue">managed</Badge>
+                    )}
                     <span className="text-xs text-zinc-500 capitalize">
                       {statusText}
                     </span>
