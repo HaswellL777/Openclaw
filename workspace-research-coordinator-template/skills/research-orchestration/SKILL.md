@@ -1,3 +1,9 @@
+---
+name: research-orchestration
+description: |
+  Manage long-running, multi-phase research tasks with iterative feedback loops.
+---
+
 # Research Orchestration Skill
 
 ## Skill identity

@@ -1,3 +1,9 @@
+---
+name: experiment-tracking
+description: |
+  Track experiments, maintain state, and make data-driven continuation decisions.
+---
+
 # Experiment Tracking Skill
 
 ## Skill identity

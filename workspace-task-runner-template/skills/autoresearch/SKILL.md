@@ -1,3 +1,9 @@
+---
+name: autoresearch
+description: |
+  Autonomous ML experiment loop — edit code, train, evaluate, iterate.
+---
+
 # Autoresearch Skill
 
 ## Skill identity

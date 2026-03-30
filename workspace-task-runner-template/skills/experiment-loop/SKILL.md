@@ -1,3 +1,9 @@
+---
+name: experiment-loop
+description: |
+  Iterative code improvement via hypothesis, modify, execute, evaluate, commit/revert cycle.
+---
+
 # Experiment Loop Skill
 
 ## Skill identity

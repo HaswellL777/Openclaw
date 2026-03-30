@@ -1,3 +1,9 @@
+---
+name: scrapling
+description: |
+  Web scraping and data extraction via the Scrapling framework.
+---
+
 # Scrapling Skill
 
 ## Skill identity

@@ -1,3 +1,9 @@
+---
+name: research
+description: |
+  Conduct technical research via web search, documentation reading, and summarization.
+---
+
 # Research Skill
 
 ## Skill identity

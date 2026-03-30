@@ -1,15 +1,13 @@
+---
+name: data-analysis
+description: |
+  Perform comprehensive exploratory data analysis on scientific data files across 200+ formats with automatic type detection and report generation.
+---
+
 # NOTE: Adapted from LabClaw (github.com/wu-yc/LabClaw) for OpenClaw task-runner.
 # Original: skills/general/exploratory-data-analysis/SKILL.md
 # Covers 200+ scientific file formats. Some format-specific libraries may need
 # pip install at runtime (agent can do this in shared-scope container).
-
----
-name: exploratory-data-analysis
-description: Perform comprehensive exploratory data analysis on scientific data files across 200+ file formats. This skill should be used when analyzing any scientific data file to understand its structure, content, quality, and characteristics. Automatically detects file type and generates detailed markdown reports with format-specific analysis, quality metrics, and downstream analysis recommendations. Covers chemistry, bioinformatics, microscopy, spectroscopy, proteomics, metabolomics, and general scientific data formats.
-license: MIT license
-metadata:
-    skill-author: K-Dense Inc.
----
 
 # Exploratory Data Analysis
 

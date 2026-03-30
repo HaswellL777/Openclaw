@@ -1,3 +1,9 @@
+---
+name: literature-search
+description: |
+  Academic literature search, citation management, and GB/T 7714 reference formatting via PubMed, arXiv, and bioRxiv.
+---
+
 # NOTE: Adapted from LabClaw (github.com/wu-yc/LabClaw) for OpenClaw task-runner.
 # Original: skills/literature/academic-literature-search/SKILL.md
 # MCP tools (pubmed_search_articles etc.) require PubMed MCP server to be configured.

@@ -1,3 +1,9 @@
+---
+name: task-state
+description: |
+  Read and update task-state.json for multi-step task pipelines.
+---
+
 # Task State Skill
 
 ## Skill identity

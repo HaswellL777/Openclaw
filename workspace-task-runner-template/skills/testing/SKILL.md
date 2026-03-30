@@ -1,3 +1,9 @@
+---
+name: testing
+description: |
+  Write and execute tests for task repo code, reporting results in structured format.
+---
+
 # Testing Skill
 
 ## Skill identity

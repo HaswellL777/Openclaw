@@ -1,3 +1,9 @@
+---
+name: coding
+description: |
+  Write, modify, and refactor code within the task repo sandbox.
+---
+
 # Coding Skill
 
 ## Skill identity

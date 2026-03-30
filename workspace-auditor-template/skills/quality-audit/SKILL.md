@@ -1,3 +1,9 @@
+---
+name: quality-audit
+description: |
+  Independently evaluate agent work products for quality, accuracy, and completeness.
+---
+
 # Quality Audit Skill
 
 ## Skill identity

@@ -1,3 +1,9 @@
+---
+name: report
+description: |
+  Generate structured reports from task execution results.
+---
+
 # Report Skill
 
 ## Skill identity
