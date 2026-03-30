@@ -50,10 +50,21 @@
 | **Task Detail** | **Swimlane 消息流程图 + 跨列箭头 + 消息折叠/展开 + 详情面板** | **✅ 新增** |
 | Monitor | Token 用量 + 健康 + Session 统计 | ✅ 可用 |
 | Logs | Gateway 日志查看器 | ✅ 可用 |
-| Cron | 定时任务管理 | ✅ 可用 |
-| Skills | Skills + Tools 目录 | ✅ 可用 |
+| Cron | 定时任务管理（官方 API 格式） | ✅ 完成 |
+| **Heartbeat** | **最后心跳 + 开关 + Wake + 实时事件日志** | **✅ 新增** |
+| Skills | Skills 列表 + 来源过滤 + 搜索 + Tools 目录 | ✅ 完成 |
+| **MCP** | **MCP 服务器列表 + 工具目录 + Raw config** | **✅ 新增（只读）** |
+| **Workspace** | **Agent 控制面文件浏览 + 语法高亮 + 编辑/保存** | **✅ 新增** |
+| Docker | Sandbox 配置展示 + 无管理 API 提示 | ✅ 信息展示 |
+| Broker | Broker 健康 + 配置展示 | ✅ 信息展示 |
 | Settings | 配置只读展示 + agent 模型解析 | ✅ 完成 |
-| Files / Docker / Broker | 占位 | 待 broker actions |
+| **Help** | **操作参考手册（中文）— 重启/Docker/目录/快照/排障** | **✅ 新增** |
+
+## 前端进程管理
+
+- **systemd 服务**: `openclaw-gui.service`（已安装并启用）
+- 开机自启，崩溃自动重启（5s 延迟）
+- 日志：`journalctl -u openclaw-gui.service -f`
 
 ## GUI 技术栈
 
@@ -68,18 +79,14 @@
 
 ## 待解决
 
-- **Task Flow 自动布局**：当前静态网格，考虑 dagre/elk 算法
-- **Observability 扩展**：Vite middleware 扩展 (transcript/session-store), System Inspector 页面
-- **Docker/Broker/File 页面功能**：需 broker actions（container-list/stats/lifecycle）
-- **Heartbeat 管理 UI**：API 已有（set-heartbeats, last-heartbeat）
-- **MCP 管理 UI**：设计文档在 `frontend-gui-design.md`，config.patch 不可用只能只读
-- **Workspace 文件浏览**：agents.files.list/get/set API 已有
+- **Docker/Broker 管理操作**：Gateway 无容器/broker lifecycle API，需开发 broker plugin
 - **安全加固**：IPv6 + auth
 - **Vault sync**：维护窗口后尚未执行
+- **常态化健康检查**：skill 验证、workspace 完整性、config 一致性纳入 heartbeat/cron 检查
 
 ## 当前下一步
 
-1. Task Flow 自动布局 (dagre)
-2. Observability: 扩展 Vite middleware + System Inspector 页面
-3. Workspace 文件浏览（agents.files API 已有）
-4. Docker/Broker 页面（需 broker actions 开发）
+1. 常态化健康检查（workspace 验证 + config 一致性 + 磁盘空间）纳入 cron
+2. Docker/Broker 管理需 broker plugin 开发
+3. 安全加固（IPv6 + auth）
+4. Vault sync

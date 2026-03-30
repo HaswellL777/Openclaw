@@ -211,6 +211,19 @@ if [[ $DRY_RUN -eq 1 ]]; then
 fi
 
 # Apply mode: actually do the work
+
+# Pre-publish validation: check skill frontmatter
+if [[ -x "$SCRIPT_DIR/check-workspace-skills.sh" ]]; then
+    echo "Running skill validation..."
+    if ! "$SCRIPT_DIR/check-workspace-skills.sh" "$TEMPLATE_DIR"; then
+        echo "" >&2
+        echo "Error: Skill validation failed. Fix SKILL.md files before publishing." >&2
+        echo "All SKILL.md files must have YAML frontmatter with 'name' and 'description'." >&2
+        exit 1
+    fi
+    echo ""
+fi
+
 echo "=== APPLYING CHANGES ==="
 
 # Create target directory if needed
