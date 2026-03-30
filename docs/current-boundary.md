@@ -1,6 +1,6 @@
 # OpenClaw 当前真实边界
 
-> 更新日期：2026-03-29（Task Flow 详细视图 + 语法高亮 + Overview 仪表板 + 安全审计）
+> 更新日期：2026-03-30（Skill frontmatter 修复 + GUI bugfix + Gateway RPC Plugin + Phase 引用更新）
 > 基线版本：**OpenClaw 2026.3.23-2**
 > 阶段：**Phase 5 operational — 多 agent 编排 + GUI 管理前端**
 
@@ -18,6 +18,7 @@
 | Phase 5A–5F (visibility, models, DuckCoding, providers, GUI, workspace) | 完成 | 2026-03-28 |
 | **Phase 5G: GUI P0/P1 修复 + Task Flow + MessageRenderer** | **完成 ✅** | **2026-03-29** |
 | **Phase 5H: Task Detail Swimlane + 语法高亮 + Overview 改版** | **完成 ✅** | **2026-03-29** |
+| **Phase 5I: Skill frontmatter 修复 + Gateway RPC Plugin + GUI bugfix** | **完成 ✅** | **2026-03-30** |
 
 ## 当前真实边界
 
@@ -79,10 +80,12 @@
 
 ## 待解决
 
+- **Gateway RPC Plugin 部署**：`plugins/gateway-rpc-tool/` 已开发，待部署到 `/var/lib/openclaw/.openclaw/extensions/` 并配置
+- **Workspace 发布**：task-runner/RC/auditor skill frontmatter 已修复，待发布到 live workspace
 - **Docker/Broker 管理操作**：Gateway 无容器/broker lifecycle API，需开发 broker plugin
 - **安全加固**：IPv6 + auth
 - **Vault sync**：维护窗口后尚未执行
-- **常态化健康检查**：skill 验证、workspace 完整性、config 一致性纳入 heartbeat/cron 检查
+- **常态化健康检查**：workspace-health-check cron job 待通过 GUI 创建
 
 ## 当前下一步
 

@@ -1,0 +1,11 @@
+{
+  "name": "gateway-rpc-tool",
+  "private": true,
+  "version": "0.1.0",
+  "description": "OpenClaw plugin — gateway RPC methods as agent tools",
+  "type": "module",
+  "main": "index.js",
+  "openclaw": {
+    "extensions": ["./index.js"]
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "id": "gateway-rpc-tool",
+  "name": "Gateway RPC Tool",
+  "description": "Exposes selected gateway RPC methods as agent-callable tools. Allows main agent to manage cron jobs, query sessions, check health, and read config without operator intervention.",
+  "version": "0.1.0",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "allowedAgents": {
+        "type": "array",
+        "items": { "type": "string" },
+        "description": "Agent IDs allowed to use this tool (default: [\"main\"])"
+      }
+    }
+  }
+}
