@@ -84,8 +84,10 @@ function buildTaskGroups(runs: RunRecord[], rootKey: string): TaskGroup[] {
 function makeGroup(idx: number, reqKey: string, runs: RunRecord[]): TaskGroup {
   // Summarize: use first non-heartbeat task text
   const summary = runs.find(r => r.task.length > 10)?.task.slice(0, 80) ?? `Task batch ${idx + 1}`;
+  // Stable ID based on first run's timestamp (survives data refresh + reordering)
+  const stableId = `task-${runs[0].createdAt}-${runs[0].runId?.slice(0, 6) ?? idx}`;
   return {
-    id: `task-${idx}`,
+    id: stableId,
     requesterKey: reqKey,
     runs: [...runs],
     startTime: runs[0].createdAt,
@@ -144,7 +146,7 @@ function TaskHeaderNode({ data }: NodeProps<Node<TaskHeaderData>>) {
     agents[a] = (agents[a] ?? 0) + 1;
   }
   const time = new Date(g.startTime).toLocaleString("zh-CN", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
-  const displayName = customName || `Task #${g.id.split("-")[1] ? Number(g.id.split("-")[1]) + 1 : "?"}`;
+  const displayName = customName || `Task @ ${time}`;
 
   return (
     <div className={`rounded-2xl border bg-zinc-900/80 backdrop-blur px-5 py-3 shadow-xl shadow-black/30 w-[280px] cursor-pointer transition-colors ${isArchived ? "border-zinc-800/30 opacity-50" : "border-zinc-700/40 hover:border-indigo-500/40"}`}>

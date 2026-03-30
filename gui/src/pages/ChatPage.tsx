@@ -205,12 +205,14 @@ export default function ChatPage() {
         setStreamBuf(text); // full accumulated text, not delta
       } else if (params?.state === "final") {
         setStreaming(false);
+        setSending(false);
         setStreamBuf("");
         if (params?.message) {
           setMessages((prev) => [...prev, params.message]);
         }
       } else if (params?.state === "error") {
         setStreaming(false);
+        setSending(false);
         setStreamBuf("");
         setError(params?.errorMessage ?? "Agent run failed");
       }
@@ -327,17 +329,16 @@ export default function ChatPage() {
     setError(null);
 
     try {
-      const res = await client.call<{ message?: ChatMessage }>("chat.send", {
+      await client.call("chat.send", {
         sessionKey: sessionKey,
         idempotencyKey: uuid(),
         message: userMsg.content as string,
       });
-      if (res?.message) {
-        setMessages((prev) => [...prev, res.message!]);
-      }
+      // Response comes via streaming events ("chat" event with state: delta/final)
+      // Don't add message here — the streaming listener handles it
+      // Keep sending=true until streaming "final" event arrives
     } catch (err: any) {
       setError(err?.message ?? "Send failed");
-    } finally {
       setSending(false);
     }
   }, [client, sessionKey, input, sending]);
@@ -496,7 +497,13 @@ export default function ChatPage() {
             <textarea
               ref={inputRef}
               value={input}
-              onChange={(e) => { setInput(e.target.value); updateSlashMenu(e.target.value); }}
+              onChange={(e) => {
+                setInput(e.target.value);
+                updateSlashMenu(e.target.value);
+                // Auto-resize
+                e.target.style.height = "auto";
+                e.target.style.height = Math.min(e.target.scrollHeight, 200) + "px";
+              }}
               onKeyDown={handleKeyDown}
               disabled={!sessionKey || sending}
               placeholder={
@@ -506,8 +513,8 @@ export default function ChatPage() {
                     ? "Waiting for response..."
                     : 'Type a message or / for commands... (Shift+Enter for newline)'
               }
-              rows={2}
-              className="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-200 placeholder:text-zinc-500 resize-none focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:opacity-50"
+              rows={1}
+              className="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-200 placeholder:text-zinc-500 resize-none focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:opacity-50 min-h-[38px] max-h-[200px]"
             />
           <button
             onClick={handleSend}

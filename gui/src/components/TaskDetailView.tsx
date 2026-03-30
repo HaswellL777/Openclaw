@@ -754,7 +754,7 @@ export function TaskDetailView({ group, allRuns, onBack, customName, onRename, o
           <div className="flex items-center gap-2 min-w-0">
             <div className="w-2.5 h-2.5 rounded bg-indigo-500/40 border border-indigo-500/60 shrink-0" />
             <span className="text-sm font-bold text-zinc-100 truncate">
-              {customName || `Task #${group.id.split("-")[1] ? Number(group.id.split("-")[1]) + 1 : "?"}`}
+              {customName || `Task @ ${group.startTime > 0 ? new Date(group.startTime).toLocaleString("zh-CN", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "?"}`}
             </span>
             {onRename && (
               <button
