@@ -47,6 +47,11 @@ function extractText(msg: ChatMessage): string {
   return "";
 }
 
+/** Extract timestamp from a ChatMessage — gateway uses "timestamp" field, not "ts" */
+function msgTs(msg: ChatMessage): number {
+  return (msg as any).timestamp ?? msg.ts ?? 0;
+}
+
 const RUNTIME_RE = /^\[Subagent Context\]|^OpenClaw runtime context|^\[System:|^\[Internal:/;
 const COMPLETION_RE = /\[Internal task completion event\]/;
 const SPAWN_RE = /"status"\s*:\s*"accepted"[\s\S]*?"childSessionKey"/;
@@ -128,7 +133,19 @@ interface CollapseEvent {
   ts: number;
 }
 
-type TLEvent = MsgEvent | ConnEvent | GapEvent | CollapseEvent;
+/** Synthetic event: a parent lane acknowledges a child completion */
+interface ReceiptEvent {
+  kind: "receipt";
+  colIdx: number;         // parent column index
+  sessionKey: string;     // parent session key
+  ts: number;
+  childAgent: string;     // child agent ID for display
+  childSessionKey: string;
+  status: string;         // ok, error, timeout
+  color: string;
+}
+
+type TLEvent = MsgEvent | ConnEvent | GapEvent | CollapseEvent | ReceiptEvent;
 
 // ---------------------------------------------------------------------------
 // Build the unified timeline
@@ -165,6 +182,10 @@ function buildTimeline(
 
     // Completion connection
     if (run.endedAt > 0) {
+      const returnColor = run.status === "ok" ? "#10b981"
+        : run.status === "error" ? "#ef4444"
+        : run.status === "timeout" ? "#f59e0b" : "#71717a";
+
       events.push({
         kind: "conn",
         fromCol: toCol,
@@ -172,10 +193,31 @@ function buildTimeline(
         ts: run.endedAt,
         label: run.status === "ok" ? "completed" : run.status || "done",
         variant: "return",
-        color: run.status === "ok" ? "#10b981"
-          : run.status === "error" ? "#ef4444"
-          : run.status === "timeout" ? "#f59e0b" : "#71717a",
+        color: returnColor,
       });
+
+      // Inject receipt event into parent lane (if parent is a column)
+      if (fromCol >= 0) {
+        events.push({
+          kind: "receipt",
+          colIdx: fromCol,
+          sessionKey: run.requesterSessionKey,
+          ts: run.endedAt + 0.5, // slightly after the arrow for correct sort
+          childAgent: agentFromKey(run.childSessionKey),
+          childSessionKey: run.childSessionKey,
+          status: run.status ?? "unknown",
+          color: returnColor,
+        });
+      }
+    }
+  }
+
+  // Track which sessions are parents (have receipt events injected)
+  const parentSessions = new Set<string>();
+  for (const run of group.runs) {
+    const fromCol = colByKey.get(run.requesterSessionKey);
+    if (fromCol != null && fromCol >= 0 && run.endedAt > 0) {
+      parentSessions.add(run.requesterSessionKey);
     }
   }
 
@@ -184,6 +226,10 @@ function buildTimeline(
     const colIdx = colByKey.get(sessionKey);
     if (colIdx == null) continue;
 
+    // For parent sessions, filter out [Internal task completion event] messages
+    // since we have synthetic receipt events for those
+    const isParent = parentSessions.has(sessionKey);
+
     const expanded = expandedSessions.has(sessionKey);
 
     if (expanded) {
@@ -191,16 +237,18 @@ function buildTimeline(
       for (const msg of messages) {
         const text = extractText(msg).trim();
         if (!text || RUNTIME_RE.test(text)) continue;
+        // Skip internal completion events for parents (replaced by receipt events)
+        if (isParent && COMPLETION_RE.test(text)) continue;
         events.push({
           kind: "msg",
           colIdx,
           sessionKey,
           msg,
-          ts: msg.ts ?? 0,
+          ts: msgTs(msg),
         });
       }
       // Add collapse indicator at the end
-      const lastTs = messages[messages.length - 1]?.ts ?? 0;
+      const lastTs = msgTs(messages[messages.length - 1]);
       events.push({
         kind: "collapse",
         colIdx,
@@ -211,7 +259,10 @@ function buildTimeline(
       // Pre-filter to get visible messages (skip noise) for correct index-based key detection
       const visible = messages.filter(m => {
         const t = extractText(m).trim();
-        return t && !RUNTIME_RE.test(t);
+        if (!t || RUNTIME_RE.test(t)) return false;
+        // Skip internal completion events for parents (replaced by receipt events)
+        if (isParent && COMPLETION_RE.test(t)) return false;
+        return true;
       });
 
       // Show only key messages, with gap indicators for skipped ones
@@ -230,7 +281,7 @@ function buildTimeline(
               sessionKey,
               count: gapBuffer.length,
               messages: gapBuffer,
-              ts: gapBuffer[0].ts ?? lastKeyTs,
+              ts: msgTs(gapBuffer[0]) || lastKeyTs,
             });
             gapBuffer = [];
           }
@@ -239,9 +290,9 @@ function buildTimeline(
             colIdx,
             sessionKey,
             msg,
-            ts: msg.ts ?? 0,
+            ts: msgTs(msg),
           });
-          lastKeyTs = msg.ts ?? 0;
+          lastKeyTs = msgTs(msg);
         } else {
           gapBuffer.push(msg);
         }
@@ -261,8 +312,21 @@ function buildTimeline(
     }
   }
 
-  // Sort by timestamp
-  events.sort((a, b) => a.ts - b.ts);
+  // Sort by timestamp with stable tiebreaker for causal ordering
+  events.sort((a, b) => {
+    if (a.ts !== b.ts) return a.ts - b.ts;
+    // When timestamps are equal, enforce: spawn → return → receipt → gap → message
+    const kindPriority = (e: TLEvent): number => {
+      if (e.kind === "conn") {
+        const ce = e as ConnEvent;
+        return ce.variant === "spawn" ? 0 : 1;
+      }
+      if (e.kind === "receipt") return 2;
+      if (e.kind === "gap") return 3;
+      return 4; // msg, collapse
+    };
+    return kindPriority(a) - kindPriority(b);
+  });
   return events;
 }
 
@@ -354,9 +418,9 @@ function CompactCard({ msg, agent, selected, onClick }: {
             style={{ color: isUser ? "#818cf8" : colors.dot }}>
             {isUser ? "user" : agent}
           </span>
-          {msg.ts && (
+          {msgTs(msg) > 0 && (
             <span className="text-[9px] text-zinc-600 tabular-nums ml-auto">
-              {formatTime(msg.ts)}
+              {formatTime(msgTs(msg))}
             </span>
           )}
         </div>
@@ -576,7 +640,7 @@ function DetailPanel({ msg, sessionKey, onClose, onSessionClick }: {
           {isUser ? "user" : agent}
         </Badge>
         <span className="text-[10px] text-zinc-500 font-mono truncate flex-1">{sessionKey.split(":").slice(-1)[0]?.slice(0, 16)}</span>
-        {msg.ts && <span className="text-[10px] text-zinc-600 tabular-nums">{formatTime(msg.ts)}</span>}
+        {msgTs(msg) > 0 && <span className="text-[10px] text-zinc-600 tabular-nums">{formatTime(msgTs(msg))}</span>}
         <a
           href={`/chat?session=${encodeURIComponent(sessionKey)}`}
           target="_blank"
@@ -634,10 +698,28 @@ export function TaskDetailView({ group, allRuns, onBack, customName, onRename, o
   const [renameInput, setRenameInput] = useState("");
 
   // Build columns from task group runs
+  // Include the requester (parent) as column 0 when it's a dedicated subagent session
+  // (not a shared channel like Feishu/main). Subagent sessions contain only task-relevant messages.
   const columns: Column[] = useMemo(() => {
     const seen = new Set<string>();
     const cols: Column[] = [];
     const sorted = [...group.runs].sort((a, b) => a.createdAt - b.createdAt);
+
+    // Heuristic: add parent as column if it's a subagent (dedicated session)
+    // Shared sessions (feishu:group:, main:main, etc.) contain unrelated conversation history
+    const parentKey = group.requesterKey;
+    const parentIsSubagent = parentKey && parentKey.includes(":subagent:");
+    if (parentIsSubagent && !seen.has(parentKey)) {
+      seen.add(parentKey);
+      cols.push({
+        key: parentKey,
+        agent: agentFromKey(parentKey),
+        run: sorted[0], // reference first run for color
+        sameAgentIdx: 0,
+        sameAgentTotal: 0,
+      });
+    }
+
     for (const run of sorted) {
       if (!seen.has(run.childSessionKey)) {
         seen.add(run.childSessionKey);
@@ -934,6 +1016,42 @@ export function TaskDetailView({ group, allRuns, onBack, customName, onRename, o
                                 </svg>
                                 <span>Show key messages only</span>
                               </button>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              }
+
+              // Receipt event: child completion acknowledged by parent lane
+              if (event.kind === "receipt") {
+                const statusIcon = event.status === "ok" ? "✓" : event.status === "error" ? "✗" : "⏱";
+                return (
+                  <div key={`receipt-${i}`} className="flex">
+                    <div className="w-[56px] shrink-0 flex items-center justify-end pr-2">
+                      <span className="text-[9px] text-zinc-700 tabular-nums font-mono">
+                        {formatTime(event.ts)}
+                      </span>
+                    </div>
+                    <div className="flex-1 flex">
+                      {columns.map((col, ci) => (
+                        <div key={ci} className="flex-1 relative px-1">
+                          <div className="absolute left-1/2 top-0 bottom-0 w-px" style={{ background: colColor(col).border }} />
+                          {ci === event.colIdx && (
+                            <div className="relative z-10 py-0.5">
+                              <div
+                                className="flex items-center gap-1.5 px-2 py-1 rounded text-[10px] font-medium border"
+                                style={{
+                                  color: event.color,
+                                  background: `${event.color}10`,
+                                  borderColor: `${event.color}30`,
+                                }}
+                              >
+                                <span>{statusIcon}</span>
+                                <span>{event.childAgent} {event.status === "ok" ? "completed" : event.status}</span>
+                              </div>
                             </div>
                           )}
                         </div>

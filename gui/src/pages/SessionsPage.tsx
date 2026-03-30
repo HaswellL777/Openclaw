@@ -467,7 +467,7 @@ export default function SessionsPage() {
       </div>
 
       {/* Right panel: conversation */}
-      <div className="flex-1 flex flex-col bg-zinc-950">
+      <div className="flex-1 flex flex-col bg-zinc-950 overflow-hidden">
         {!selectedKey ? (
           <EmptyState
             icon="<>"
@@ -476,29 +476,25 @@ export default function SessionsPage() {
         ) : (
           <>
             {/* Header */}
-            <div className="px-4 py-3 border-b border-zinc-800 bg-zinc-900 flex items-center justify-between">
-              <div className="min-w-0">
+            <div className="px-4 py-3 border-b border-zinc-800 bg-zinc-900 flex items-center justify-between gap-3 shrink-0">
+              <div className="min-w-0 overflow-hidden">
                 <div className="flex items-center gap-2">
-                  {selectedSession && (
-                    <StatusDot
-                      status={sessionStatus(selectedSession)}
-                      size="sm"
-                    />
-                  )}
+                  <StatusDot
+                    status={selectedSession ? sessionStatus(selectedSession) : "idle"}
+                    size="sm"
+                  />
                   <span className="text-sm font-semibold text-zinc-100 truncate">
                     {selectedSession?.displayName ||
                       selectedKey.slice(0, 28)}
                   </span>
                 </div>
                 <div className="text-xs text-zinc-500 mt-0.5 flex items-center gap-2">
-                  {selectedSession && (
-                    <Badge
-                      variant="muted"
-                      className="!text-[10px] !px-1.5 !py-0"
-                    >
-                      {agentFromKey(selectedSession.key)}
-                    </Badge>
-                  )}
+                  <Badge
+                    variant="muted"
+                    className="!text-[10px] !px-1.5 !py-0"
+                  >
+                    {agentFromKey(selectedSession?.key ?? selectedKey)}
+                  </Badge>
                   <span className="tabular-nums">
                     {messages.length} messages
                   </span>
@@ -514,7 +510,7 @@ export default function SessionsPage() {
                   )}
                 </div>
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-2 shrink-0">
                 <button
                   onClick={handleOpenInChat}
                   className="px-2.5 py-1 text-xs bg-indigo-600/20 text-indigo-400 rounded-lg hover:bg-indigo-600/30 transition-colors font-medium"
@@ -540,7 +536,7 @@ export default function SessionsPage() {
             {/* Messages */}
             <div
               ref={scrollRef}
-              className="flex-1 overflow-y-auto p-4 space-y-3"
+              className="flex-1 overflow-y-auto p-4 space-y-3 min-h-0"
             >
               {historyLoading ? (
                 <Spinner text="Loading conversation..." />
@@ -553,7 +549,7 @@ export default function SessionsPage() {
               ) : (
                 messages.map((msg, i) => (
                   <MessageRenderer
-                    key={`${msg.ts ?? i}-${i}`}
+                    key={`${msg.ts ?? (msg as any).timestamp ?? i}-${i}`}
                     msg={msg}
                     sessionKey={selectedKey}
                     onSessionClick={handleSessionClick}

@@ -142,7 +142,9 @@ export interface ChatMessage {
   role: "user" | "assistant" | "tool";
   content: string | any[];
   ts?: number;
+  timestamp?: number;      // gateway uses "timestamp", not "ts"
   tokens?: number;
+  provenance?: any;
 }
 
 export interface ChatHistoryResult {

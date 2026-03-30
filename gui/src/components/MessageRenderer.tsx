@@ -635,7 +635,7 @@ export function MessageRenderer({
               <div className="max-w-[80%] rounded-lg px-3.5 py-2.5 text-sm bg-indigo-600 text-zinc-100">
                 <div className="flex items-center gap-2 mb-1">
                   <span className="text-[10px] font-semibold uppercase tracking-wider text-indigo-200/60">you</span>
-                  {msg.ts && <span className="text-[10px] tabular-nums opacity-50">{formatTimestamp(msg.ts)}</span>}
+                  {msg.ts ?? (msg as any).timestamp && <span className="text-[10px] tabular-nums opacity-50">{formatTimestamp(msg.ts ?? (msg as any).timestamp)}</span>}
                   <CopyButton text={realText} />
                 </div>
                 <span className="whitespace-pre-wrap">{realText}</span>
@@ -709,9 +709,9 @@ export function MessageRenderer({
         {agentId && (
           <div className="flex items-center gap-1.5 mb-1">
             <ClickableAgentBadge agentId={agentId} />
-            {msg.ts && (
+            {msg.ts ?? (msg as any).timestamp && (
               <span className="text-[10px] text-zinc-600 tabular-nums">
-                {formatTimestamp(msg.ts)}
+                {formatTimestamp(msg.ts ?? (msg as any).timestamp)}
               </span>
             )}
           </div>
@@ -822,9 +822,9 @@ export function MessageRenderer({
               you
             </span>
           )}
-          {msg.ts && (
+          {msg.ts ?? (msg as any).timestamp && (
             <span className="text-[10px] tabular-nums opacity-50">
-              {formatTimestamp(msg.ts)}
+              {formatTimestamp(msg.ts ?? (msg as any).timestamp)}
             </span>
           )}
           <CopyButton text={cleanText} />

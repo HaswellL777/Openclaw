@@ -113,6 +113,7 @@ export default function ChatPage() {
   const { data: modelData } = useModels();
   const { data: sessionData } = useSessions({ includeLastMessage: true });
   const client = useGatewayStore((s) => s.client);
+  const connected = useGatewayStore((s) => s.connectionState === "connected");
 
   const [agentId, setAgentId] = useState("");
   const [modelId, setModelId] = useState("");
@@ -152,17 +153,17 @@ export default function ChatPage() {
   // Handle ?session= URL param (on mount or param change)
   useEffect(() => {
     const paramKey = searchParams.get("session");
-    if (paramKey && client && paramKey !== sessionKey) {
+    if (paramKey && client && connected && paramKey !== sessionKey) {
       openExistingSession(paramKey);
       // Clear the URL param so it doesn't re-trigger
       setSearchParams({}, { replace: true });
     }
-  }, [searchParams, client]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [searchParams, client, connected]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Open an existing session by key
   const openExistingSession = useCallback(
     async (key: string) => {
-      if (!client) return;
+      if (!client || !connected) return;
       setSessionKey(key);
       setMessages([]);
       setStreamBuf("");
@@ -188,7 +189,7 @@ export default function ChatPage() {
         setTimeout(() => inputRef.current?.focus(), 100);
       }
     },
-    [client, agents],
+    [client, connected, agents],
   );
 
   // Subscribe to streaming — event is "chat" with state: "delta"|"final"|"error"
@@ -432,7 +433,7 @@ export default function ChatPage() {
           <>
             {messages.map((msg, i) => (
               <MessageRenderer
-                key={`${msg.ts ?? i}-${i}`}
+                key={`${msg.ts ?? (msg as any).timestamp ?? i}-${i}`}
                 msg={msg}
                 sessionKey={sessionKey}
                 allMessages={messages}
