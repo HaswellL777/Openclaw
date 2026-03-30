@@ -1,0 +1,19 @@
+[Unit]
+Description=OpenClaw Control Panel GUI (Vite dev server)
+After=network.target openclaw-gateway.service
+Wants=openclaw-gateway.service
+
+[Service]
+Type=simple
+User=nick
+Group=nick
+WorkingDirectory=/home/nick/projects/openclaw-dev/gui
+ExecStart=/usr/bin/npx vite --port 3000
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+Environment=NODE_ENV=development
+
+[Install]
+WantedBy=multi-user.target

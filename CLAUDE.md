@@ -56,6 +56,20 @@ When making changes in this repo:
   - Ownership fixed to openclaw:openclaw
 - **Other agent workspaces**: task-runner/RC/auditor need manual rsync if templates change
 
+## Skill authoring rules
+- Every SKILL.md **must** start with YAML frontmatter containing `name` and `description`
+- Without `description`, OpenClaw's skill loader silently drops the skill (returns null)
+- The `name` in frontmatter must match the parent directory name
+- Before publishing workspace changes, run: `bash scripts/check-workspace-skills.sh`
+- Template format:
+  ```
+  ---
+  name: skill-name
+  description: |
+    One-line description of what this skill does and when to activate it.
+  ---
+  ```
+
 ## Expected repository zones
 - `broker/` for host-side broker logic
 - `plugins/` for OpenClaw plugin work
