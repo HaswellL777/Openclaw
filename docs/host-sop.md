@@ -1,4 +1,4 @@
-# OpenClaw Host 状态记录（2026-03-22 边界冻结）
+# OpenClaw Host 状态记录（2026-03-30 全量同步）
 
 > 适用范围：Ubuntu 24.04 LTS 宿主机裸机安装 OpenClaw（非 Docker），Btrfs 根（subvolid=5），使用 `/.snapshots` + 离线 Vault（`/mnt/vault`, `noauto`）做增量 `send/receive`；OpenClaw 以 systemd **system-level** 服务运行（`User=openclaw`），并严格遵循目录边界：
 >
@@ -7,7 +7,7 @@
 > - 数据：`/var/lib/openclaw`（btrfs 独立子卷，`openclaw:openclaw`，`700`）
 > - 日志：`/var/log/openclaw`（`openclaw:openclaw`）
 >
-> **当前阶段：Phase 1 + Phase 2 全部完成，agent-facing host_ops 8/8 live E2E verified（2026-03-17）。OpenClaw 已从 2026.3.2 升级到 2026.3.13（2026-03-18），P0 focused regression 19/19 PASS，rollback 未触发。升级后 capability probe 已执行并在 P5 FAIL；`2026-03-21` temporary restricted proxy feasibility window 已在 proxy start 前 `HARD_STOP`；`2026-03-22` prerequisite-only remediation 已补齐 `hello-world` blocker；`2026-03-23` merged prep pack 已确认 `first-live-pilot candidate pack` ready，remaining blocker 已收缩为 `future execution seam / operator input`，当前 direct next 已切换为 first live pilot 的 operator-side / future execution seam prep。Gate 0-3 green 不等于可进入 pre-snapshot；repo-side 文档同步本身不需要 host-side 快照。** 当前真实边界详见 `docs/current-boundary.md`，逐 action 证据见 `docs/records/README.md`。
+> **当前阶段：Phase 5 operational — 多 agent 编排 + GUI 管理前端 + 全量 workspace 发布。** 当前真实边界详见 `docs/current-boundary.md`。
 
 ## ⛔ 禁止操作清单（优先阅读）
 
@@ -87,32 +87,29 @@ sudo mv /var/lib/openclaw/.openclaw/extensions/<plugin>.bak-* /var/lib/openclaw/
 
 ### 0.1 当前时间与主机
 - 时区：CST (+0800)
-- 日期：2026-03-25（2026-03-18 升级完成；2026-03-23 Phase 3 operational）
+- 日期：2026-03-30
 - 主机：`nick-MS-7D73`（管理用户：`nick`，服务用户：`openclaw`）
-- OpenClaw 版本：**2026.3.13**（2026-03-18 从 2026.3.2 升级，P0 19/19 PASS，rollback 未触发）
+- OpenClaw 版本：**2026.3.23-2**（2026-03-25 从 2026.3.13 升级）
+- API Endpoint：**api.duckcoding.ai**（2026-03-28 从 MotChat 迁移）
 
 ### 0.2 当前阶段定位
-- **Phase 1A（main bootstrap）已完成**：`main` agent 已上线、`workspace-main` 已发布、默认主模型已切换为 `motchat-gpt-max/gpt-5.4`。
-- **Phase 1B（控制面收口）已完成**（2026-03-11）：脚本化发布链首次 live target 校验通过。
-- **Phase 2 broker deployment 已完成**（2026-03-14）：broker daemon 运行中、8 个 wrapper 已安装（production，`BROKER_DRY_RUN=false`）、host-ops-tool plugin 注册并被 gateway 接受。
-- **Phase 2 agent-facing host_ops 8/8 live E2E verified**（2026-03-17）：`gateway_health`、`validate_openclaw_json_candidate`、`deploy_openclaw_json_candidate`、`snapshot_pre`、`snapshot_post`、`rollback_prepare`、`gateway_restart`、`vault_sync` 全部通过。逐 action 证据见 `docs/records/README.md`。
-- **Phase 3（task-runner / Docker sandbox）已 operational**（2026-03-23 基础部署完成，2026-03-24 端到端验证通过）：Docker group 建立 → capability probe 重跑 P5 PASS → 镜像构建 → sandbox.docker 配置部署 → sessions_spawn 验证 → 容器内 git clone + 文件生成 → 结果回传飞书。详见 `docs/current-boundary.md`。
-- **Phase 4（ACP Claude Code 执行链）已 operational（2026-03-26 验证），Phase 5、Phase 6 均未开始**。
-- **OpenClaw 2026.3.13 升级已完成**（2026-03-18）：pre/post snapshot + vault_sync 完成，P0 focused regression 19/19 PASS，Phase 2 host_ops 8/8 升级后回归全部通过。升级记录见 `docs/records/openclaw-2026.3.13-upgrade-activation-2026-03-18.md`。
-- **升级后 capability probe 首次执行**（2026-03-19）：在 `P5 Docker / task-runner prerequisites` 处 hard gate FAIL，结论为 `P5 FAIL / Phase 3 = NO-GO`。（首次 probe 记录见 `docs/records/post-upgrade-capability-probe-execution-2026-03-19.md`）
-- **Docker prerequisite 建立 + capability probe 重跑**（2026-03-23）：docker group 方案完成（`sudo usermod -aG docker openclaw`），probe 重跑结果：P5 PASS（Docker 28.2.2 active, openclaw 在 docker 组），P2 Go，P1 Caution（sessions_yield 不存在），P4 Go，P3 Caution（待 live spawn 验证）。记录见 `docs/records/post-upgrade-capability-probe-rerun-2026-03-23.md`。
-- **Phase 3 基础部署完成**（2026-03-23）：task-runner 基线镜像构建、Docker network 创建、openclaw.json sandbox.docker 配置部署、sessions_spawn 验证通过、容器内 exec/写入验证通过、首次真实任务执行通过。Post snapshot：`root-post-phase3-complete-20260323-1847`，Vault sync 完成。
-- **Phase 3 端到端验证通过**（2026-03-24）：飞书 → main → sessions_spawn("task-runner") → 容器内 git clone + 文件生成 → 结果回传飞书。生产级镜像 `openclaw-task-claude:2026-03-v3-full` 已构建（Node.js 22 + pip + build-essential）。Dockerfile UID 修复（997:984）。publish 脚本权限修复（auto-chown）。Post snapshot：`root-post-phase3-fixes-20260324-1559`。
-- *(历史) `2026-03-21` temporary restricted proxy feasibility window 收口为 HARD_STOP before proxy start；`2026-03-22` hello-world prerequisite remediation 收口为 PASS。上述 proxy 路线后弃用，改用 docker group 方案于 2026-03-23 完成。历史记录已归档至 `docs/archive/planning/phase3-stall/` 和 `docs/archive/records/phase3-stall/`。*
+- **Phase 0–2（基础 + broker）已完成**（~2026-03-17）
+- **Phase 3（task-runner / Docker sandbox）已完成**（2026-03-24）
+- **Phase 3+（image upgrade + Scrapling）已完成**（2026-03-25）
+- **OpenClaw 升级 → 2026.3.23-2 已完成**（2026-03-25）
+- **Phase 4（ACP + Agent 扩展）已完成**（2026-03-26）
+- **Phase 5A: sessions.visibility 部署已完成**（2026-03-27）
+- **Phase 5B: 模型切换已完成**（2026-03-27）— main→gpt-5.4, RC/auditor→opus-4-6
+- **Phase 5C: DuckCoding API 迁移已完成**（2026-03-28）
+- **Phase 5D: Provider 清理已完成**（2026-03-28）
+- **Phase 5E-H: GUI 前端 16 页面已完成**（2026-03-29~30）— systemd 服务管理
+- **workspace-main 已发布**（2026-03-30）— SOP + 5 个自定义 skill（含 YAML frontmatter 修复）
+- **日志轮转已安装**（2026-03-29）— `/etc/logrotate.d/openclaw`（size 500M, rotate 7）
+- **GUI systemd 服务已安装**（2026-03-30）— `openclaw-gui.service`
 
-### 0.2.1 升级窗口事实记录（2026-03-18）
-- Pre snapshot：`root-pre-upgrade-2026.3.13-20260318-1530`
-- Post snapshot：`root-post-upgrade-2026.3.13-20260318-1615`
-- Pre / post vault_sync：均已完成
-- Plugin 备份：`/var/lib/openclaw/host-ops-tool-backups/host-ops-tool-pre-upgrade-20260318-1530.tar.gz`
-- **Broker 需手动启动**：升级后 broker 不会随 gateway 自动启动，需 operator 执行 `systemctl start openclaw-broker.service`
-- **Plugin provenance 警告**：出现但不阻塞功能（P1）
-- **Log file size cap reached**：非阻塞（P1）
+### 0.2.1 升级窗口事实记录（2026-03-18 → 2026.3.13; 2026-03-25 → 2026.3.23-2）
+- 2026-03-18 升级 2026.3.13：Pre/post snapshot + vault_sync 完成，P0 19/19 PASS
+- 2026-03-25 升级 2026.3.23-2：通过 OpenClaw 内置更新机制
 
 ### 0.3 `/var/lib/openclaw` 与根快照的边界
 - `/var/lib/openclaw` 是独立 btrfs 子卷；
@@ -129,21 +126,12 @@ sudo mv /var/lib/openclaw/.openclaw/extensions/<plugin>.bak-* /var/lib/openclaw/
 - 其中真正需要长期保留的，不是整个 `workspace-main` 的全部静态模板文件，而是其中少数控制面状态与运行元数据。
 
 ### 0.5 当前最重要的未决问题
-1. **飞书卡住 / 超慢回复问题尚未根治。**
-   - 现象早在本轮修改前一天就出现过；
-   - 日志中可见 `embedded run timeout ... timeoutMs=600000`；
-   - 切换默认模型到 `g54` 后目前恢复良好；
-   - 但尚不能断言根因一定是 Claude 4.6。
-2. **`session-memory` 日志路径显示为 `~/.openclaw/workspace-main/memory/...`。**
-   - 这说明日志展示层存在 `~` 形式路径；
-   - 后续仍需核实其实际解析路径是否仍指向 `/var/lib/openclaw/.openclaw/...`，并确认不会引回 `nick` 用户空间。
-3. ~~**agent-facing `host_ops` 切片推进中。**~~ ✅ **全部 8/8 action 已 live E2E verified（2026-03-17）。** 逐 action 证据见 `docs/records/README.md`。
-4. ~~Phase 1B 发布 / 校验脚本已在开发仓就绪，但尚未在现网执行首次正式发布。~~ ✅ 已完成（2026-03-11）。
-5. ~~**OpenClaw 版本落后**：当前 live 基线仍是 2026.3.2，上游已到 2026.3.13。~~ ✅ **已升级到 2026.3.13**（2026-03-18），P0 19/19 PASS。
-6. **已知非阻塞漂移**：权威脚本 `vault-backup-root-btrfs` 检查的是 `openclaw.service`，部分历史文档写 `openclaw-gateway.service`。属于命名漂移，不影响 vault_sync 已收口的结论。
-7. **Broker 需手动启动**（2026-03-18 升级窗口发现）：升级后 broker 不会随 gateway 自动启动，需 operator 手动 `systemctl start openclaw-broker.service`。手动启动后功能正常。
-8. **Plugin provenance 警告**（P1）：升级后出现 provenance 警告，不阻塞 plugin 功能。
-9. **Log file size cap reached**（P1）：升级后观察到日志文件大小上限触达，不影响运行，后续可评估日志轮转策略。
+1. **Docker/Broker 管理 API 缺失**：Gateway 不暴露容器/broker lifecycle RPC 方法，agent 无法自主管理 Docker 容器或执行 broker 操作。需开发 broker plugin。
+2. **Gateway RPC 对 agent 不可用**：main agent 无法调用 cron.add、config.get 等管理 API，限制了运维自动化能力。需评估 plugin 方案。
+3. **安全加固未实施**：IPv6 绑定 + 登录鉴权尚未配置。
+4. **Vault sync 未执行**：自 Phase 5 大量变更以来未执行 Vault 同步。
+5. ~~**日志轮转**~~ ✅ 已安装（2026-03-29）：`/etc/logrotate.d/openclaw`（size 500M, rotate 7, copytruncate）。
+6. ~~**飞书卡住/超慢回复**~~ 切换默认模型后已恢复正常。
 
 ## 1. 磁盘与分区布局（lsblk 摘要）
 ### 1.1 系统盘（System）

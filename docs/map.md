@@ -55,14 +55,16 @@
 | `scripts/publish-workspace-main.sh` | main workspace publish 脚本 |
 | `scripts/setup-runs-access.sh` | ACL 设置 nick 读 runs.json |
 | `scripts/apply-logrotate.sh` | 安装日志轮转 |
+| `scripts/check-workspace-skills.sh` | 验证 SKILL.md YAML frontmatter |
+| `scripts/openclaw-gui.service` | GUI systemd unit 文件 |
 
 ## 交接文档 `[handoff]`
 
 | 文件 | 描述 |
 |------|------|
+| `.claude/handoff/handoff-2026-03-30-gui-complete.md` | GUI 全量完成 + 文档同步 + 下轮任务交接 |
 | `.claude/handoff/handoff-2026-03-29-task-flow.md` | Task Flow + 消息渲染 + 观测性交接 |
 | `.claude/handoff/handoff-2026-03-28-gui-development.md` | Phase 5 + GUI 开发交接 |
-| `.claude/handoff/handoff-2026-03-27-phase4-completion.md` | Phase 4 完成交接 |
 
 ## Workspace 模板 `[active]`
 
