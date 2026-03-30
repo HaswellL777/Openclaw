@@ -520,6 +520,18 @@ function GapIndicator({ count, onClick }: { count: number; onClick: () => void }
 // Detail panel (full message view)
 // ---------------------------------------------------------------------------
 
+function CopyBtn({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button
+      onClick={() => { navigator.clipboard.writeText(text).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1500); }); }}
+      className="px-2 py-0.5 text-[10px] bg-zinc-700 text-zinc-400 rounded hover:bg-zinc-600 transition-colors"
+    >
+      {copied ? "Copied" : "Copy"}
+    </button>
+  );
+}
+
 function DetailPanel({ msg, sessionKey, onClose, onSessionClick }: {
   msg: ChatMessage;
   sessionKey: string;
@@ -577,6 +589,7 @@ function DetailPanel({ msg, sessionKey, onClose, onSessionClick }: {
             <path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z" />
           </svg>
         </a>
+        <CopyBtn text={text} />
         <button
           onClick={onClose}
           className="px-2 py-0.5 text-[10px] bg-zinc-700 text-zinc-400 rounded hover:bg-zinc-600 transition-colors"

@@ -49,6 +49,13 @@ When making changes in this repo:
 5. produce diff-friendly artifacts
 6. write acceptance or validation notes when behavior changes
 
+## Workspace publish status
+- **main workspace**: published on 2026-03-29 via `publish-workspace-main.sh --apply --allow-live-target`
+  - Target: `/var/lib/openclaw/.openclaw/workspace-main`
+  - SOP hash updated from `docs/host-sop.md`
+  - Ownership fixed to openclaw:openclaw
+- **Other agent workspaces**: task-runner/RC/auditor need manual rsync if templates change
+
 ## Expected repository zones
 - `broker/` for host-side broker logic
 - `plugins/` for OpenClaw plugin work

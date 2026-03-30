@@ -247,49 +247,74 @@ export default function ChatPage() {
     }
   }, [client, agentId, modelId]);
 
-  // Handle slash commands locally
-  const handleSlashCommand = useCallback((cmd: string): boolean => {
-    const parts = cmd.trim().split(/\s+/);
-    const name = parts[0].toLowerCase();
-    switch (name) {
-      case "/clear":
-        setMessages([]);
-        return true;
-      case "/abort":
-        if (client && sessionKey) client.call("sessions.abort", { key: sessionKey }).catch(() => {});
-        setSending(false);
-        return true;
-      case "/reset":
-        if (client && sessionKey) {
-          client.call("sessions.reset", { key: sessionKey }).then(() => setMessages([])).catch(() => {});
-        }
-        return true;
-      case "/compact":
-        if (client && sessionKey) {
-          client.call("sessions.compact", { key: sessionKey }).catch(() => {});
-        }
-        return true;
-      case "/help":
-        setMessages(prev => [...prev, {
-          role: "assistant" as const,
-          content: "**可用命令：**\n- `/clear` — 清空本地聊天显示\n- `/abort` — 终止当前回复\n- `/reset` — 清空 session 历史（保留 key）\n- `/compact` — 压缩 session 记录\n- `/help` — 显示此帮助",
-          ts: Date.now(),
-        }]);
-        return true;
-      default:
-        return false;
+  // Slash command definitions (matching official OpenClaw UI)
+  const SLASH_COMMANDS = useMemo(() => [
+    { name: "new", description: "新建 session", category: "session" },
+    { name: "clear", description: "清空聊天历史", category: "session" },
+    { name: "reset", description: "重置当前 session", category: "session" },
+    { name: "compact", description: "压缩 session 上下文", category: "session" },
+    { name: "stop", description: "停止当前运行", category: "session" },
+    { name: "model", description: "显示/设置模型", category: "model" },
+    { name: "think", description: "设置思考级别", category: "model" },
+    { name: "fast", description: "切换快速模式", category: "model" },
+    { name: "help", description: "显示可用命令", category: "tools" },
+    { name: "status", description: "显示 session 状态", category: "tools" },
+    { name: "usage", description: "显示 token 用量", category: "tools" },
+    { name: "agents", description: "列出所有 agent", category: "agents" },
+    { name: "skill", description: "运行 skill", category: "tools" },
+  ], []);
+
+  // Slash menu state
+  const [slashMenuOpen, setSlashMenuOpen] = useState(false);
+  const [slashMenuItems, setSlashMenuItems] = useState<typeof SLASH_COMMANDS>([]);
+  const [slashMenuIndex, setSlashMenuIndex] = useState(0);
+
+  // Update slash menu when input changes
+  const updateSlashMenu = useCallback((text: string) => {
+    const match = text.match(/^\/(\S*)$/);
+    if (match) {
+      const query = match[1].toLowerCase();
+      const items = query
+        ? SLASH_COMMANDS.filter(c => c.name.startsWith(query) || c.description.includes(query))
+        : SLASH_COMMANDS;
+      setSlashMenuItems(items);
+      setSlashMenuOpen(items.length > 0);
+      setSlashMenuIndex(0);
+    } else {
+      setSlashMenuOpen(false);
+    }
+  }, [SLASH_COMMANDS]);
+
+  const selectSlashCommand = useCallback((cmd: typeof SLASH_COMMANDS[0]) => {
+    setSlashMenuOpen(false);
+    setInput(`/${cmd.name}`);
+    // Auto-send commands that don't need args
+    if (!["model", "think", "fast", "skill", "steer"].includes(cmd.name)) {
+      // Defer send so input state updates first
+      setTimeout(() => {
+        const fakeInput = `/${cmd.name}`;
+        if (!client || !sessionKey) return;
+        setSending(true);
+        setError(null);
+        client.call("chat.send", {
+          sessionKey,
+          idempotencyKey: uuid(),
+          message: fakeInput,
+        }).then((res: any) => {
+          if (res?.message) setMessages(prev => [...prev, res.message]);
+          // After /clear or /reset, clear local messages too
+          if (cmd.name === "clear" || cmd.name === "reset" || cmd.name === "new") setMessages([]);
+        }).catch((err: any) => setError(err?.message ?? "Command failed"))
+          .finally(() => setSending(false));
+        setInput("");
+      }, 0);
     }
   }, [client, sessionKey]);
 
-  // Send message
+  // Send message — slash commands are sent to gateway like any other message
   const handleSend = useCallback(async () => {
     if (!client || !sessionKey || !input.trim() || sending) return;
-
-    // Check for slash commands
-    if (input.trim().startsWith("/")) {
-      const handled = handleSlashCommand(input.trim());
-      if (handled) { setInput(""); return; }
-    }
+    setSlashMenuOpen(false);
 
     const userMsg: ChatMessage = {
       role: "user",
@@ -317,8 +342,14 @@ export default function ChatPage() {
     }
   }, [client, sessionKey, input, sending]);
 
-  // Key handler
+  // Key handler with slash menu navigation
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (slashMenuOpen) {
+      if (e.key === "ArrowDown") { e.preventDefault(); setSlashMenuIndex(i => Math.min(i + 1, slashMenuItems.length - 1)); return; }
+      if (e.key === "ArrowUp") { e.preventDefault(); setSlashMenuIndex(i => Math.max(i - 1, 0)); return; }
+      if (e.key === "Enter" || e.key === "Tab") { e.preventDefault(); if (slashMenuItems[slashMenuIndex]) selectSlashCommand(slashMenuItems[slashMenuIndex]); return; }
+      if (e.key === "Escape") { e.preventDefault(); setSlashMenuOpen(false); return; }
+    }
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
@@ -442,23 +473,42 @@ export default function ChatPage() {
 
       {/* Input area */}
       <div className="border-t border-zinc-800 bg-zinc-900 p-4">
-        <div className="flex gap-2">
-          <textarea
-            ref={inputRef}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            disabled={!sessionKey || sending}
-            placeholder={
-              !sessionKey
-                ? "Create or select a session first..."
-                : sending
-                  ? "Waiting for response..."
-                  : "Type a message... (Shift+Enter for newline)"
-            }
-            rows={2}
-            className="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-200 placeholder:text-zinc-500 resize-none focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:opacity-50"
-          />
+        <div className="relative">
+          {/* Slash command menu */}
+          {slashMenuOpen && (
+            <div className="absolute bottom-full left-0 right-0 mb-1 bg-zinc-800 border border-zinc-700 rounded-lg shadow-xl max-h-64 overflow-y-auto z-30">
+              {slashMenuItems.map((cmd, i) => (
+                <button
+                  key={cmd.name}
+                  onClick={() => selectSlashCommand(cmd)}
+                  className={`w-full text-left px-3 py-1.5 flex items-center gap-2 text-sm transition-colors ${
+                    i === slashMenuIndex ? "bg-indigo-600/20 text-indigo-300" : "text-zinc-300 hover:bg-zinc-700/50"
+                  }`}
+                >
+                  <span className="text-indigo-400 font-mono text-xs w-16 shrink-0">/{cmd.name}</span>
+                  <span className="text-zinc-500 text-xs truncate">{cmd.description}</span>
+                  <span className="text-zinc-700 text-[10px] ml-auto shrink-0">{cmd.category}</span>
+                </button>
+              ))}
+            </div>
+          )}
+          <div className="flex gap-2">
+            <textarea
+              ref={inputRef}
+              value={input}
+              onChange={(e) => { setInput(e.target.value); updateSlashMenu(e.target.value); }}
+              onKeyDown={handleKeyDown}
+              disabled={!sessionKey || sending}
+              placeholder={
+                !sessionKey
+                  ? "Create or select a session first..."
+                  : sending
+                    ? "Waiting for response..."
+                    : 'Type a message or / for commands... (Shift+Enter for newline)'
+              }
+              rows={2}
+              className="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-200 placeholder:text-zinc-500 resize-none focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:opacity-50"
+            />
           <button
             onClick={handleSend}
             disabled={!sessionKey || sending || !input.trim()}
@@ -470,6 +520,7 @@ export default function ChatPage() {
               "Send"
             )}
           </button>
+          </div>
         </div>
       </div>
     </div>
