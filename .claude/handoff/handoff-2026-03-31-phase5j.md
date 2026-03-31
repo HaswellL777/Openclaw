@@ -116,6 +116,11 @@
 - 需要在维护窗口执行
 - 包含所有 workspace 发布 + plugin 部署 + config 变更
 
+### 任务 B（中优）：Docker 文件浏览器 outputs 路径修复
+- 快捷导航 "Outputs" 按钮指向 `/workspace/outputs`，但容器中可能不存在该目录
+- 报错：`ls: cannot access '/workspace/outputs': No such file or directory`
+- 需要处理不存在路径的错误显示，以及根据容器实际目录结构调整快捷导航
+
 ### 任务 B（低优）：清理旧 Docker 镜像
 - `<none>` tag 镜像可以清理（`docker image prune`）
 - GPU 镜像 `2026-03-v3-gpu`（9.79GB）确认是否还需要

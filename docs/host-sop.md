@@ -7,7 +7,7 @@
 > - 数据：`/var/lib/openclaw`（btrfs 独立子卷，`openclaw:openclaw`，`700`）
 > - 日志：`/var/log/openclaw`（`openclaw:openclaw`）
 >
-> **当前阶段：Phase 5 operational — 多 agent 编排 + GUI 管理前端 + 全量 workspace 发布。** 当前真实边界详见 `docs/current-boundary.md`。
+> **当前阶段：Phase 5 operational — 多 agent 编排 + GUI 管理前端（token auth）+ 全量 workspace 发布 + Gateway RPC Plugin。** 当前真实边界详见 `docs/current-boundary.md`。
 
 ## ⛔ 禁止操作清单（优先阅读）
 
@@ -1890,3 +1890,8 @@ Phase 1A 完成后，已执行 post-change 里程碑快照与 Vault 入库：
 | 2026-03-25 | Image 升级部署：openclaw.json `task-runner.sandbox.docker.image` 改为 `openclaw-task-claude:2026-03-v3-full`；`agents.defaults.sandbox.prune` 添加 `{ idleHours: 4, maxAgeDays: 3 }`；gateway 重启后验证新容器 Node.js v22.22.1 可用 |
 | 2026-03-25 | Knowledge bind 实施：docker-level `binds` 因 sandbox 路径白名单限制被拒（源路径 `/home/nick/repos` 不在 workspace root 下）；改用宿主机 `mount --bind /home/nick/repos /var/lib/openclaw/.openclaw/workspace-task-runner/knowledge`（ro），容器内 `/workspace/knowledge/` 已验证可见；fstab 持久化 |
 | 2026-03-25 | Phase 4 ACP 研究完成：推荐 Option A（官方 ACP via acpx，内置于 2026.3.13）；MotChat 中转通过 env vars；`permissionMode: approve-all` 必需；cwd bug #27627 仍 open；研究报告 `docs/planning/phase4-acp-claude-code-research.md` |
+| 2026-03-26 | **Phase 4 ACP 部署 + Agent 扩展**：acpx-wrapper.sh 部署；research-coordinator + auditor agent 添加；agentToAgent 启用 for ["main","auditor"]；DuckCoding API endpoint 迁移；多 provider 配置完成 |
+| 2026-03-28 | **Phase 5A–5F 完成**：sessions.visibility=all；模型切换（main→gpt-5.4, RC/auditor→opus-4-6）；DuckCoding API 迁移；provider 清理（motchat→duckcoding）；GUI 前端框架搭建（React 19 + Vite 8 + Tailwind 4）；workspace-main 发布；logrotate 安装 |
+| 2026-03-29 | **Phase 5G + 5H 完成**：GUI P0/P1 功能（Overview 改版、Chat streaming、Sessions 管理、Task Flow spawn chain 图、Task Detail swimlane 时间轴、MessageRenderer 语法高亮、Heartbeat、Skills、MCP、Workspace 文件编辑、Cron、Help 页面）；openclaw-gui.service systemd unit 部署 |
+| 2026-03-30 | **Phase 5I 完成**：14 agent skills YAML frontmatter 修复（task-runner 11、RC 2、auditor 1）；swimlane timestamp 根因修复（msg.timestamp vs msg.ts）；gateway-rpc-tool 插件开发（14 methods）；Phase 1A 引用清理（12 文件） |
+| 2026-03-31 | **Phase 5J 完成 + 全量部署**：GUI token auth 中间件部署（Vite plugin，cookie + query param，setup-gui-auth.sh）；Docker 页面功能化（容器管理 + 文件浏览器 via docker exec + Inspect）；Broker 页面功能化（Gateway 健康 + 活跃 Session 管理 + Abort + Channel 状态）；Cron 页面 RPC 修复（payload kind discriminator、方法名修正、enabled 字段）；布局修复（h-screen→h-full）；publish-workspace-all.sh 统一发布脚本；全部 4 workspace 发布到 live；gateway-rpc-tool 插件部署到 extensions；openclaw.json patch（plugin allow + main tools）；gateway 重启验证通过；workspace-health-check cron job 创建（3 9 * * *）；nick 加入 docker 组。Pre snapshot `root-pre-phase5j-deploy-20260331-0943` |

@@ -1,6 +1,6 @@
 # OpenClaw Dev Repo 文档地图
 
-> 更新日期：2026-03-29
+> 更新日期：2026-03-31
 
 ---
 
@@ -26,18 +26,19 @@
 | 文件 | 描述 |
 |------|------|
 | `docs/planning/container-isolation-design.md` | 容器隔离方案设计（close-by: 2026-04-01）— 推荐方案 A |
-| `docs/planning/frontend-gui-design.md` | 前端 GUI 需求规格 v2（close-by: 2026-04-05）— P0/P1 大部分已实现 |
+| `docs/planning/frontend-gui-design.md` | 前端 GUI 需求规格 v2（close-by: 2026-04-05）— P0/P1 全部已实现 |
 
 ## GUI 前端 `[active]`
 
 | 目录/文件 | 描述 |
 |-----------|------|
-| `gui/` | React + TypeScript + Vite 管理前端（12 页面） |
+| `gui/` | React + TypeScript + Vite 管理前端（16 页面） |
+| `gui/vite.config.ts` | Auth middleware + Docker API + runs API + WebSocket proxy |
 | `gui/src/api/rpc-client.ts` | Gateway WebSocket 协议客户端 |
 | `gui/src/api/hooks.ts` | Zustand store + React Query hooks |
-| `gui/src/api/types.ts` | TypeScript 类型（含 RunRecord, TaskGroup） |
+| `gui/src/api/types.ts` | TypeScript 类型（含 RunRecord, TaskGroup, CronJob） |
 | `gui/src/api/agent-colors.ts` | 共享 agent 颜色配置 |
-| `gui/src/pages/` | 页面组件（12 个） |
+| `gui/src/pages/` | 页面组件（16 个） |
 | `gui/src/components/TaskDetailView.tsx` | Task 内部 swimlane 消息流程图 |
 | `gui/src/components/MessageRenderer.tsx` | 消息渲染器（语法高亮 + tool call + provenance） |
 | `gui/src/components/shared.tsx` | 共享 UI 组件 |
@@ -46,25 +47,33 @@
 
 | 文件 | 描述 |
 |------|------|
+| `scripts/publish-workspace-main.sh` | main workspace publish 脚本 |
+| `scripts/publish-workspace-all.sh` | 统一 4 workspace 发布脚本 |
+| `scripts/deploy-phase5j.sh` | Phase 5J 全量部署（snapshot + workspace + plugin + config + restart） |
+| `scripts/deploy-phase5j-remaining.sh` | Phase 5J 增量部署（main workspace + plugin + config） |
+| `scripts/setup-gui-auth.sh` | GUI auth token 生成 |
+| `scripts/check-workspace-skills.sh` | 验证 SKILL.md YAML frontmatter |
+| `scripts/openclaw-gui.service` | GUI systemd unit 文件 |
 | `scripts/apply-api-migration.py` | API 迁移 apply 脚本（Phase 5B） |
 | `scripts/apply-sessions-visibility.py` | sessions.visibility apply 脚本（Phase 5A） |
 | `scripts/apply-agents-expansion.py` | Agent 扩展 apply 脚本（Phase 4） |
 | `scripts/apply-provider-cleanup.py` | Provider 清理脚本（motchat→duckcoding） |
 | `scripts/apply-duckcoding-migration.py` | DuckCoding 迁移脚本 |
 | `scripts/acpx-wrapper.sh` | ACP 环境配置 wrapper |
-| `scripts/publish-workspace-main.sh` | main workspace publish 脚本 |
 | `scripts/setup-runs-access.sh` | ACL 设置 nick 读 runs.json |
 | `scripts/apply-logrotate.sh` | 安装日志轮转 |
-| `scripts/check-workspace-skills.sh` | 验证 SKILL.md YAML frontmatter |
-| `scripts/openclaw-gui.service` | GUI systemd unit 文件 |
 
 ## 交接文档 `[handoff]`
 
 | 文件 | 描述 |
 |------|------|
-| `.claude/handoff/handoff-2026-03-30-gui-complete.md` | GUI 全量完成 + 文档同步 + 下轮任务交接 |
-| `.claude/handoff/handoff-2026-03-29-task-flow.md` | Task Flow + 消息渲染 + 观测性交接 |
-| `.claude/handoff/handoff-2026-03-28-gui-development.md` | Phase 5 + GUI 开发交接 |
+| `.claude/handoff/handoff-2026-03-31-phase5j.md` | Phase 5J — GUI auth + Docker/Broker + Cron 修复 + 部署 |
+| `.claude/handoff/handoff-2026-03-30-swimlane-fix.md` | Swimlane timestamp 修复 + Skill frontmatter + Gateway RPC Plugin |
+| `.claude/handoff/handoff-2026-03-30-gui-complete.md` | GUI 全量完成 + 文档同步 |
+| `.claude/handoff/handoff-2026-03-29-task-flow.md` | Task Flow + 消息渲染 + 观测性 |
+| `.claude/handoff/handoff-2026-03-28-gui-development.md` | Phase 5 + GUI 开发 |
+| `.claude/handoff/handoff-2026-03-27-phase4-completion.md` | Phase 4 完成 |
+| `.claude/handoff/handoff-2026-03-25-phase4-maintenance.md` | Phase 4 维护 |
 
 ## Workspace 模板 `[active]`
 
@@ -74,6 +83,12 @@
 | `workspace-task-runner-template/` | task-runner workspace（11 skills） |
 | `workspace-research-coordinator-template/` | research-coordinator workspace |
 | `workspace-auditor-template/` | auditor workspace |
+
+## 插件 `[active]`
+
+| 目录 | 描述 |
+|------|------|
+| `plugins/gateway-rpc-tool/` | Gateway RPC 插件（14 methods，已部署到 live extensions） |
 
 ## 冻结规格 `[frozen]`
 
