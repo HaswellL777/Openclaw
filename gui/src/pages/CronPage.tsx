@@ -69,7 +69,7 @@ const emptyForm: JobFormData = {
   schedule: "",
   sessionTarget: "main",
   wakeMode: "now",
-  payloadKind: "agentTurn",
+  payloadKind: "systemEvent",
   message: "",
 };
 
@@ -131,7 +131,15 @@ function JobForm({
             <label className="block text-xs text-zinc-400 mb-1">Session Target</label>
             <select
               value={form.sessionTarget}
-              onChange={(e) => set("sessionTarget", e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value;
+                setForm((f) => ({
+                  ...f,
+                  sessionTarget: val,
+                  // main sessions require systemEvent payload
+                  payloadKind: val === "main" ? "systemEvent" : f.payloadKind,
+                }));
+              }}
               className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-2.5 py-1.5 text-sm text-zinc-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
             >
               <option value="main">Main (default agent)</option>
@@ -159,7 +167,9 @@ function JobForm({
               onChange={(e) => set("payloadKind", e.target.value)}
               className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-2.5 py-1.5 text-sm text-zinc-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
             >
-              <option value="agentTurn">Agent Turn (send message)</option>
+              <option value="agentTurn" disabled={form.sessionTarget === "main"}>
+                Agent Turn (send message){form.sessionTarget === "main" ? " — not available for main" : ""}
+              </option>
               <option value="systemEvent">System Event</option>
             </select>
           </div>
@@ -215,7 +225,7 @@ function JobRow({
   onEdit: () => void;
   onDelete: () => void;
 }) {
-  const enabled = job.state?.enabled ?? false;
+  const enabled = job.enabled ?? job.state?.enabled ?? false;
 
   return (
     <tr
@@ -381,8 +391,8 @@ export default function CronPage() {
     async (job: CronJob) => {
       setActionError(null);
       try {
-        const newEnabled = !(job.state?.enabled ?? false);
-        await rpc("cron.update", { id: job.id, enabled: newEnabled });
+        const newEnabled = !(job.enabled ?? job.state?.enabled ?? false);
+        await rpc("cron.update", { jobId: job.id, patch: { enabled: newEnabled } });
         refetch();
       } catch (err: any) {
         setActionError(err?.message ?? "Toggle failed");
@@ -396,7 +406,7 @@ export default function CronPage() {
     async (jobId: string) => {
       setActionError(null);
       try {
-        await rpc("cron.trigger", { id: jobId });
+        await rpc("cron.run", { jobId: jobId });
         refetch();
       } catch (err: any) {
         setActionError(err?.message ?? "Trigger failed");
@@ -410,7 +420,7 @@ export default function CronPage() {
     async (jobId: string) => {
       setActionError(null);
       try {
-        await rpc("cron.delete", { id: jobId });
+        await rpc("cron.remove", { jobId: jobId });
         if (selectedJobId === jobId) setSelectedJobId(null);
         refetch();
       } catch (err: any) {
@@ -431,8 +441,8 @@ export default function CronPage() {
           : { cron: formData.schedule };
 
         const payload = formData.payloadKind === "systemEvent"
-          ? { systemEvent: { text: formData.message } }
-          : { agentTurn: { message: formData.message } };
+          ? { kind: "systemEvent", text: formData.message }
+          : { kind: "agentTurn", message: formData.message };
 
         const params: any = {
           name: formData.name,
@@ -443,7 +453,7 @@ export default function CronPage() {
         };
 
         if (editingJob) {
-          await rpc("cron.update", { id: editingJob.id, patch: params });
+          await rpc("cron.update", { jobId: editingJob.id, patch: params });
         } else {
           await rpc("cron.add", params);
         }

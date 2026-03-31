@@ -14,6 +14,7 @@ RestartSec=5
 StandardOutput=journal
 StandardError=journal
 Environment=NODE_ENV=development
+EnvironmentFile=-/home/nick/projects/openclaw-dev/gui/.env.auth
 
 [Install]
 WantedBy=multi-user.target

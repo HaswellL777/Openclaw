@@ -497,7 +497,7 @@ export default function TaskFlowPage() {
   }
 
   return (
-    <div className="flex h-screen">
+    <div className="flex h-full">
       <div className="flex-1 flex flex-col">
         {/* Top bar */}
         <div className="px-4 py-2.5 border-b border-zinc-800 bg-zinc-900 flex items-center gap-3 flex-wrap">

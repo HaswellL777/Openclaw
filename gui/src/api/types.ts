@@ -204,8 +204,10 @@ export interface CronJob {
   schedule: any;
   sessionTarget?: any;
   wakeMode?: string;
+  enabled?: boolean;
+  payload?: any;
   state?: {
-    enabled: boolean;
+    enabled?: boolean;
     lastRunAtMs?: number;
     nextRunAtMs?: number;
     consecutiveErrors?: number;

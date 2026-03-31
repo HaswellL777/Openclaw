@@ -81,15 +81,15 @@
 ## 待解决
 
 - **Gateway RPC Plugin 部署**：`plugins/gateway-rpc-tool/` 已开发，待部署到 `/var/lib/openclaw/.openclaw/extensions/` 并配置
-- **Workspace 发布**：task-runner/RC/auditor skill frontmatter 已修复，待发布到 live workspace
+- **Workspace 发布**：task-runner/RC/auditor skill frontmatter 已修复，待发布到 live workspace（`publish-workspace-all.sh` 已就绪）
 - **Docker/Broker 管理操作**：Gateway 无容器/broker lifecycle API，需开发 broker plugin
-- **安全加固**：IPv6 + auth
+- **安全加固**：GUI token auth 已实现（Vite middleware），需运行 `setup-gui-auth.sh` 生成 token 并重启服务
 - **Vault sync**：维护窗口后尚未执行
 - **常态化健康检查**：workspace-health-check cron job 待通过 GUI 创建
 
 ## 当前下一步
 
-1. 常态化健康检查（workspace 验证 + config 一致性 + 磁盘空间）纳入 cron
-2. Docker/Broker 管理需 broker plugin 开发
-3. 安全加固（IPv6 + auth）
+1. 部署 GUI auth token（`bash scripts/setup-gui-auth.sh` → restart service）
+2. 常态化健康检查（workspace 验证 + config 一致性 + 磁盘空间）纳入 cron
+3. Docker/Broker 管理需 broker plugin 开发
 4. Vault sync

@@ -81,7 +81,7 @@ export default function FilesPage() {
   }, [client, selectedAgent, selectedFile, editContent, queryClient]);
 
   return (
-    <div className="flex h-screen">
+    <div className="flex h-full">
       {/* Left sidebar: agent selector + file list */}
       <div className="w-[260px] shrink-0 border-r border-zinc-800 bg-zinc-900 flex flex-col">
         <div className="px-3 py-3 border-b border-zinc-800">

@@ -355,7 +355,7 @@ export default function SessionsPage() {
   }, [filtered, viewMode]);
 
   return (
-    <div className="flex h-screen">
+    <div className="flex h-full">
       {/* Left panel: session list */}
       <div className="w-[340px] shrink-0 border-r border-zinc-800 bg-zinc-900 flex flex-col">
         <div className="p-3 border-b border-zinc-800 space-y-2">
@@ -476,7 +476,7 @@ export default function SessionsPage() {
         ) : (
           <>
             {/* Header */}
-            <div className="px-4 py-3 border-b border-zinc-800 bg-zinc-900 flex items-center justify-between gap-3 shrink-0">
+            <div className="px-4 py-3 border-b border-zinc-800 bg-zinc-900 flex items-center justify-between gap-3 shrink-0 min-h-12">
               <div className="min-w-0 overflow-hidden">
                 <div className="flex items-center gap-2">
                   <StatusDot

@@ -236,7 +236,7 @@ export default function App() {
     <BrowserRouter>
       <div className="flex min-h-screen bg-zinc-950">
         <Sidebar />
-        <main className="ml-[220px] flex-1 min-h-screen">
+        <main className="ml-[220px] flex-1 h-screen overflow-y-auto">
           <Routes>
             <Route path="/" element={<Navigate to="/overview" replace />} />
             <Route path="/overview" element={<OverviewPage />} />
