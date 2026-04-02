@@ -1,4 +1,4 @@
-# OpenClaw Host 状态记录（2026-04-01 全量同步）
+# OpenClaw Host 状态记录（2026-04-02 全量同步）
 
 > 适用范围：Ubuntu 24.04 LTS 宿主机裸机安装 OpenClaw（非 Docker），Btrfs 根（subvolid=5），使用 `/.snapshots` + 离线 Vault（`/mnt/vault`, `noauto`）做增量 `send/receive`；OpenClaw 以 systemd **system-level** 服务运行（`User=openclaw`），并严格遵循目录边界：
 >
@@ -87,7 +87,7 @@ sudo mv /var/lib/openclaw/.openclaw/extensions/<plugin>.bak-* /var/lib/openclaw/
 
 ### 0.1 当前时间与主机
 - 时区：CST (+0800)
-- 日期：2026-04-01
+- 日期：2026-04-02
 - 主机：`nick-MS-7D73`（管理用户：`nick`，服务用户：`openclaw`）
 - OpenClaw 版本：**2026.3.23-2**（2026-03-25 从 2026.3.13 升级）
 - API Endpoint：**api.duckcoding.ai**（2026-03-28 从 MotChat 迁移）
@@ -111,6 +111,10 @@ sudo mv /var/lib/openclaw/.openclaw/extensions/<plugin>.bak-* /var/lib/openclaw/
 - **GUI systemd 服务已安装**（2026-03-30）— `openclaw-gui.service`（token auth 已启用）
 - **Gateway RPC Plugin 已部署**（2026-03-31）— extensions/gateway-rpc-tool, 14 methods
 - **Cron 健康检查已创建**（2026-03-31）— workspace-health-check, `3 9 * * *`
+- **Phase 6 部分完成 — 备份/恢复/验证脚本已创建**（2026-04-02）— `scripts/backup-openclaw.sh` + `scripts/restore-openclaw.sh` + `scripts/validate-openclaw.sh`
+- **runs.json 权限持久化已部署**（2026-04-02）— tmpfiles.d + systemd ExecStartPost（`scripts/install-permissions-fix.sh`）
+- **Chat spawn 消息渲染已修复**（2026-04-02）— MessageRenderer 支持全部 OpenClaw tool block 格式（toolCall/toolUse/functionCall/tool_use）
+- **容器 outputs 权限已修复**（2026-04-02）— `/workspace/outputs/task-init-test` 从宿主机直接 chmod
 
 ### 0.2.1 升级窗口事实记录（2026-03-18 → 2026.3.13; 2026-03-25 → 2026.3.23-2）
 - 2026-03-18 升级 2026.3.13：Pre/post snapshot + vault_sync 完成，P0 19/19 PASS
