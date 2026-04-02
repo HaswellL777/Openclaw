@@ -1,4 +1,4 @@
-# OpenClaw Host 状态记录（2026-03-30 全量同步）
+# OpenClaw Host 状态记录（2026-04-01 全量同步）
 
 > 适用范围：Ubuntu 24.04 LTS 宿主机裸机安装 OpenClaw（非 Docker），Btrfs 根（subvolid=5），使用 `/.snapshots` + 离线 Vault（`/mnt/vault`, `noauto`）做增量 `send/receive`；OpenClaw 以 systemd **system-level** 服务运行（`User=openclaw`），并严格遵循目录边界：
 >
@@ -87,7 +87,7 @@ sudo mv /var/lib/openclaw/.openclaw/extensions/<plugin>.bak-* /var/lib/openclaw/
 
 ### 0.1 当前时间与主机
 - 时区：CST (+0800)
-- 日期：2026-03-30
+- 日期：2026-04-01
 - 主机：`nick-MS-7D73`（管理用户：`nick`，服务用户：`openclaw`）
 - OpenClaw 版本：**2026.3.23-2**（2026-03-25 从 2026.3.13 升级）
 - API Endpoint：**api.duckcoding.ai**（2026-03-28 从 MotChat 迁移）
@@ -103,9 +103,14 @@ sudo mv /var/lib/openclaw/.openclaw/extensions/<plugin>.bak-* /var/lib/openclaw/
 - **Phase 5C: DuckCoding API 迁移已完成**（2026-03-28）
 - **Phase 5D: Provider 清理已完成**（2026-03-28）
 - **Phase 5E-H: GUI 前端 16 页面已完成**（2026-03-29~30）— systemd 服务管理
+- **Phase 5I: Skill frontmatter 修复 + Gateway RPC Plugin 部署已完成**（2026-03-30）
+- **Phase 5J: GUI auth + Docker/Broker 页面 + Cron 修复 + 部署自动化已完成**（2026-03-31）
 - **workspace-main 已发布**（2026-03-30）— SOP + 5 个自定义 skill（含 YAML frontmatter 修复）
+- **workspace-task-runner 已发布**（2026-04-01）— 新增 outputs/ 目录 + literature-search CRLF 修复
 - **日志轮转已安装**（2026-03-29）— `/etc/logrotate.d/openclaw`（size 500M, rotate 7）
-- **GUI systemd 服务已安装**（2026-03-30）— `openclaw-gui.service`
+- **GUI systemd 服务已安装**（2026-03-30）— `openclaw-gui.service`（token auth 已启用）
+- **Gateway RPC Plugin 已部署**（2026-03-31）— extensions/gateway-rpc-tool, 14 methods
+- **Cron 健康检查已创建**（2026-03-31）— workspace-health-check, `3 9 * * *`
 
 ### 0.2.1 升级窗口事实记录（2026-03-18 → 2026.3.13; 2026-03-25 → 2026.3.23-2）
 - 2026-03-18 升级 2026.3.13：Pre/post snapshot + vault_sync 完成，P0 19/19 PASS
@@ -126,10 +131,10 @@ sudo mv /var/lib/openclaw/.openclaw/extensions/<plugin>.bak-* /var/lib/openclaw/
 - 其中真正需要长期保留的，不是整个 `workspace-main` 的全部静态模板文件，而是其中少数控制面状态与运行元数据。
 
 ### 0.5 当前最重要的未决问题
-1. **Docker/Broker 管理 API 缺失**：Gateway 不暴露容器/broker lifecycle RPC 方法，agent 无法自主管理 Docker 容器或执行 broker 操作。需开发 broker plugin。
-2. **Gateway RPC 对 agent 不可用**：main agent 无法调用 cron.add、config.get 等管理 API，限制了运维自动化能力。需评估 plugin 方案。
-3. **安全加固未实施**：IPv6 绑定 + 登录鉴权尚未配置。
-4. **Vault sync 未执行**：自 Phase 5 大量变更以来未执行 Vault 同步。
+1. ~~**Docker/Broker 管理 API 缺失**~~ ✅ 已解决（2026-03-31）：Gateway RPC Plugin（gateway-rpc-tool, 14 methods）已部署到 extensions，main agent tools.allow 已配置。
+2. ~~**Gateway RPC 对 agent 不可用**~~ ✅ 已解决（2026-03-31）：同上，main agent 可调用 cron.add、config.get 等管理 API。
+3. **安全加固部分实施**：GUI token auth 已启用（Phase 5J）；IPv6 绑定尚未配置。
+4. ~~**Vault sync 未执行**~~ ✅ 已解决：vault-backup-root-btrfs.timer 每天 03:40 自动运行，最近成功 2026-04-01 03:40 CST。
 5. ~~**日志轮转**~~ ✅ 已安装（2026-03-29）：`/etc/logrotate.d/openclaw`（size 500M, rotate 7, copytruncate）。
 6. ~~**飞书卡住/超慢回复**~~ 切换默认模型后已恢复正常。
 
@@ -457,7 +462,7 @@ xfconf-query -c xfwm4 -p /general/use_compositing -s false
 - `main` agent 已正式上线；
 - `workspace-main` 已落地；
 - `main` 的 file tools 已修正；
-- 默认主模型已切到 `motchat-gpt-max/gpt-5.4`；
+- 默认主模型已切到 `duckcoding-gpt/gpt-5.4`（Phase 5B 切换，Phase 5C 从 MotChat 迁移至 DuckCoding）；
 - 开发仓已提交 `workspace-main-template/` 目录与 publish/check 脚本；
 - `docs/runtime-allowlist-backup-draft.md` 已升级为设计定稿候选（design candidate）；
 - host-ops broker daemon 已部署（`openclaw-broker.service`，active + enabled）；
@@ -560,15 +565,15 @@ Phase 2 broker deployment 于 2026-03-14 完成，退出条件满足情况：
   - `bind=loopback`
   - token 通过 `${OPENCLAW_GATEWAY_TOKEN}` 从环境变量注入
 - `models`
-  - DeepSeek 自定义 provider（`contextWindow: 128000`）
-  - MotChat 中转 Claude 4.6（provider：`motchat-claude-4-6`，`baseUrl: https://new.motchat.com/v1`，5 个模型：`opus-4-6 / opus-4-6-1m / opus-4-6-thinking / sonnet-4-6 / sonnet-4-6-thinking`）
-  - MotChat 中转 GPT 5.x（provider：`motchat-gpt-max`，`baseUrl: https://new.motchat.com/v1`，7 个模型：`gpt-5.2-codex / gpt-5.2-codex-high / gpt-5.2-codex-xhigh / gpt-5.2-high / gpt-5.2-xhigh / gpt-5.3-codex / gpt-5.4`）
-    - `gpt-5.2-*` 与 `gpt-5.3-codex`：`contextWindow=400000`，`maxTokens=128000`
+  - DeepSeek 自定义 provider（`custom-api-deepseek-com`，`contextWindow: 128000`）
+  - DuckCoding Claude（provider：`duckcoding-claude`，`baseUrl: https://api.duckcoding.ai/v1`，模型：`opus-4-6 / opus-4-6-1m / opus-4-6-thinking / sonnet-4-6 / sonnet-4-6-thinking`）
+  - DuckCoding GPT（provider：`duckcoding-gpt`，`baseUrl: https://api.duckcoding.ai/v1`，模型：`gpt-5.4`）
+  - DuckCoding Claude Backup（provider：`duckcoding-claude-backup`）
     - `gpt-5.4`：`contextWindow=1050000`，`maxTokens=128000`
 - `agents`
-  - 当前默认主模型为 `motchat-gpt-max/gpt-5.4`
-  - 保留 `motchat-claude-4-6/*` 与 `motchat-gpt-max/*` 模型矩阵，可通过 alias 或显式 model 路径切换
-  - 当前 alias：`opus / opus1m / opusthink / sonnet / sonnetthink / g52codex / g52codexhigh / g52codexxhigh / g52high / g52xhigh / g53codex / g54 / deepchat / deepresoner`
+  - 当前默认主模型为 `duckcoding-gpt/gpt-5.4`（Phase 5B 切换，Phase 5C 从 MotChat 迁移至 DuckCoding）
+  - RC/auditor 模型为 `duckcoding-claude/claude-opus-4-6`
+  - task-runner 默认 `custom-api-deepseek-com/deepseek-chat`
   - Phase 1A 已新增 `agents.list[main]`，其 `workspace` 指向 `/var/lib/openclaw/.openclaw/workspace-main`
   - `main.subagents.allowAgents = ["task-runner"]`
   - `agents.defaults.subagents` 当前包含：
@@ -607,13 +612,15 @@ Phase 2 broker deployment 于 2026-03-14 完成，退出条件满足情况：
   - `elevated`
 - `main.tools.elevated.enabled = false`
 
-> ⚠️ **凭证注入规则（2026-03-04 整改后）：**
+> ⚠️ **凭证注入规则（2026-03-04 整改后，2026-03-28 DuckCoding 迁移后更新）：**
 > - DeepSeek `apiKey` 在 json 中写 `${DEEPSEEK_API_KEY}`，实际值在 `openclaw.env` 中
 > - 飞书 `appSecret` 在 json 中写 `${FEISHU_APP_SECRET}`，实际值在 `openclaw.env` 中
-> - MotChat 中转 `apiKey` 在 json 中写 `${MOTCHAT_API_KEY}`，实际值在 `openclaw.env` 中
+> - DuckCoding `apiKey` 在 json 中写 `${DUCKCODING_API_KEY}`，实际值在 `openclaw.env` 中
 > - **禁止在 json 中明文写任何 API Key 或 Secret**
 
-### 12.1.1 当前 MotChat GPT 5.x 模型矩阵（2026-03-07 权威落地版本）
+### 12.1.1 Provider 迁移历史
+
+**2026-03-28 Phase 5C**：从 MotChat（`new.motchat.com`）迁移至 DuckCoding（`api.duckcoding.ai`）。Provider 键名从 `motchat-claude-4-6` / `motchat-gpt-max` 更名为 `duckcoding-claude` / `duckcoding-gpt`。旧的 MotChat GPT 5.x 模型矩阵（7 个模型：gpt-5.2-codex 系列 + gpt-5.3-codex + gpt-5.4）已精简，当前 DuckCoding GPT 仅保留 `gpt-5.4`。
 
 | Provider 路径 | Alias | 说明 | contextWindow | maxTokens |
 |---|---|---|---:|---:|
@@ -646,7 +653,8 @@ Phase 2 broker deployment 于 2026-03-14 完成，退出条件满足情况：
   - `OPENCLAW_GATEWAY_TOKEN=`（随机强 token）
   - `DEEPSEEK_API_KEY=`（DeepSeek API Key）
   - `FEISHU_APP_SECRET=`（飞书应用 appSecret，2026-03-04 21:24 迁入）
-  - `MOTCHAT_API_KEY=`（MotChat 中转站 API Key，2026-03-05 11:41 新增，用于 Claude 4.6 + GPT 5.x 系列）
+  - `MOTCHAT_API_KEY=`（历史遗留，Phase 5C 迁移后由 `DUCKCODING_API_KEY` 替代）
+  - `DUCKCODING_API_KEY=`（DuckCoding API Key，2026-03-28 Phase 5C 迁移时新增）
 
 ### 12.3 systemd 主 unit（`/etc/systemd/system/openclaw-gateway.service`）
 

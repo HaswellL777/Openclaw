@@ -298,9 +298,9 @@ const QUICK_NAV = [
   { label: "Workspace", path: "/workspace" },
   { label: "Skills", path: "/workspace/skills" },
   { label: "Control", path: "/workspace/control" },
-  { label: "Outputs", path: "/workspace/outputs" },
   { label: "Tasks", path: "/workspace/tasks" },
   { label: "Knowledge", path: "/workspace/knowledge" },
+  { label: "Outputs", path: "/workspace/outputs" },
   { label: "Root /", path: "/" },
 ];
 
@@ -317,6 +317,7 @@ function FileBrowser({
 }) {
   const [currentPath, setCurrentPath] = useState(initialPath || "/workspace");
   const [viewingFile, setViewingFile] = useState<string | null>(null);
+  const [pathError, setPathError] = useState<string | null>(null);
 
   const { data: dirData, isLoading: dirLoading, error: dirError } = useQuery<{
     path: string;
@@ -328,6 +329,10 @@ function FileBrowser({
       fetch(`/api/docker/files?id=${containerId}&path=${encodeURIComponent(currentPath)}`).then((r) => r.json()),
     staleTime: 5_000,
   });
+
+  // Clear pathError when directory loads successfully
+  const dirHasError = !!(dirError || dirData?.error);
+  if (!dirLoading && !dirHasError && pathError) setPathError(null);
 
   const { data: fileData, isLoading: fileLoading } = useQuery<{
     path: string;
@@ -362,6 +367,7 @@ function FileBrowser({
   };
 
   const jumpTo = (path: string) => {
+    setPathError(null);
     setCurrentPath(path);
     setViewingFile(null);
   };
@@ -432,7 +438,20 @@ function FileBrowser({
               )}
               {dirLoading && <Spinner text="Loading..." />}
               {(dirError || dirData?.error) && (
-                <div className="p-3"><ErrorBox message={dirData?.error ?? "Failed to list directory"} /></div>
+                <div className="p-4 space-y-2">
+                  <div className="flex items-center gap-2 text-xs text-amber-400">
+                    <span>⚠</span>
+                    <span>{dirData?.error ?? "Failed to list directory"}</span>
+                  </div>
+                  {currentPath !== "/" && (
+                    <button
+                      onClick={goUp}
+                      className="px-2.5 py-1 text-xs bg-zinc-700 text-zinc-300 rounded-lg hover:bg-zinc-600 transition-colors"
+                    >
+                      Go to parent directory
+                    </button>
+                  )}
+                </div>
               )}
               {sorted.map((entry) => (
                 <button

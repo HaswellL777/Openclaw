@@ -1,6 +1,6 @@
 # OpenClaw Dev Repo 文档地图
 
-> 更新日期：2026-03-31
+> 更新日期：2026-04-02
 
 ---
 
@@ -25,7 +25,6 @@
 
 | 文件 | 描述 |
 |------|------|
-| `docs/planning/container-isolation-design.md` | 容器隔离方案设计（close-by: 2026-04-01）— 推荐方案 A |
 | `docs/planning/frontend-gui-design.md` | 前端 GUI 需求规格 v2（close-by: 2026-04-05）— P0/P1 全部已实现 |
 
 ## GUI 前端 `[active]`
@@ -62,11 +61,19 @@
 | `scripts/acpx-wrapper.sh` | ACP 环境配置 wrapper |
 | `scripts/setup-runs-access.sh` | ACL 设置 nick 读 runs.json |
 | `scripts/apply-logrotate.sh` | 安装日志轮转 |
+| `scripts/install-permissions-fix.sh` | 安装 tmpfiles.d + systemd 权限持久化 |
+| `scripts/backup-openclaw.sh` | OpenClaw 全量备份（snapshot + config + hotfix 状态） |
+| `scripts/restore-openclaw.sh` | 恢复/回滚脚本（dry-run + apply） |
+| `scripts/validate-openclaw.sh` | 端到端验证（9 项检查） |
+| `scripts/hotfix-streamto-noop.sh` | Live hotfix: streamTo guard 禁用 |
+| `scripts/hotfix-json-file-chmod.sh` | Live hotfix: saveJsonFile chmod 0640 |
+| `scripts/hotfix-cleanup-keep.sh` | Live hotfix: cleanup 强制 keep |
 
 ## 交接文档 `[handoff]`
 
 | 文件 | 描述 |
 |------|------|
+| `.claude/handoff/handoff-2026-04-01-phase6-hotfixes.md` | Phase 6 推进 + streamTo/cleanup/chmod hotfixes + 文档全量同步 |
 | `.claude/handoff/handoff-2026-03-31-phase5j.md` | Phase 5J — GUI auth + Docker/Broker + Cron 修复 + 部署 |
 | `.claude/handoff/handoff-2026-03-30-swimlane-fix.md` | Swimlane timestamp 修复 + Skill frontmatter + Gateway RPC Plugin |
 | `.claude/handoff/handoff-2026-03-30-gui-complete.md` | GUI 全量完成 + 文档同步 |
@@ -79,10 +86,11 @@
 
 | 目录 | 描述 |
 |------|------|
-| `workspace-main-template/` | main agent workspace（含 control/、skills/） |
-| `workspace-task-runner-template/` | task-runner workspace（11 skills） |
+| `workspace-main-template/` | main agent workspace（含 control/、skills/ 6 个） |
+| `workspace-task-runner-template/` | task-runner workspace（12 skills + schemas/） |
 | `workspace-research-coordinator-template/` | research-coordinator workspace |
 | `workspace-auditor-template/` | auditor workspace |
+| `task-project-template/` | ACP Claude Code 容器内项目模板（CLAUDE.md + agents/4 个） |
 
 ## 插件 `[active]`
 
@@ -106,6 +114,7 @@
 | `docs/archive/planning/phase3-upgrade/` | Phase 3 upgrade/probe 设计 |
 | `docs/archive/planning/phase3-stall/` | Phase 3 stall-period 文档 |
 | `docs/archive/planning/phase4-acp/` | Phase 4 ACP 研究 + 策略修复 + LabClaw 集成 |
+| `docs/archive/planning/container-isolation/` | 容器隔离方案设计（2026-04-01 close-by 到期归档） |
 | `docs/archive/planning/phase5/` | Phase 5 升级评估 + Skills 扩展 + 长期任务设计 |
 | `docs/archive/planning/api-migration/` | API 迁移方案（已完成归档） |
 | `candidates/archive/` | 已部署/已过期的配置候选 |

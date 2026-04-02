@@ -237,8 +237,9 @@ for ws in "${WORKSPACES[@]}"; do
     fi
 
     # Step 5: rsync template to target
+    # Exclude knowledge/ — it's a read-only bind mount in live containers
     echo "  Syncing template..."
-    rsync -av --delete "$TEMPLATE/" "$TARGET/"
+    rsync -av --delete --exclude='knowledge/' "$TEMPLATE/" "$TARGET/"
 
     # Step 6: Fix ownership (live targets only, skip knowledge/)
     if [[ $ALLOW_LIVE -eq 1 && "$TARGET" == /var/lib/openclaw* ]]; then

@@ -145,6 +145,8 @@ export interface ChatMessage {
   timestamp?: number;      // gateway uses "timestamp", not "ts"
   tokens?: number;
   provenance?: any;
+  tool_use_id?: string;    // present on role:"tool" messages (Anthropic API format)
+  is_error?: boolean;      // present on role:"tool" messages when tool errored
 }
 
 export interface ChatHistoryResult {

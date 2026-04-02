@@ -1,0 +1,126 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TaskRunnerSummary",
+  "description": "Machine-readable summary that task-runner MUST produce for every completed task. Written to outputs/summary.json (or outputs/<task-id>/summary.json for per-task directories).",
+  "type": "object",
+  "required": [
+    "task_id",
+    "status",
+    "started_at",
+    "completed_at",
+    "summary",
+    "changed_files",
+    "requires_host_change",
+    "forbidden_actions"
+  ],
+  "properties": {
+    "task_id": {
+      "type": "string",
+      "pattern": "^[0-9]{8}-[a-z0-9-]+$",
+      "description": "Task identifier in YYYYMMDD-slug format (e.g. 20260401-protein-folding-survey)"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["completed", "failed", "partial", "blocked"],
+      "description": "Final task outcome"
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when task execution began"
+    },
+    "completed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when task execution ended"
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 10,
+      "description": "Human-readable summary of what was accomplished or why it failed"
+    },
+    "changed_files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path", "action"],
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "Relative path from task working directory"
+          },
+          "action": {
+            "type": "string",
+            "enum": ["created", "modified", "deleted"],
+            "description": "What happened to this file"
+          }
+        },
+        "additionalProperties": false
+      },
+      "description": "List of files created, modified, or deleted during task execution"
+    },
+    "validation": {
+      "type": "object",
+      "properties": {
+        "tests_run": { "type": "integer", "minimum": 0 },
+        "tests_passed": { "type": "integer", "minimum": 0 },
+        "tests_failed": { "type": "integer", "minimum": 0 },
+        "lint_clean": { "type": "boolean" },
+        "build_success": { "type": "boolean" }
+      },
+      "additionalProperties": false,
+      "description": "Validation results (tests, lint, build). Omit if no validation was run."
+    },
+    "requires_host_change": {
+      "type": "boolean",
+      "description": "True if this task produced a host-change-request.json that needs review and execution"
+    },
+    "host_change_request_path": {
+      "type": "string",
+      "description": "Relative path to host-change-request.json, required when requires_host_change is true"
+    },
+    "requires_operator_approval": {
+      "type": "boolean",
+      "default": false,
+      "description": "True if the task result needs human operator review before any follow-up"
+    },
+    "evidence_refs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "description": "Relative path to evidence file (log, output, diff, etc.)"
+      },
+      "description": "Pointers to supporting evidence files"
+    },
+    "forbidden_actions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Actions the runner explicitly did NOT take (host shell, systemd, Docker control, config edits, etc.)"
+    },
+    "output_files": {
+      "type": "object",
+      "properties": {
+        "plan": { "type": "string", "description": "Path to plan.md" },
+        "summary_md": { "type": "string", "description": "Path to summary.md" },
+        "diff": { "type": "string", "description": "Path to diff.patch" },
+        "test_log": { "type": "string", "description": "Path to test.log" },
+        "lint_log": { "type": "string", "description": "Path to lint.log" }
+      },
+      "additionalProperties": true,
+      "description": "Paths to standard output files"
+    },
+    "handoff": {
+      "type": "string",
+      "description": "Optional note for main agent or next session about what to do with these results"
+    }
+  },
+  "if": {
+    "properties": { "requires_host_change": { "const": true } }
+  },
+  "then": {
+    "required": ["host_change_request_path"]
+  },
+  "additionalProperties": false
+}

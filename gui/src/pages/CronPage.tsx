@@ -477,12 +477,34 @@ export default function CronPage() {
 
   const editFormData: JobFormData = useMemo(() => {
     if (!editingJob) return emptyForm;
+
+    // Determine schedule type and value
+    const sched = editingJob.schedule;
+    const scheduleType: "cron" | "every" =
+      (typeof sched === "object" && sched?.every) ? "every" : "cron";
+    const schedule = scheduleType === "every"
+      ? (sched?.every ?? sched?.interval ?? "")
+      : fmtSchedule(sched);
+
+    // Determine sessionTarget — stored as a string like "main", "isolated", "session:agent:foo"
+    const sessionTarget =
+      typeof editingJob.sessionTarget === "string"
+        ? editingJob.sessionTarget
+        : editingJob.sessionTarget?.target ?? "main";
+
+    // Extract payload kind and message from existing payload
+    const payload = editingJob.payload;
+    const payloadKind = payload?.kind ?? (sessionTarget === "main" ? "systemEvent" : "agentTurn");
+    const message = payload?.text ?? payload?.message ?? "";
+
     return {
       name: editingJob.name,
-      schedule: fmtSchedule(editingJob.schedule),
-      agent: editingJob.sessionTarget?.agent ?? "",
-      message: editingJob.sessionTarget?.message ?? "",
-      wakeMode: editingJob.wakeMode ?? "spawn",
+      scheduleType,
+      schedule,
+      sessionTarget,
+      wakeMode: editingJob.wakeMode ?? "now",
+      payloadKind,
+      message,
     };
   }, [editingJob]);
 

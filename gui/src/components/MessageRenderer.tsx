@@ -123,6 +123,42 @@ function CodeBlock({
 // ToolCallCard — expand/collapse tool_use block
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// OpenClaw internal tool block types
+// Gateway transcript stores tool calls in several formats:
+//   - Anthropic: { type: "tool_use", id, name, input }
+//   - OpenAI/GPT: { type: "toolCall", id, name, arguments }
+//   - Legacy: { type: "toolUse", id, name, input }
+//   - Legacy: { type: "functionCall", id, name, arguments }
+// ---------------------------------------------------------------------------
+
+const TOOL_USE_TYPES = new Set(["tool_use", "toolCall", "toolUse", "functionCall", "function_call"]);
+const TOOL_RESULT_TYPES = new Set(["tool_result", "toolResult"]);
+
+/** Check if a content block is a tool call */
+function isToolUseBlock(block: any): boolean {
+  return block && typeof block === "object" && TOOL_USE_TYPES.has(block.type);
+}
+
+/** Check if a content block is a tool result */
+function isToolResultBlock(block: any): boolean {
+  return block && typeof block === "object" && TOOL_RESULT_TYPES.has(block.type);
+}
+
+/** Normalize any tool call block to a unified format */
+function normalizeToolUse(block: any): ToolUseBlock {
+  return {
+    type: "tool_use",
+    id: block.id,
+    name: block.name ?? block.function?.name,
+    input: block.input ?? (typeof block.arguments === "string" ? tryParseJSON(block.arguments) : block.arguments),
+  };
+}
+
+function tryParseJSON(s: string): any {
+  try { return JSON.parse(s); } catch { return s; }
+}
+
 interface ToolUseBlock {
   type: "tool_use";
   id?: string;
@@ -249,6 +285,119 @@ function ToolCallCard({
               </pre>
             </div>
           )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// CollapsibleContent — auto-collapse long assistant messages
+// ---------------------------------------------------------------------------
+
+const COLLAPSE_THRESHOLD = 500; // characters
+const COLLAPSE_LINES = 4;      // preview lines
+
+function CollapsibleContent({ text }: { text: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const isLong = text.length > COLLAPSE_THRESHOLD;
+
+  if (!isLong || expanded) {
+    return (
+      <div>
+        <div className="prose prose-sm prose-invert max-w-none [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1">
+          <ReactMarkdown components={markdownComponents}>
+            {text}
+          </ReactMarkdown>
+        </div>
+        {isLong && (
+          <button
+            onClick={() => setExpanded(false)}
+            className="mt-1 text-[10px] text-indigo-400 hover:text-indigo-300 transition-colors"
+          >
+            Collapse
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  // Collapsed: show first N lines + expand button
+  const previewLines = text.split("\n").slice(0, COLLAPSE_LINES).join("\n");
+  const totalLines = text.split("\n").length;
+
+  return (
+    <div>
+      <div className="prose prose-sm prose-invert max-w-none [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1 opacity-80">
+        <ReactMarkdown components={markdownComponents}>
+          {previewLines}
+        </ReactMarkdown>
+      </div>
+      <button
+        onClick={() => setExpanded(true)}
+        className="mt-1 px-2 py-0.5 text-[10px] bg-zinc-700/50 text-zinc-400 hover:text-zinc-300 rounded transition-colors"
+      >
+        Show all ({totalLines} lines, {text.length.toLocaleString()} chars)
+      </button>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// ToolResultCard — collapsed card for inline tool result JSON messages
+// ---------------------------------------------------------------------------
+
+function ToolResultCard({ text, isError, timestamp }: { text: string; isError: boolean; timestamp?: number }) {
+  const [open, setOpen] = useState(false);
+
+  // Try to extract a summary
+  let summary = "";
+  try {
+    const parsed = JSON.parse(text);
+    if (parsed.status) summary = `status: ${parsed.status}`;
+    if (parsed.error) summary = typeof parsed.error === "string" ? parsed.error.slice(0, 80) : "error";
+    if (parsed.action) summary = `${parsed.action}${parsed.status ? ` → ${parsed.status}` : ""}`;
+    if (parsed.ok !== undefined) summary = parsed.ok ? "ok" : `error: ${parsed.error?.slice?.(0, 60) ?? "failed"}`;
+    if (parsed.method) summary = `${parsed.method} → ${parsed.ok ? "ok" : "error"}`;
+  } catch {
+    // Not valid JSON — use first line
+    summary = text.split("\n")[0].slice(0, 80);
+  }
+
+  return (
+    <div className="rounded-lg border border-zinc-800 bg-zinc-900/60 my-1 overflow-hidden">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="w-full text-left px-3 py-1.5 flex items-center gap-2 hover:bg-zinc-800/40 transition-colors"
+      >
+        <svg
+          className={`w-3 h-3 text-zinc-500 transition-transform shrink-0 ${open ? "rotate-90" : ""}`}
+          viewBox="0 0 20 20"
+          fill="currentColor"
+        >
+          <path
+            fillRule="evenodd"
+            d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+            clipRule="evenodd"
+          />
+        </svg>
+        <span className={`text-[10px] font-medium ${isError ? "text-red-400" : "text-emerald-400"}`}>
+          {isError ? "⚠" : "✓"}
+        </span>
+        <span className="text-xs text-zinc-400 truncate flex-1">{summary}</span>
+        {timestamp && (
+          <span className="text-[10px] text-zinc-600 tabular-nums shrink-0">
+            {new Date(timestamp).toLocaleTimeString()}
+          </span>
+        )}
+      </button>
+      {open && (
+        <div className="border-t border-zinc-800 px-3 py-2">
+          <pre className="text-xs font-mono text-zinc-400 whitespace-pre-wrap break-all max-h-48 overflow-y-auto bg-zinc-950 rounded-lg p-2.5 border border-zinc-800">
+            {(() => {
+              try { return JSON.stringify(JSON.parse(text), null, 2); } catch { return text; }
+            })()}
+          </pre>
         </div>
       )}
     </div>
@@ -574,15 +723,22 @@ export function MessageRenderer({
   messageIndex,
 }: MessageRendererProps) {
   const isUser = msg.role === "user";
-  const isTool = msg.role === "tool";
+  const isTool = msg.role === "tool" || msg.role === ("toolResult" as any);
 
   // Agent badge from session key
   const agentId = sessionKey ? agentFromKey(sessionKey) : null;
   const provenance = extractProvenance(msg);
 
   // ---- Tool result messages (role: "tool") ----
+  // Don't hide completely — show as a compact card if there's meaningful content
   if (isTool) {
-    return null;
+    const toolText = typeof msg.content === "string" ? msg.content :
+      Array.isArray(msg.content) ? msg.content.map((b: any) => b.text ?? b.content ?? "").filter(Boolean).join("\n") : "";
+    // Skip truly empty results
+    if (!toolText.trim()) return null;
+    // Render as a compact tool result card
+    const isErr = toolText.includes('"error"') || toolText.includes('"status":"error"') || toolText.includes('"status": "error"');
+    return <ToolResultCard text={toolText} isError={isErr} timestamp={msg.ts ?? (msg as any).timestamp} />;
   }
 
   // ---- Array content: extract text for display ----
@@ -651,9 +807,9 @@ export function MessageRenderer({
     const toolUseBlocks: { block: ToolUseBlock; index: number }[] = [];
 
     msg.content.forEach((block: any, i: number) => {
-      if (block.type === "tool_use") {
-        toolUseBlocks.push({ block, index: i });
-      } else if (block.type === "tool_result") {
+      if (isToolUseBlock(block)) {
+        toolUseBlocks.push({ block: normalizeToolUse(block), index: i });
+      } else if (isToolResultBlock(block)) {
         // tool_result in content arrays: skip, handled by tool_use pairing
       } else {
         const text = block.text ?? block.content ?? "";
@@ -667,28 +823,44 @@ export function MessageRenderer({
     const toolResultMap = new Map<string, ToolResultBlock>();
     if (allMessages && messageIndex != null) {
       // Look at subsequent messages for tool_result matches
+      let unmatchedIdx = 0; // track sequential matching for flat tool results
       for (let j = messageIndex + 1; j < allMessages.length; j++) {
         const nextMsg = allMessages[j];
         if (nextMsg.role === "tool") {
+          // Case 1: message-level tool_use_id (standard Anthropic API format)
+          const msgToolUseId = (nextMsg as any).tool_use_id;
+          if (msgToolUseId) {
+            const content = typeof nextMsg.content === "string" ? nextMsg.content
+              : Array.isArray(nextMsg.content) ? nextMsg.content.map((b: any) => b.text ?? b.content ?? "").filter(Boolean).join("\n")
+              : "";
+            toolResultMap.set(msgToolUseId, {
+              type: "tool_result",
+              tool_use_id: msgToolUseId,
+              content,
+              is_error: (nextMsg as any).is_error,
+            });
+            continue;
+          }
+          // Case 2: content array with tool_result blocks
           if (Array.isArray(nextMsg.content)) {
             for (const block of nextMsg.content) {
-              if (block.type === "tool_result" && block.tool_use_id) {
+              if (isToolResultBlock(block) && block.tool_use_id) {
                 toolResultMap.set(block.tool_use_id, block);
               }
             }
           } else if (typeof nextMsg.content === "string") {
-            // Flat tool result — try to match with the next unmatched tool_use
-            // OpenClaw sends tool results as sequential messages matching tool_use order
-            const unmatchedUses = toolUseBlocks.filter(
-              ({ block }) => block.id && !toolResultMap.has(block.id),
-            );
-            if (unmatchedUses.length > 0) {
-              const targetId = unmatchedUses[0].block.id!;
+            // Case 3: Flat string result — match sequentially with unmatched tool_use blocks
+            while (unmatchedIdx < toolUseBlocks.length && toolUseBlocks[unmatchedIdx].block.id && toolResultMap.has(toolUseBlocks[unmatchedIdx].block.id!)) {
+              unmatchedIdx++;
+            }
+            if (unmatchedIdx < toolUseBlocks.length && toolUseBlocks[unmatchedIdx].block.id) {
+              const targetId = toolUseBlocks[unmatchedIdx].block.id!;
               toolResultMap.set(targetId, {
                 type: "tool_result",
                 tool_use_id: targetId,
                 content: nextMsg.content,
               });
+              unmatchedIdx++;
             }
           }
         }
@@ -698,7 +870,7 @@ export function MessageRenderer({
 
     // Also check for tool_result blocks within the same message's content array
     msg.content.forEach((block: any) => {
-      if (block.type === "tool_result" && block.tool_use_id) {
+      if (isToolResultBlock(block) && block.tool_use_id) {
         toolResultMap.set(block.tool_use_id, block);
       }
     });
@@ -724,11 +896,7 @@ export function MessageRenderer({
             className="rounded-lg px-3 py-2 bg-zinc-800/80 text-zinc-200 text-sm group"
           >
             <div className="flex justify-end mb-0.5"><CopyButton text={text} /></div>
-            <div className="prose prose-sm prose-invert max-w-none [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1">
-              <ReactMarkdown components={markdownComponents}>
-                {text}
-              </ReactMarkdown>
-            </div>
+            <CollapsibleContent text={text} />
           </div>
         ))}
 
@@ -778,6 +946,15 @@ export function MessageRenderer({
 
   const externalContent = tryRenderExternalContent(rawText);
 
+  // Detect tool result messages: JSON-like short text from assistant (e.g. { "status": "error", ... })
+  const isToolResult = !isUser && typeof msg.content === "string" &&
+    msg.content.trim().startsWith("{") && msg.content.trim().endsWith("}") &&
+    msg.content.length < 2000;
+
+  // Detect tool marker format: [Tool: xxx] and [Tool Result]
+  const hasToolMarkers = !isUser && typeof msg.content === "string" &&
+    (/^\[Tool:\s*[^\]]+\]/m.test(msg.content) || /^\[Tool Result\]/m.test(msg.content));
+
   // Check for completion events embedded in text
   const completionEventsInText = parseCompletionEvents(rawText);
   // Strip the runtime context prefix from displayed text
@@ -802,8 +979,10 @@ export function MessageRenderer({
       )}
       {/* External content block */}
       {externalContent && externalContent}
-      {/* Regular message bubble */}
-      {cleanText && (
+      {/* Tool result (JSON) or tool marker messages — render as collapsible card */}
+      {(isToolResult || hasToolMarkers) ? (
+        <ToolResultCard text={rawText} isError={rawText.includes('"error"') || rawText.includes('"status":"error"') || rawText.includes('"status": "error"')} timestamp={msg.ts ?? (msg as any).timestamp} />
+      ) : cleanText ? (
       <div className={`flex ${isUser ? "justify-end" : "justify-start"} group`}>
         <div
           className={`max-w-[80%] rounded-lg px-3.5 py-2.5 text-sm ${
@@ -834,11 +1013,7 @@ export function MessageRenderer({
         {isUser ? (
           <span className="whitespace-pre-wrap">{cleanText}</span>
         ) : (
-          <div className="prose prose-sm prose-invert max-w-none [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1">
-            <ReactMarkdown components={markdownComponents}>
-              {cleanText}
-            </ReactMarkdown>
-          </div>
+          <CollapsibleContent text={cleanText} />
         )}
 
         {/* Token count */}
@@ -849,7 +1024,7 @@ export function MessageRenderer({
         )}
       </div>
     </div>
-    )}
+    ) : null}
     </div>
   );
 }

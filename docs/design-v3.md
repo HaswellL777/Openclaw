@@ -1,8 +1,8 @@
 # OpenClaw 多 Agent + Claude Code 协作体系设计稿 v3.1
 
 > 初版编写日期：2026-03-07
-> 本次修订日期：2026-03-23（Docker prerequisite established via docker group；Phase 3 进入准备阶段）
-> 适用宿主机：当前单机 Ubuntu 24.04 LTS / Btrfs / systemd / OpenClaw 2026.3.13 基线
+> 本次修订日期：2026-04-02（Phase 4/6 checklist 同步；§0 结论同步至当前状态）
+> 适用宿主机：当前单机 Ubuntu 24.04 LTS / Btrfs / systemd / OpenClaw 2026.3.23-2 基线
 > 上游输入：`openclaw-host-sop-2026-03-06.md`、`1.md`、`openclaw-design-v2-2026-03-07.md`、本轮 Phase 1A 实际落地结果、Phase 1B 开发仓候选产物
 > 文档定位：**可实施规格稿 + 落地状态稿**，用于后续继续开发、验证、回滚、审计与发布
 
@@ -10,20 +10,21 @@
 
 ## 0. 文档结论先行
 
-截至 2026-03-23，本设计稿 v3.1 的状态应表述为：
+截至 2026-04-02，本设计稿 v3.1 的状态应表述为：
 
-1. **当前真实落地阶段：Phase 1（1A + 1B）+ Phase 2 全部完成。** agent-facing host_ops 8/8 action 已 live E2E verified（2026-03-17）。详见 `docs/current-boundary.md`。
-2. **主控制面仍在宿主机，不容器化。**
-3. **`main` agent 已在现网落地**，具备 `read / write / edit / sessions_*` + `host_ops` 工具，无 `exec`、无 `elevated`。
-4. **`workspace-main` 已实际发布**到 `/var/lib/openclaw/.openclaw/workspace-main/`，视为 published artifact（非 root snapshot 恢复对象）。
-5. **host-ops broker daemon 已部署并运行**（`openclaw-broker.service`）；8 个 wrapper 已安装（production）；host-ops-tool plugin registerTool 版已部署到 live。全部 8 个 action 已 live E2E verified。逐 action 证据见 `docs/records/README.md`。
-6. **Claude Code CLI 当前只完成角色 A**（`nick` 用户开发工具）。角色 B（容器内工程执行器）属后续阶段；当前并未被 Codex 替代。
-7. **Codex 当前已可接手 repo-side 主执行者角色。** 其适用范围是开发仓 `~/projects/openclaw-dev/` 内的文档、脚本、候选产物与 repo-local 配置工作；这不代表 live-side 执行器发生切换。
-8. **OpenClaw 2026.3.13 升级已完成（2026-03-18）。** live baseline 已从 2026.3.2 切换到 2026.3.13，P0 focused regression 19/19 PASS，rollback 未触发。`2026.3.13` 已在当前宿主机完成 live 验证。升级记录见 `docs/records/openclaw-2026.3.13-upgrade-activation-2026-03-18.md`。
-9. **Docker prerequisite 已建立（2026-03-23）。** 方案为 docker group（`sudo usermod -aG docker openclaw`）。`openclaw` 已在 `docker` 组，`docker version` / `docker run hello-world` 均已验证通过。Pre/post snapshot + vault sync 已完成。P5 的原始 blocker（Docker 未安装 + openclaw 无访问权）已全部解决，需重跑 capability probe 以正式确认。
-10. **Phase 3 进入准备阶段。** Docker prerequisite 已建立，下一步为重跑 capability probe、构建 task-runner 镜像、配置 `sandbox.docker`。
-11. **task-runner / Docker sandbox 尚未进入生产执行链。** 除非特别注明”已验证”，否则不得写成当前事实。但 Docker 访问已验证可用，不再是 blocker。
-13. **任何宿主机副作用仍必须坚持“快照 → 变更 → 健康检查 → post 快照 → Vault 入库”的纪律。**
+1. **当前真实落地阶段：Phase 0–5J 全部完成，Phase 6 大部分完成。** 详见 `docs/current-boundary.md`。
+2. **主控制面在宿主机，不容器化。**
+3. **`main` agent 已在现网落地**，具备 `read / write / edit / sessions_*` + `host_ops` + `gateway-rpc` 工具。Model: GPT-5.4 via DuckCoding。
+4. **`workspace-main` 已实际发布**到 `/var/lib/openclaw/.openclaw/workspace-main/`，含 6 个自定义 skill + control/ 路由策略。
+5. **host-ops broker daemon 已部署并运行**（`openclaw-broker.service`）；8 个 wrapper 已安装；host-ops-tool plugin 已部署。全部 8 个 action 已 live E2E verified。
+6. **task-runner / Docker sandbox 已上线并生产运行**（2026-03-24）。GPU image (CUDA 12.8 + PyTorch) 已部署。scope=shared, network=openclaw-task-net。
+7. **ACP Claude Code 已验证**（2026-03-26）。通过 acpx-wrapper.sh → DuckCoding proxy。task-project-template 已创建但未部署到容器路径。
+8. **多 agent 编排已运行**：main→task-runner, main→research-coordinator→task-runner, main→auditor。maxSpawnDepth=2。
+9. **GUI 管理前端已上线**（16 页面，Vite dev server :3000，token auth）。
+10. **备份/恢复脚本已创建**（2026-04-02）：backup-openclaw.sh + restore-openclaw.sh + validate-openclaw.sh。
+11. **runs.json 权限持久化已部署**（2026-04-02）：tmpfiles.d + systemd ExecStartPost。
+12. **3 个 live hotfixes 生效中**：streamTo noop, json-file chmod 0640, cleanup force keep。升级 OpenClaw 时需重新应用。
+13. **任何宿主机副作用仍必须坚持”快照 → 变更 → 健康检查 → post 快照 → Vault 入库”的纪律。**
 14. **`/var/lib/openclaw` 已是独立 Btrfs 子卷**，不在 root snapshot 保护范围内。
 
 > 运行态细节（模型切换、plugin activation 逐步骤记录、per-agent allowlist 修复历史等）已下沉到 `docs/host-sop.md`。本文档聚焦架构设计与实施规格。
@@ -248,23 +249,36 @@ v3.1 继续坚持“控制面 / 执行面分离”，但必须明确区分 **当
 
 ### 4.2 统一事件流
 
-#### 4.2.1 当前实际事件流（Phase 1A）
+#### 4.2.1 当前实际事件流（Phase 5 operational）
 
-用户  
-→ 飞书  
-→ `openclaw-gateway.service`  
-→ `main` agent  
-→ `main` 在 `workspace-main` 内读取 / 写入控制文件  
-→ 直接回答用户
+用户
+→ 飞书 / GUI Chat
+→ `openclaw-gateway.service`
+→ `main` agent (GPT-5.4)
+→ `main` 在 `workspace-main` 内读取 / 写入控制文件
+→ 直接回答用户 / 或派发任务到 subagent
+
+工程任务流：
+→ `main` → `sessions_spawn(agentId="task-runner")`
+→ task-runner 在 Docker sandbox (scope=shared) 中执行
+→ 输出写入 `/workspace/outputs/`
+→ runner 完成并 announce 给 `main`
+→ `main` 汇总并回复用户
+
+多阶段研究任务流：
+→ `main` → `sessions_spawn(agentId="research-coordinator")`
+→ RC → `sessions_spawn(agentId="task-runner")` × N
+→ task-runner 各阶段通过 `task-state.json` 传递状态
+→ RC 汇总 → `main` 报告
 
 当前阶段说明：
 
 - `main` 已能处理控制面问答；
 - 已能拒绝直接宿主机 shell；
-- 已能列出自己的当前工具集；
-- 但还不能把任务正式派发到已上线的 `task-runner`，因为 task-runner 尚未进入生产。
+- 已能把任务派发到 `task-runner`、`research-coordinator`、`auditor`、`ACP claude`；
+- 多阶段编排已运行。
 
-#### 4.2.2 Phase 1A 之后的工程任务目标流
+#### 4.2.2 涉及宿主机状态变更的目标流（Phase 6，部分落地）
 
 用户  
 → `main`  
@@ -289,13 +303,13 @@ v3.1 继续坚持“控制面 / 执行面分离”，但必须明确区分 **当
 → pre snapshot → 变更 → 健康检查 → post snapshot → Vault 入库  
 → `main` 汇总结果并回复
 
-#### 4.2.4 当前限制说明
+#### 4.2.3 当前限制说明
 
-截至本次修订：
+截至本次修订（2026-04-02）：
 
-- 4.2.2 仍是目标路径；
-- 4.2.3 只部分落地：broker / wrapper / host-ops plugin 链已在 Phase 2 live E2E verified，但 `task-runner -> host-change-request.json -> main -> broker` 这条编排流尚未上线；
-- 因此任何文中出现的 `task-runner`、容器内 Claude Code 执行流，除非特别注明“已验证”，都应视为后续阶段目标；`broker` / `wrapper` / `host_ops plugin` 则不得再误写成“尚未落地”。
+- 4.2.1 已全面落地，所有 subagent 路径均已验证；
+- 4.2.2 部分落地：broker / wrapper / host-ops plugin 链已在 Phase 2 live E2E verified；`task-runner -> host-change-request.json -> main -> broker` 编排流的 skill 层已就绪（host-change-review + approvals），但未做过完整端到端演练；
+- ACP Claude Code（Phase 4）已验证一次性 spawn，但 task-project-template 尚未部署到容器路径。
 
 ---
 
@@ -1918,80 +1932,102 @@ Phase 2 repo prep 全部完成。完整 prep 退出标准见 `docs/specs/phase2-
 
 ---
 
-## 8.4 Phase 3 TODO
+## 8.4 Phase 3 — 已完成（2026-03-24）
 
-> **前置条件：先完成 OpenClaw 升级到 ≥ 2026.3.12 + 升级后 focused regression。** 在 2026.3.2 上做以下工作没有意义。
+> Docker sandbox + task-runner 已 operational。端到端验证通过（sessions_spawn → 容器内 git clone + 文件生成 → 结果回传飞书）。
 
-- [ ] 安装 / 整理 Docker Engine
-- [ ] 设计 `openclaw-task-net`
-- [ ] 编写 Docker capability probe 脚本
-- [ ] 构建 `openclaw-task-claude:2026-03-v3`
-- [ ] 验证非 root 运行用户
-- [ ] 验证只读 rootfs
-- [ ] 验证 tmpfs
-- [ ] 验证自定义网络
-- [ ] 验证 bind task repo / outputs
-- [ ] 创建 `workspace-task-runner/`
-- [ ] 写 runner `AGENTS.md`
-- [ ] 写 runner `TOOLS.md`
-- [ ] 写 `control/runner-policy.md`
-- [ ] 写 `control/artifact-contract.md`
-- [ ] 更新 `openclaw.json` 加入 `task-runner`
-- [ ] 验证 `sessions_spawn("task-runner")`
-- [ ] 验证 `scope=session`
-- [ ] 验证容器清理
-- [ ] 变更前快照
-- [ ] 变更后快照
-- [ ] Vault 入库
+- [x] 安装 / 整理 Docker Engine — Docker 28.2.2，openclaw 加入 docker 组
+- [x] 设计 `openclaw-task-net` — 自定义 Docker network
+- [x] 编写 Docker capability probe 脚本 — 5 probe 全 PASS（2026-03-23 重跑）
+- [x] 构建 `openclaw-task-claude:2026-03-v3` — slim + v3-full（生产级）+ v3-gpu
+- [x] 验证非 root 运行用户 — runner UID 997:984 匹配 openclaw
+- [x] 验证只读 rootfs — readOnlyRoot: true
+- [x] 验证 tmpfs
+- [x] 验证自定义网络 — openclaw-task-net
+- [x] 验证 bind task repo / outputs — workspace + knowledge bind mount
+- [x] 创建 `workspace-task-runner/` — 模板 + 发布到 live
+- [x] 写 runner `AGENTS.md`
+- [x] 写 runner `TOOLS.md`
+- [x] 写 `control/runner-policy.md`
+- [x] 写 `control/artifact-contract.md`
+- [x] 更新 `openclaw.json` 加入 `task-runner`
+- [x] 验证 `sessions_spawn("task-runner")`
+- [x] 验证 `scope=session`（实际部署为 scope=shared）
+- [x] 验证容器清理 — prune: idleHours 4, maxAgeDays 3
+- [x] 变更前快照 — root-pre-docker-group-20260323
+- [x] 变更后快照 — root-post-phase3-complete-20260323
+- [x] Vault 入库
 
 ---
 
-## 8.5 Phase 4 TODO
+## 8.5 Phase 4 — 部分完成（2026-03-26 ACP 验证通过）
 
 > **修正（2026-03-25）**：gate shim / vLLM audit 相关项已移除（§5.5 ABANDONED）。
 > Claude Code 不在容器内运行，改为 ACP（acpx）宿主机进程。
+> **修正（2026-04-01）**：ACP plugin activation + spike test 已完成。Task project 模板已创建（repo-side），outputs schema 已完成。
+> **修正（2026-04-02）**：task-project-template 包含 CLAUDE.md + settings.json + 4 个 agents。尚未部署到容器内 ACP 使用路径。
 
-- [ ] 启用 acpx plugin（bundled in 2026.3.13）
-- [ ] 配置 `acp` block in openclaw.json（候选：`candidates/openclaw.acp-spike.candidate.json5`）
-- [ ] 设置 ANTHROPIC_BASE_URL + ANTHROPIC_API_KEY 环境变量
+- [x] 启用 acpx plugin（bundled in 2026.3.13）
+- [x] 配置 `acp` block in openclaw.json
+- [x] 设置 ANTHROPIC_BASE_URL + ANTHROPIC_API_KEY 环境变量
 - [x] Spike 测试 ACP session spawn（claude-engineer agent）— 2026-03-26 验证通过（飞书 → main → sessions_spawn → Claude Code → 结果返回）
 - [ ] 验证 cwd bug #27627 workaround
-- [ ] 创建 task project 模板
-- [ ] 写 task project `CLAUDE.md`
-- [ ] 写 `.claude/settings.json`
-- [ ] 写 `.claude/agents/coder.md`
-- [ ] 写 `.claude/agents/tester.md`
-- [ ] 写 `.claude/agents/reviewer.md`
-- [ ] 写 `.claude/agents/doc-writer.md`
-- [ ] 写 `outputs/summary.json` schema
-- [ ] 写 `outputs/host-change-request.json` schema
+- [x] 创建 task project 模板 — `task-project-template/`（CLAUDE.md + .claude/settings.json + 4 agents）
+- [x] 写 task project `CLAUDE.md`
+- [x] 写 `.claude/settings.json`
+- [x] 写 `.claude/agents/coder.md`
+- [x] 写 `.claude/agents/tester.md`
+- [x] 写 `.claude/agents/reviewer.md`
+- [x] 写 `.claude/agents/doc-writer.md`
+- [x] 写 `outputs/summary.json` schema — `schemas/task-runner-summary.schema.json`
+- [x] 写 `outputs/host-change-request.json` schema — `schemas/host-change-request.schema.json`
+- [ ] 部署 task-project-template 到容器内 ACP 使用路径
 
 ---
 
-## 8.6 Phase 5 TODO
+## 8.6 Phase 5 — 实际执行内容与原始设计不同
 
-- [ ] 选定 LLM gateway 实现
-- [ ] 验证 Anthropic Messages API 兼容
-- [ ] 验证 headers 透传
-- [ ] 验证流式响应
-- [ ] 验证模型映射
-- [ ] 实现 task token 发放
-- [ ] 实现 token 过期
-- [ ] 实现网关审计日志
-- [ ] 验证容器内不持长期 key
+> **原始设计（已废弃）**：LLM gateway / task token / secret 最小化 — 选定上游 proxy，实现 task token 发放/过期，防止容器持有长期 key。
+>
+> **实际执行（2026-03-27 ~ 2026-03-31，Phase 5A–5J）**：
+> - 5A: sessions.visibility 部署
+> - 5B: 模型切换（main→gpt-5.4, RC/auditor→opus-4-6）
+> - 5C: DuckCoding API 迁移（从 MotChat 迁移至 api.duckcoding.ai）
+> - 5D: Provider 清理
+> - 5E–5H: GUI 前端 16 页面 + systemd 服务
+> - 5I: Skill frontmatter 修复 + Gateway RPC Plugin
+> - 5J: GUI auth + Docker/Broker 页面 + Cron 修复 + 部署自动化
+>
+> 原始 Phase 5 中 task token 相关设计（token 发放/过期/容器 key 隔离）未实施，归入后续安全加固计划。
+
+~~以下为原始设计 checklist（已废弃，实际由上述 Phase 5A–5J 替代）：~~
+
+- ~~[ ] 选定 LLM gateway 实现~~ → 改为 DuckCoding API 多 provider 路由
+- ~~[ ] 验证 Anthropic Messages API 兼容~~ → DuckCoding 层已处理
+- ~~[ ] 验证 headers 透传~~ → 不适用
+- [x] 验证流式响应 — GUI chat streaming 已实现
+- [x] 验证模型映射 — 多 provider 模型配置已完成
+- [ ] 实现 task token 发放 — 归入后续安全加固
+- [ ] 实现 token 过期 — 归入后续安全加固
+- [ ] 实现网关审计日志 — Gateway 日志存在但非 task-token 级别
+- [ ] 验证容器内不持长期 key — 归入后续安全加固
 
 ---
 
-## 8.7 Phase 6 TODO
+## 8.7 Phase 6 — 大部分完成（2026-04-02 备份/恢复/验证脚本已创建）
 
-- [ ] 定义 `host-change-request.json` 完整 schema
-- [ ] task-runner 生成该请求
-- [ ] main 审批逻辑落地
-- [ ] broker 接收审批请求
-- [ ] broker 写回执行结果
-- [ ] 将 `runtime-allowlist-backup-draft.md`（Phase 1B 设计定稿候选）转化为可执行备份脚本
-- [ ] 明确恢复顺序与恢复脚本（基于 `runtime-allowlist-backup-draft.md` §4 恢复优先级）
-- [ ] 验证失败时可安全回退
+> **2026-04-01 更新**：host-change-request.json schema 已定义，main agent host-change-review skill 已创建。task-runner task-init skill 支持按任务组织 outputs。broker 端 8 个 action 已在 Phase 2 部署完成。
+> **2026-04-02 更新**：备份脚本（`backup-openclaw.sh`）、恢复脚本（`restore-openclaw.sh`）、验证脚本（`validate-openclaw.sh`）已创建。runs.json 权限持久化已通过 tmpfiles.d + systemd ExecStartPost 部署。剩余：端到端回退演练。
+
+- [x] 定义 `host-change-request.json` 完整 schema — `schemas/host-change-request.schema.json`
+- [x] task-runner 生成该请求 — task-init skill + artifact-contract 已规范产出格式
+- [x] main 审批逻辑落地 — `skills/host-change-review/SKILL.md` + `skills/approvals/SKILL.md`
+- [x] broker 接收审批请求 — Phase 2 已部署 8 个 action，broker skill 已就绪
+- [x] broker 写回执行结果 — broker daemon 已支持 result JSON 回写
+- [x] 将 `runtime-allowlist-backup-draft.md` 转化为可执行备份脚本 — `scripts/backup-openclaw.sh`
+- [x] 明确恢复顺序与恢复脚本 — `scripts/restore-openclaw.sh`（dry-run + apply + 确认机制）
+- [x] 端到端验证脚本 — `scripts/validate-openclaw.sh`（9 项检查）
+- [ ] 实际演练端到端回退流程（backup → restore → validate）
 
 ---
 

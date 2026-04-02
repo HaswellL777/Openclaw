@@ -1,8 +1,8 @@
 # OpenClaw 当前真实边界
 
-> 更新日期：2026-03-31（Phase 5J — GUI auth + Docker/Broker 功能化 + Cron 修复 + 全量部署）
+> 更新日期：2026-04-02（Phase 6 推进 — 备份/恢复脚本 + 权限持久化 + spawn 消息渲染修复）
 > 基线版本：**OpenClaw 2026.3.23-2**
-> 阶段：**Phase 5 operational — 多 agent 编排 + GUI 管理前端 + 安全加固**
+> 阶段：**Phase 6 进行中 — 备份恢复 + 运维加固**
 
 ---
 
@@ -20,6 +20,8 @@
 | Phase 5H: Task Detail Swimlane + 语法高亮 + Overview 改版 | 完成 | 2026-03-29 |
 | Phase 5I: Skill frontmatter 修复 + Gateway RPC Plugin + GUI bugfix | 完成 | 2026-03-30 |
 | **Phase 5J: GUI auth + Docker/Broker 页面 + Cron 修复 + 部署自动化** | **完成 ✅** | **2026-03-31** |
+| Phase 6 部分: outputs schema + task-init + hotfixes + 文档同步 | 完成 | 2026-04-01 |
+| **Phase 6 部分: 备份/恢复脚本 + 权限持久化 + spawn 渲染修复** | **完成 ✅** | **2026-04-02** |
 
 ## 当前真实边界
 
@@ -42,13 +44,14 @@
 | **Gateway RPC Plugin** | **已部署** — extensions/gateway-rpc-tool, main agent tools.allow |
 | **Cron 健康检查** | **已创建** — workspace-health-check, 3 9 * * * |
 | **日志轮转** | ✅ `/etc/logrotate.d/openclaw` (size 500M, rotate 7) |
+| **权限持久化** | ✅ tmpfiles.d + systemd ExecStartPost（`scripts/install-permissions-fix.sh` 已部署） |
 
 ## GUI 前端状态
 
 | 页面 | 功能 | 状态 |
 |------|------|------|
 | Overview | Agent 卡片仪表板 + 快速统计 + 最近任务 + 健康 + Presence | ✅ 完成 |
-| Chat | 新建/续接 session + streaming + idempotencyKey | ✅ 完成 |
+| Chat | 新建/续接 session + streaming + idempotencyKey + **spawn 消息渲染** | ✅ 完成 |
 | Sessions | Session 列表/Tree view + 对话查看 + Abort/Clear History | ✅ 完成 |
 | Task Flow | spawn chain 图 + 筛选/重命名/软归档 + 点击进入详细视图 | ✅ 完成 |
 | Task Detail | Swimlane 消息流程图 + 跨列箭头 + 消息折叠/展开 + 详情面板 | ✅ 完成 |
@@ -90,12 +93,47 @@
 
 ## 待解决
 
-- **Vault sync**：Phase 5 大量变更以来未执行
 - **GUI 生产化**：当前 Vite dev server，可选 Nginx + build + TLS
-- **旧 Docker 镜像清理**：`<none>` tag + GPU 镜像确认
+- **Phase 4 剩余**：task project 模板已创建（`task-project-template/`）但未部署到容器内 ACP 使用路径
+- **Phase 6 剩余**：端到端回退验证（备份/恢复脚本已创建，需实际演练）
+
+## Live Hotfixes（升级 OpenClaw 时需重新应用）
+
+| Hotfix | 文件 | 效果 | 脚本 |
+|--------|------|------|------|
+| streamTo noop | pi-embedded | 防止 GPT-5.4 阻塞 subagent spawn | `scripts/hotfix-streamto-noop.sh` |
+| json-file chmod | json-file-Dl3Z1jL1.js | 0600→0640，允许 group 读 | `scripts/hotfix-json-file-chmod.sh` |
+| cleanup force keep | pi-embedded | 防止 subagent session/run 被自动删除 | `scripts/hotfix-cleanup-keep.sh` |
+
+Pre-hotfix snapshot: `/.snapshots/root-pre-streamto-hotfix-20260401-1230`
+
+## 已解决（2026-04-02）
+
+- ~~**Chat session spawn 消息不可见**~~：根因是 OpenClaw 用 `type:"toolCall"` 存储 GPT-5.4 工具调用，MessageRenderer 只识别 `type:"tool_use"`。已修复支持全部 5 种 block 格式
+- ~~**outputs/task-init-test 权限问题**~~：容器 ReadonlyRootfs=true，从宿主机直接 chmod 修复
+- ~~**runs.json 权限持久化**~~：tmpfiles.d + systemd ExecStartPost 永久修复，重启不再丢权限
+- ~~**Phase 6 备份恢复脚本**~~：`backup-openclaw.sh` + `restore-openclaw.sh` + `validate-openclaw.sh` 已创建
+
+## 已解决（2026-04-01）
+
+- ~~**streamTo spawn 失败**~~：GPT-5.4 tool schema 泄漏问题，hotfix 静默忽略
+- ~~**cleanup session 被删除**~~：GPT-5.4 传 cleanup:"delete"，hotfix 强制 keep
+- ~~**TaskFlow 为空**~~：runs.json 权限 + cleanup 问题，两个 hotfix 修复
+- ~~**Vault sync**~~：timer 自动执行
+- ~~**旧 Docker 镜像清理**~~：`<none>` tag 已 prune
+- ~~**Docker 文件浏览器 outputs 路径**~~：错误处理改善
+- ~~**CronPage 编辑表单**~~：editFormData 字段回填修复
+- ~~**outputs/ 目录缺失**~~：task-runner 模板 + live workspace 已加
+- ~~**outputs schema 未定义**~~：summary.json + host-change-request.json schema
+- ~~**task-init skill 缺失**~~：task-runner 每任务自动初始化 outputs 目录
+- ~~**host-change-review flow**~~：main agent skill 已创建
+- ~~**design-v3.md checklist 过时**~~：Phase 3-6 全部同步
+- ~~**host-sop.md 漂移**~~：全部修复
+- ~~**publish 脚本 knowledge/ 报错**~~：rsync 加 --exclude
 
 ## 当前下一步
 
-1. Vault sync（维护窗口）
-2. GUI 生产化（可选）
-3. 旧镜像清理（可选）
+1. Phase 6 端到端回退验证（实际演练 backup → restore → validate）
+2. Phase 4 剩余：task project 模板部署到容器 ACP 路径
+3. GUI 生产化（可选）
+4. Phase 7+ 后续安全加固（task token / secret 最小化）

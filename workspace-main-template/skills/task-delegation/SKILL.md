@@ -58,7 +58,7 @@ Guidelines:
 ## Single-phase workflow (simple tasks)
 1. Analyze the task request
 2. Determine routing (see matrix above)
-3. `sessions_spawn(agentId: "<agent>", task: "...")`
+3. `sessions_spawn(agentId: "<agent>", cleanup: "keep", task: "...")`
 4. Wait for completion event (auto-announced as user message)
 5. Review result and present to human
 
@@ -161,6 +161,29 @@ This sends a new message to an existing session. The subagent will process it an
 - Set appropriate timeout for long-running tasks
 - Review task outputs before presenting to human
 - For ACP: use `mode: "run"` only (one-shot). Do NOT use persistent sessions yet.
+
+## sessions_spawn parameter rules (CRITICAL)
+
+**For subagent (task-runner, research-coordinator, auditor):**
+```
+sessions_spawn(agentId: "task-runner", cleanup: "keep", task: "...")
+```
+- ✅ `agentId` + `task` — required
+- ✅ `cleanup: "keep"` — ALWAYS use "keep" so runs persist in TaskFlow and sessions remain inspectable
+- ✅ `model` — optional override
+- ❌ `streamTo` — NOT supported for subagent runtime, will cause error
+- ❌ `resumeSessionId` — NOT supported for subagent runtime
+- ❌ `runtime: "acp"` — do NOT set; subagent is the default and correct runtime
+- ❌ `cwd` — not needed; subagent inherits workspace automatically
+
+**For ACP (claude-engineer):**
+```
+sessions_spawn(agentId: "claude-engineer", runtime: "acp", task: "...", cwd: "/absolute/path")
+```
+- ✅ `runtime: "acp"` — required
+- ✅ `cwd` — must be absolute path
+- ✅ `mode: "run"` — one-shot only
+- ✅ `streamTo: "parent"` — optional, allowed only for ACP
 
 ## Related skills
 - `broker`: For host state mutations (not task delegation)

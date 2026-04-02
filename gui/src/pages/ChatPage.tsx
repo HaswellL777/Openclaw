@@ -155,8 +155,6 @@ export default function ChatPage() {
     const paramKey = searchParams.get("session");
     if (paramKey && client && connected && paramKey !== sessionKey) {
       openExistingSession(paramKey);
-      // Clear the URL param so it doesn't re-trigger
-      setSearchParams({}, { replace: true });
     }
   }, [searchParams, client, connected]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -169,6 +167,9 @@ export default function ChatPage() {
       setStreamBuf("");
       setError(null);
       setHistoryLoading(true);
+
+      // Persist session key to URL for refresh survival
+      setSearchParams({ session: key }, { replace: true });
 
       // Update agent selector to match the session
       const sessAgent = agentFromKey(key);
@@ -208,7 +209,19 @@ export default function ChatPage() {
         setStreaming(false);
         setSending(false);
         setStreamBuf("");
-        if (params?.message) {
+        // Re-fetch full history to get all intermediate messages (tool_use, tool_result, etc.)
+        // The final streaming event only contains the last assistant message,
+        // but the actual conversation has many tool calls in between.
+        if (client && sessionKey) {
+          client.call<ChatHistoryResult>("chat.history", { sessionKey })
+            .then((res: any) => setMessages(res?.messages ?? []))
+            .catch(() => {
+              // Fallback: just append the final message
+              if (params?.message) {
+                setMessages((prev) => [...prev, params.message]);
+              }
+            });
+        } else if (params?.message) {
           setMessages((prev) => [...prev, params.message]);
         }
       } else if (params?.state === "error") {
@@ -242,6 +255,7 @@ export default function ChatPage() {
       );
       const newKey = res.key ?? res.sessionKey ?? null;
       setSessionKey(newKey);
+      if (newKey) setSearchParams({ session: newKey }, { replace: true });
       setMessages([]);
       setStreamBuf("");
       setTimeout(() => inputRef.current?.focus(), 100);
@@ -438,6 +452,7 @@ export default function ChatPage() {
                 sessionKey={sessionKey}
                 allMessages={messages}
                 messageIndex={i}
+                onSessionClick={(key) => openExistingSession(key)}
               />
             ))}
             {/* Streaming buffer */}
