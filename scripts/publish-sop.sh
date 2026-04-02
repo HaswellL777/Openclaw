@@ -7,7 +7,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-SOURCE_SOP="$REPO_ROOT/docs/host-sop.md"
+SOURCE_SOP="$REPO_ROOT/docs/internal/host-sop.md"
 
 # Default: dry-run mode, live target refused
 DRY_RUN=1
@@ -185,7 +185,7 @@ if [[ $DRY_RUN -eq 1 ]]; then
     echo "  1. Copy $SOURCE_SOP"
     echo "     to $TARGET_SOP"
     echo "  2. Add publication header with:"
-    echo "     - Authoritative source: openclaw-dev/docs/host-sop.md"
+    echo "     - Authoritative source: openclaw-dev/docs/internal/host-sop.md"
     echo "     - Last published: $TIMESTAMP"
     echo "     - SHA256: $SOURCE_HASH"
     echo "  3. Write hash to $TARGET_HASH_FILE"
@@ -206,7 +206,7 @@ cat > "$TARGET_SOP" <<EOF
 
 **This is a published copy, not the authoritative source.**
 
-**Authoritative source**: \`openclaw-dev/docs/host-sop.md\` (development repo)
+**Authoritative source**: \`openclaw-dev/docs/internal/host-sop.md\` (development repo)
 
 **Last published**: $TIMESTAMP
 

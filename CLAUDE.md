@@ -15,13 +15,13 @@ It is **not** the task container workspace.
 It must never be treated as the authoritative runtime state.
 
 ## Source of truth
-- Host runtime facts and operational history live in `docs/host-sop.md`
-- Architecture and implementation target live in `docs/design-v3.md`
-- The authoritative SOP is currently edited in this dev repo: `docs/host-sop.md` (future: `/srv/openclaw-control/docs/host-sop.md` when that repo is independently operational)
+- Host runtime facts and operational history live in `docs/internal/host-sop.md`
+- Architecture and implementation target live in `docs/internal/design-v3.md`
+- The authoritative SOP is currently edited in this dev repo: `docs/internal/host-sop.md`
 - The authoritative OpenClaw runtime config path is `/etc/openclaw/openclaw.json`
 
 Do not invent host facts in this file.
-If a host fact is needed, read `docs/host-sop.md`.
+If a host fact is needed, read `docs/internal/host-sop.md`.
 
 ## Safety boundaries
 - Never run `openclaw onboard` as `nick`
@@ -42,8 +42,8 @@ If a host fact is needed, read `docs/host-sop.md`.
 
 ## Working style
 When making changes in this repo:
-1. read `docs/design-v3.md`
-2. read relevant sections of `docs/host-sop.md`
+1. read `docs/internal/design-v3.md`
+2. read relevant sections of `docs/internal/host-sop.md`
 3. keep changes minimal and reviewable
 4. prefer scripts and tests over one-off manual commands
 5. produce diff-friendly artifacts

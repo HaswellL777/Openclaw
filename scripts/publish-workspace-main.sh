@@ -58,7 +58,7 @@ SAFETY:
     - --allow-live-target requires --apply and interactive confirmation (stdin must be a terminal)
     - Creates target directory if it doesn't exist
     - Preserves existing control/state/ directory in target
-    - Automatically publishes SOP from docs/host-sop.md
+    - Automatically publishes SOP from docs/internal/host-sop.md
 
 TEMPLATE SOURCE:
     $TEMPLATE_DIR
@@ -66,7 +66,7 @@ TEMPLATE SOURCE:
 PUBLISH STEPS:
     1. Copy workspace-main-template to target
     2. Preserve existing control/state/ (if exists)
-    3. Publish docs/host-sop.md to target/control/SOP.md
+    3. Publish docs/internal/host-sop.md to target/control/SOP.md
        (non-live targets: delegates to publish-sop.sh;
         live targets: inline SOP publish by this script)
 
@@ -201,7 +201,7 @@ if [[ $DRY_RUN -eq 1 ]]; then
     echo "  1. Create target directory (if needed): $TARGET_DIR"
     echo "  2. Copy template files from: $TEMPLATE_DIR"
     echo "  3. Preserve existing control/state/ (if exists)"
-    echo "  4. Publish SOP from docs/host-sop.md to target/control/SOP.md"
+    echo "  4. Publish SOP from docs/internal/host-sop.md to target/control/SOP.md"
     echo ""
     echo "Files that would be published:"
     (cd "$TEMPLATE_DIR" && find . -type f | sort)
@@ -259,16 +259,16 @@ else
     cp -a "$TEMPLATE_DIR/control/state/"* "$TARGET_DIR/control/state/" 2>/dev/null || true
 fi
 
-# Publish SOP from docs/host-sop.md
+# Publish SOP from docs/internal/host-sop.md
 echo ""
-echo "Publishing SOP from docs/host-sop.md..."
+echo "Publishing SOP from docs/internal/host-sop.md..."
 if [[ $ALLOW_LIVE -eq 1 ]]; then
     # Live target: inline SOP publish here.
     # publish-sop.sh unconditionally refuses live paths — by design.
     # The SOP publish logic is duplicated here so that the only code path
     # that writes SOP to a live target is inside this script, which has
     # already completed interactive confirmation above.
-    SOURCE_SOP="$REPO_ROOT/docs/host-sop.md"
+    SOURCE_SOP="$REPO_ROOT/docs/internal/host-sop.md"
     TARGET_SOP="$TARGET_DIR/control/SOP.md"
     TARGET_HASH_FILE="$TARGET_DIR/control/state/last-sop-hash.txt"
     SOURCE_HASH=$(sha256sum "$SOURCE_SOP" | awk '{print $1}')
@@ -281,7 +281,7 @@ if [[ $ALLOW_LIVE -eq 1 ]]; then
 
 **This is a published copy, not the authoritative source.**
 
-**Authoritative source**: \`openclaw-dev/docs/host-sop.md\` (development repo)
+**Authoritative source**: \`openclaw-dev/docs/internal/host-sop.md\` (development repo)
 
 **Last published**: $SOP_TIMESTAMP
 

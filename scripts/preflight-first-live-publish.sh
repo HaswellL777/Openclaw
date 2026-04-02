@@ -164,8 +164,8 @@ REQUIRED_FILES=(
     "scripts/publish-sop.sh"
     "scripts/check-workspace-main.sh"
     "scripts/preflight-first-live-publish.sh"
-    "docs/host-sop.md"
-    "docs/design-v3.md"
+    "docs/internal/host-sop.md"
+    "docs/internal/design-v3.md"
     "docs/runbook-first-live-publish.md"
 )
 
@@ -265,14 +265,14 @@ else
 fi
 
 # 4.3 Check design-v3 mentions the live target
-if grep -q "$EXPECTED_LIVE_TARGET" "$REPO_ROOT/docs/design-v3.md" 2>/dev/null; then
+if grep -q "$EXPECTED_LIVE_TARGET" "$REPO_ROOT/docs/internal/design-v3.md" 2>/dev/null; then
     log_pass "design-v3.md references expected live target path"
 else
     log_warn "design-v3.md does not explicitly reference live target path"
 fi
 
 # 4.4 Check host-sop.md mentions the live target
-if grep -q "$EXPECTED_LIVE_TARGET" "$REPO_ROOT/docs/host-sop.md" 2>/dev/null; then
+if grep -q "$EXPECTED_LIVE_TARGET" "$REPO_ROOT/docs/internal/host-sop.md" 2>/dev/null; then
     log_pass "host-sop.md references expected live target path"
 else
     log_warn "host-sop.md does not explicitly reference live target path"
@@ -427,7 +427,7 @@ else
 fi
 
 # 8.2 Check design-v3 Phase 1B still marks live publish as pending
-if grep -q "⬚ 待执行" "$REPO_ROOT/docs/design-v3.md" 2>/dev/null; then
+if grep -q "⬚ 待执行" "$REPO_ROOT/docs/internal/design-v3.md" 2>/dev/null; then
     log_pass "design-v3.md still marks live publish as pending (⬚ 待执行)"
 else
     log_warn "Cannot confirm design-v3 live publish status marker"
@@ -435,7 +435,7 @@ fi
 
 # 8.3 Check host-sop.md doesn't claim first scripted publish is done
 # Use grep -v to exclude lines with negation (e.g. "均未将现网发布写为已完成")
-if grep -E "首次现网.*已完成|首次脚本化发布已执行" "$REPO_ROOT/docs/host-sop.md" 2>/dev/null \
+if grep -E "首次现网.*已完成|首次脚本化发布已执行" "$REPO_ROOT/docs/internal/host-sop.md" 2>/dev/null \
    | grep -vE "未将.*已完成|不.*已完成|未.*写为已完成" \
    | grep -q .; then
     log_fail "host-sop.md appears to claim first live publish is completed"
