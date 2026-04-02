@@ -1,7 +1,7 @@
 ---
 name: task-init
 description: |
-  Initialize a new task directory under /workspace/outputs/. MUST be called at the start of every new task before any work begins. Creates standardized directory structure and README.
+  Initialize a new task directory under /workspace/outputs/. MUST be called at the start of every new task before any work begins. Creates standardized directory structure, copies project template (CLAUDE.md + .claude/agents), and writes README.
 ---
 
 # Task Initialization
@@ -34,7 +34,23 @@ TASK_DIR="/workspace/outputs/<task-id>"
 mkdir -p "$TASK_DIR"/{data,results,logs}
 ```
 
-### 3. Write README.md
+### 3. Copy project template
+
+If `/workspace/project-template/` exists, copy the CLAUDE.md and .claude/ directory into the task directory:
+
+```bash
+if [ -d /workspace/project-template ]; then
+  cp /workspace/project-template/CLAUDE.md "$TASK_DIR/"
+  cp -r /workspace/project-template/.claude "$TASK_DIR/"
+fi
+```
+
+This gives the task directory:
+- `CLAUDE.md` — security rules and output conventions for ACP Claude Code sessions
+- `.claude/settings.json` — tool permissions
+- `.claude/agents/` — 4 specialized agents (coder, tester, reviewer, doc-writer)
+
+### 4. Write README.md
 
 Create `/workspace/outputs/<task-id>/README.md` with:
 
@@ -55,7 +71,7 @@ Create `/workspace/outputs/<task-id>/README.md` with:
 <empty, fill during execution>
 ```
 
-### 4. Set working context
+### 5. Set working context
 
 After initialization:
 - All task outputs go into `/workspace/outputs/<task-id>/`
@@ -66,12 +82,13 @@ After initialization:
 - Log files go in `logs/`
 - `host-change-request.json` goes in the task directory (if needed)
 
-### 5. Announce
+### 6. Announce
 
 Report to the calling agent:
 ```
 Task initialized: <task-id>
 Output directory: /workspace/outputs/<task-id>/
+Project template: <copied | not found>
 ```
 
 ## On Task Completion
@@ -88,3 +105,4 @@ When the task is done, you MUST:
 - Summary: `/workspace/schemas/task-runner-summary.schema.json`
 - Host change request: `/workspace/schemas/host-change-request.schema.json`
 - Artifact contract: `/workspace/control/artifact-contract.md`
+- Project template: `/workspace/project-template/` (CLAUDE.md + .claude/agents)

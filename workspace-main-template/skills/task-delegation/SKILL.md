@@ -181,9 +181,10 @@ sessions_spawn(agentId: "task-runner", cleanup: "keep", task: "...")
 sessions_spawn(agentId: "claude-engineer", runtime: "acp", task: "...", cwd: "/absolute/path")
 ```
 - ✅ `runtime: "acp"` — required
-- ✅ `cwd` — must be absolute path
+- ✅ `cwd` — must be absolute path; for task work use `/workspace/outputs/<task-id>/`
 - ✅ `mode: "run"` — one-shot only
 - ✅ `streamTo: "parent"` — optional, allowed only for ACP
+- Note: task-init copies project template (CLAUDE.md + .claude/agents) into each task dir, so ACP sessions spawned with `cwd` pointing to a task dir will have proper rules and agents
 
 ## Related skills
 - `broker`: For host state mutations (not task delegation)

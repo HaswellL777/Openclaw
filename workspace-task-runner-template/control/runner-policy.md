@@ -4,16 +4,20 @@
 This file defines the repo-side policy for the `workspace-task-runner` template described in `docs/design-v3.md`.
 
 ## Current Boundary
-- This template is a source artifact in the development repo.
-- It is not a live-published workspace.
-- It does not authorize Docker, gateway, broker, snapshot, Vault, or other host-side execution by itself.
+- This template is published to `/var/lib/openclaw/.openclaw/workspace-task-runner/`.
+- It is a live-published workspace (via `publish-workspace-all.sh`).
+- Task execution happens in Docker sandbox (scope=shared, ReadonlyRootfs=true).
+- `/workspace/project-template/` contains ACP Claude Code project template (CLAUDE.md + .claude/agents).
 
 ## Workspace Model
-- Intended runtime root: `/var/lib/openclaw/.openclaw/workspace-task-runner/`
+- Runtime root: `/var/lib/openclaw/.openclaw/workspace-task-runner/`
+- Container mount: `/workspace/`
 - Stable injected context: `AGENTS.md` and `TOOLS.md`
 - Control guidance lives in `control/`
-- Per-task material lives under `tasks/<task-id>/`
-- Task-writable areas are the task `repo/` and `outputs/` trees only
+- Task outputs live under `outputs/<task-id>/`
+- Project template lives at `project-template/` (copied into each new task dir)
+- Schemas live at `schemas/`
+- Task-writable areas: `outputs/` tree only (rootfs is read-only)
 
 ## Execution Model
 - `task-runner` exists to do bounded engineering work in a disposable task context.

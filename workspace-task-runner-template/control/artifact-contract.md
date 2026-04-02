@@ -51,5 +51,4 @@ Artifacts must explicitly preserve the actions that the runner is not allowed to
 - Validator: `scripts/validate-host-change-request.py`
 
 ## Status Note
-This contract is a Phase 3 repo-side foundation slice.
-It does not publish a live runner workspace and does not change any host-side runtime boundary.
+This contract is actively enforced. The task-runner workspace is published to live and task-init skill creates output directories following this contract. Schemas are at `/workspace/schemas/`.

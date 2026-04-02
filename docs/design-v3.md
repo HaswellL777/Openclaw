@@ -1981,7 +1981,7 @@ Phase 2 repo prep 全部完成。完整 prep 退出标准见 `docs/specs/phase2-
 - [x] 写 `.claude/agents/doc-writer.md`
 - [x] 写 `outputs/summary.json` schema — `schemas/task-runner-summary.schema.json`
 - [x] 写 `outputs/host-change-request.json` schema — `schemas/host-change-request.schema.json`
-- [ ] 部署 task-project-template 到容器内 ACP 使用路径
+- [x] 部署 task-project-template 到容器内 ACP 使用路径 — `/workspace/project-template/`，task-init skill 自动 copy
 
 ---
 
